@@ -38,6 +38,7 @@ func (l LineDetails) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: line-conf-avg [-html] [-nosort] prob1 [prob2] [...]\n")
+		fmt.Fprintf(os.Stderr, "Prints a report of the average confidence for each line\n")
 		flag.PrintDefaults()
 	}
 	var usehtml = flag.Bool("html", false, "output html page")
