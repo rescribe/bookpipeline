@@ -5,6 +5,7 @@ package main
 // see https://github.com/OCR-D/ocrd-train/issues/7 and https://github.com/OCR-D/ocrd-train/
 //
 // TODO: Simplify things into functions more; this works well, but is a bit of a rush job
+// TODO: Parse line name to zero pad line numbers, so they come out in the correct order
 
 import (
 	"encoding/xml"
@@ -224,6 +225,7 @@ func main() {
 				}
 			}
 			line.text = strings.TrimRight(linetext, " ")
+			line.text += "\n"
 			line.hocrname = strings.Replace(filepath.Base(f), ".hocr", "", 1)
 			line.img = img.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
 			lines = append(lines, line)
