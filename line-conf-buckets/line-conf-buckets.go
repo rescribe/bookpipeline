@@ -87,6 +87,7 @@ func main() {
 	for _, f := range flag.Args() {
 		file, err := os.Open(f)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error opening %s\n", f)
 			log.Fatal(err)
 		}
 		defer file.Close()
@@ -114,6 +115,13 @@ func main() {
 		}
 		avg := totalconf / float64(num)
 
+		// Explicitly close file immediately after use, rather than relying on defer,
+		// as too many files could be opened before any of the files are closed, leading
+		// to a 'too many open files' error
+		// TODO: rewrite this loop so it uses a function or two, so we can rely
+		//       on defer sensibly again.
+		file.Close()
+
 		if num == 0 || avg == 0 {
 			continue
 		}
@@ -124,11 +132,26 @@ func main() {
 		linedetail.Filebase = strings.Replace(f, ".prob", "", 1)
 		linedetail.Basename = filepath.Base(linedetail.Filebase)
 		linedetail.Dirname = filepath.Dir(linedetail.Filebase)
-		ft, ferr := ioutil.ReadFile(linedetail.Filebase + ".txt")
+
+		txtfile, ferr := os.Open(linedetail.Filebase + ".txt")
 		if ferr != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "Error opening %s\n", linedetail.Filebase + ".txt")
+			log.Fatal(ferr)
+		}
+		defer txtfile.Close()
+		ft, ferr := ioutil.ReadAll(txtfile)
+		if ferr != nil {
+			fmt.Fprintf(os.Stderr, "Error reading %s\n", linedetail.Filebase + ".txt")
+			log.Fatal(ferr)
 		}
 		linedetail.Fulltext = string(ft)
+		// Explicitly close file immediately after use, rather than relying on defer,
+		// as too many files could be opened before any of the files are closed, leading
+		// to a 'too many open files' error
+		// TODO: rewrite this loop so it uses a function or two, so we can rely
+		//       on defer sensibly again.
+		txtfile.Close()
+
 		lines = append(lines, linedetail)
 	}
 
@@ -163,6 +186,10 @@ func main() {
 	}
 
 	total := worstnum + mediumnum + bestnum
+
+	if total == 0 {
+		log.Fatal("No lines copied")
+	}
 
 	fmt.Printf("Copied lines to %s\n", outdir)
 	fmt.Printf("---------------------------------\n")
