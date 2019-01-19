@@ -3,19 +3,8 @@ package main
 // TODO: combine this with line-conf-buckets, separating the parsing
 //       out to a separate library, probably
 // see https://github.com/OCR-D/ocrd-train/issues/7 and https://github.com/OCR-D/ocrd-train/
-// for tips on creating lines of tif/txt. best thing is to use hocr-extract-images to extract
-// images for each line, based on tesseract's hocr output. can then copy the ground truth
-// for that
-// initial plan for this is to identify the lines which are best, and extract the text, then
-// later can extract the images from them
 //
-// ok, am parsing the hocr now, workflow should be:
-// - run hocr-extract-images (outside of this) and have a directory of images named line-000.png
-// - run this with hocr and hocr-images dir
-//   this then saves the text for the line alongside copying the image from the dir into a fresh dir, according to the line confidence
-//
-// actually, *should* be able to extract the images quite straightforwardly straight from go, which would be cool. so try to build that.
-// should be super easy, with SubImage, see end of https://blog.golang.org/go-image-package
+// TODO: Simplify things into functions more; this works well, but is a bit of a rush job
 
 import (
 	"encoding/xml"
@@ -71,14 +60,14 @@ func copyline(filebase string, dirname string, basename string, avgconf string, 
 		if err != nil {
 			return err
 		}
-	
+
 		outfile, err := os.Create(outname + extn)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname + extn)
 			return err
 		}
 		defer outfile.Close()
-	
+
 		_, err = io.Copy(outfile, infile)
 		if err != nil {
 			return err
@@ -104,8 +93,16 @@ type OcrWord struct {
 	Class string `xml:"class,attr"`
 	Id string `xml:"id,attr"`
 	Title string `xml:"title,attr"`
-	// TODO: also capture OcrChar where it exists, to grab text from it
-	// TODO: grab text from these elements, to save for the line
+	Chars []OcrChar `xml:"span"`
+	Text string `xml:",chardata"`
+}
+
+type OcrChar struct {
+	Class string `xml:"class,attr"`
+	Id string `xml:"id,attr"`
+	Title string `xml:"title,attr"`
+	Chars []OcrChar `xml:"span"`
+	Text string `xml:",chardata"`
 }
 
 // Returns the confidence for a word based on its x_wconf value
@@ -133,7 +130,11 @@ func boxCoords(s string) ([4]int, error) {
 		coords[i] = c
 	}
 	return coords, nil
-	
+}
+
+func noText(s string) bool {
+	t := strings.Trim(s, " \n")
+	return len(t) == 0
 }
 
 func main() {
@@ -194,8 +195,35 @@ func main() {
 
 			var line LineDetail
 			line.name = l.Id
-			line.avgconf = totalconf/float64(num)
-			line.text = l.Text // TODO: get text from OcrWord and OcrChar (if available)
+			line.avgconf = (totalconf/float64(num)) / 100
+			linetext := ""
+
+			linetext = l.Text
+			if(noText(linetext)) {
+				linetext = ""
+				for _, w := range l.Words {
+					if(w.Class != "ocrx_word") {
+						continue
+					}
+					linetext += w.Text + " "
+				}
+			}
+			if(noText(linetext)) {
+				linetext = ""
+				for _, w := range l.Words {
+					if(w.Class != "ocrx_word") {
+						continue
+					}
+					for _, c := range w.Chars {
+						if(c.Class != "ocrx_cinfo") {
+							continue
+						}
+						linetext += c.Text
+					}
+					linetext += " "
+				}
+			}
+			line.text = strings.TrimRight(linetext, " ")
 			line.hocrname = strings.Replace(filepath.Base(f), ".hocr", "", 1)
 			line.img = img.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
 			lines = append(lines, line)
@@ -224,8 +252,8 @@ func main() {
 			bestnum++
 		}
 
-		avgstr := strconv.FormatFloat(l.avgconf, 'G', -1, 64)
-		avgstr = strings.Replace(avgstr, ".", "", 1)
+		avgstr := strconv.FormatFloat(l.avgconf, 'f', 5, 64)
+		avgstr = avgstr[2:]
 		fmt.Printf("Line: %s, avg: %f, avgstr: %s\n", l.name, l.avgconf, avgstr)
 		outname := filepath.Join(outdir, todir, l.hocrname + "_" + l.name + "_" + avgstr + ".png")
 
@@ -233,7 +261,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-	
+
 		outfile, err := os.Create(outname)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname)
@@ -245,9 +273,20 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// TODO: do same with saving line
 
-		// TODO: copy the line.img and line.text into the appropriate place, using hocrname/name.ext
+		outname = filepath.Join(outdir, todir, l.hocrname + "_" + l.name + "_" + avgstr + ".txt")
+		outfile, err = os.Create(outname)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname)
+			log.Fatal(err)
+		}
+		defer outfile.Close()
+
+		_, err = io.WriteString(outfile, l.text)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		// TODO: test whether the line.img works properly with multiple hocrs, as it could be that as it's a pointer, it always points to the latest image (don't think so, but not sure)
 	}
 
