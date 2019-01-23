@@ -2,28 +2,44 @@ package hocr
 
 // TODO: separate out linedetail to a general structure that can incorporate
 //       line-conf-buckets too, in a different file (and rename package to
-//       something more generic). Try to use interfaces to fill it with hocr
-//       or ocropy data simply. Could design it so LineDetail is an interface,
-//       that can do CopyLines() and BucketUp(). Actually only BucketUp() would
-//       be needed, as copylines can be internal to that. Then can create more
-//       methods as and when needed. BucketUp() can take some form of arguments
-//       that can make it flexible, like []struct { dirname string, minconf float64 }
+//       something more generic). Do this using the CopyableLine interface
 // TODO: Parse line name to zero pad line numbers, so they come out in the correct order
 
 import (
 	"encoding/xml"
 	"image"
+	"image/png"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
+// TODO: move the linedetail stuff out to a separate file, and create a new
+//       CopyableLine implementing struct for ocropy, which will just store
+//       a file location
 type LineDetail struct {
 	Name string
 	Avgconf float64
-	Img image.Image
+	Img CopyableLine
 	Text string
 	Hocrname string
+}
+
+type CopyableLine interface {
+	CopyLineTo(io.Writer) (error)
+}
+
+type ImgDirect struct {
+	img image.Image
+}
+
+func (i ImgDirect) CopyLineTo(w io.Writer) (error) {
+	err := png.Encode(w, i.img)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type LineDetails []LineDetail
@@ -163,7 +179,9 @@ func GetLineDetails(h Hocr, i image.Image, name string) (LineDetails, error) {
 		line.Text = strings.TrimRight(linetext, " ")
 		line.Text += "\n"
 		line.Hocrname = name
-		line.Img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
+		var imgd ImgDirect
+		imgd.img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
+		line.Img = imgd
 		lines = append(lines, line)
 	}
 	return lines, nil

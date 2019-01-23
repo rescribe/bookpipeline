@@ -105,7 +105,7 @@ func main() {
 		}
 		defer outfile.Close()
 
-		err = png.Encode(outfile, l.Img)
+		err = l.Img.CopyLineTo(outfile)
 		if err != nil {
 			log.Fatal(err)
 		}
