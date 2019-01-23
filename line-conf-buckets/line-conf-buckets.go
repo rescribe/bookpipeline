@@ -6,11 +6,24 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
 
 	"git.rescribe.xyz/testingtools/parse"
 	"git.rescribe.xyz/testingtools/parse/prob"
 )
+
+func lineDetails(f string) (parse.LineDetails, error) {
+	var newlines parse.LineDetails
+
+	file, err := os.Open(f)
+	if err != nil {
+		return newlines, err
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+
+	return prob.GetLineDetails(f, reader)
+}
 
 func main() {
 	flag.Usage = func() {
@@ -28,15 +41,7 @@ func main() {
 	lines := make(parse.LineDetails, 0)
 
 	for _, f := range flag.Args() {
-		file, err := os.Open(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-
-		reader := bufio.NewReader(file)
-
-		newlines, err := prob.GetLineDetails(f, reader)
+		newlines, err := lineDetails(f)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -44,14 +49,8 @@ func main() {
                 for _, l := range newlines {
                         lines = append(lines, l)
                 }
-		// explicitly close the file, so we can be sure we won't run out of
-		// handles before defer runs
-		file.Close()
 	}
 
-	sort.Sort(lines)
-
-	//var b parse.BucketSpecs
 	b := parse.BucketSpecs{
 		{ 0, "bad" },
 		{ 0.95, "95to98" },
@@ -59,8 +58,10 @@ func main() {
 	}
 
 	// TODO: set bucket dirname from cmdline
-	err := parse.BucketUp(lines, b, "newbuckets")
+	stats, err := parse.BucketUp(lines, b, "newbuckets")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	parse.PrintBucketStats(os.Stdout, stats)
 }

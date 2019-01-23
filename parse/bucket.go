@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"fmt"
 	"io"
 	"path/filepath"
 	"os"
@@ -17,16 +18,19 @@ func (b BucketSpecs) Len() int { return len(b) }
 func (b BucketSpecs) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b BucketSpecs) Less(i, j int) bool { return b[i].Min < b[j].Min }
 
-func bucketLine(l LineDetail, buckets BucketSpecs, dirname string) error {
+func bucketLine(l LineDetail, buckets BucketSpecs, dirname string) (string, error) {
+	var bucket string
+
 	todir := ""
 	for _, b := range buckets {
 		if l.Avgconf >= b.Min {
 			todir = b.Name
+			bucket = b.Name
 		}
 	}
 
 	if todir == "" {
-		return nil
+		return bucket, nil
 	}
 
 	avgstr := strconv.FormatFloat(l.Avgconf, 'G', -1, 64)
@@ -38,45 +42,82 @@ func bucketLine(l LineDetail, buckets BucketSpecs, dirname string) error {
 
 	err := os.MkdirAll(filepath.Join(dirname, todir), 0700)
 	if err != nil {
-		return err
+		return bucket, err
 	}
 
 	f, err := os.Create(base + ".png")
 	if err != nil {
-		return err
+		return bucket, err
 	}
 	defer f.Close()
 
 	err = l.Img.CopyLineTo(f)
 	if err != nil {
-		return err
+		return bucket, err
 	}
 
 	f, err = os.Create(base + ".txt")
 	if err != nil {
-		return err
+		return bucket, err
 	}
 	defer f.Close()
 
 	_, err = io.WriteString(f, l.Text)
 	if err != nil {
-		return err
+		return bucket, err
 	}
 
-	return nil
+	return bucket, err
 }
+
+type BucketStat struct {
+	name string
+	num int
+}
+type BucketStats []BucketStat
+func (b BucketStats) Len() int { return len(b) }
+func (b BucketStats) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b BucketStats) Less(i, j int) bool { return b[i].num < b[j].num }
 
 // Copies line images and text into directories based on their
 // confidence, as defined by the buckets struct
-func BucketUp(lines LineDetails, buckets BucketSpecs, dirname string) error {
+func BucketUp(lines LineDetails, buckets BucketSpecs, dirname string) (BucketStats, error) {
+	var all []string
+	var stats BucketStats
+
+	sort.Sort(lines)
 	sort.Sort(buckets)
-	// TODO: record and print out summary of % in each bucket category (see how tools did it)
 	for _, l := range lines {
-		err := bucketLine(l, buckets, dirname)
+		bname, err := bucketLine(l, buckets, dirname)
 		if err != nil {
-			return err
+			return stats, err
 		}
+		all = append(all, bname)
 	}
 
-	return nil
+	for _, b := range all {
+		i := sort.Search(len(stats), func(i int) bool { return stats[i].name == b })
+		if i == len(stats) {
+			newstat := BucketStat { b, 0 }
+			stats = append(stats, newstat)
+			i = len(stats) - 1
+		}
+		stats[i].num++
+	}
+
+	return stats, nil
+}
+
+func PrintBucketStats(w io.Writer, stats BucketStats) {
+	var total int
+	for _, s := range stats {
+		total += s.num
+	}
+
+	fmt.Fprintf(w, "Copied %d lines\n", total)
+	fmt.Fprintf(w, "---------------------------------\n")
+	sort.Sort(stats)
+	for _, s := range stats {
+		fmt.Fprintf(w, "Lines in %7s: %2d%%\n", s.name, 100 * s.num / total)
+	}
 }
