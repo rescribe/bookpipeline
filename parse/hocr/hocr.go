@@ -1,59 +1,18 @@
 package hocr
 
-// TODO: separate out linedetail to a general structure that can incorporate
-//       line-conf-buckets too, in a different file (and rename package to
-//       something more generic). Do this using the CopyableLine interface
+// TODO: consider making GetLineDetails() a function of Hocr, so could do a
+//       similar thing with prob format files too.
 // TODO: Parse line name to zero pad line numbers, so they come out in the correct order
 
 import (
 	"encoding/xml"
 	"image"
-	"image/png"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"git.rescribe.xyz/testingtools/parse"
 )
-
-// TODO: move the linedetail stuff out to a separate file, and create a new
-//       CopyableLine implementing struct for ocropy, which will just store
-//       a file location
-type LineDetail struct {
-	Name string
-	Avgconf float64
-	Img CopyableLine
-	Text string
-	Hocrname string
-}
-
-type CopyableLine interface {
-	CopyLineTo(io.Writer) (error)
-}
-
-type ImgDirect struct {
-	img image.Image
-}
-
-func (i ImgDirect) CopyLineTo(w io.Writer) (error) {
-	err := png.Encode(w, i.img)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-type LineDetails []LineDetail
-
-// Used by sort.Sort.
-func (l LineDetails) Len() int { return len(l) }
-
-// Used by sort.Sort.
-func (l LineDetails) Less(i, j int) bool {
-	return l[i].Avgconf < l[j].Avgconf
-}
-
-// Used by sort.Sort.
-func (l LineDetails) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
 type Hocr struct {
 	Lines []OcrLine `xml:"body>div>div>p>span"`
@@ -126,8 +85,8 @@ func Parse(b []byte) (Hocr, error) {
 	return hocr, nil
 }
 
-func GetLineDetails(h Hocr, i image.Image, name string) (LineDetails, error) {
-	lines := make(LineDetails, 0)
+func GetLineDetails(h Hocr, i image.Image, name string) (parse.LineDetails, error) {
+	lines := make(parse.LineDetails, 0)
 
 	for _, l := range h.Lines {
 		totalconf := float64(0)
@@ -146,7 +105,7 @@ func GetLineDetails(h Hocr, i image.Image, name string) (LineDetails, error) {
 			return lines, err
 		}
 
-		var line LineDetail
+		var line parse.LineDetail
 		line.Name = l.Id
 		line.Avgconf = (totalconf/float64(num)) / 100
 		linetext := ""
@@ -179,8 +138,8 @@ func GetLineDetails(h Hocr, i image.Image, name string) (LineDetails, error) {
 		line.Text = strings.TrimRight(linetext, " ")
 		line.Text += "\n"
 		line.Hocrname = name
-		var imgd ImgDirect
-		imgd.img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
+		var imgd parse.ImgDirect
+		imgd.Img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
 		line.Img = imgd
 		lines = append(lines, line)
 	}

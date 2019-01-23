@@ -17,7 +17,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.rescribe.xyz/testingtools/hocr"
+	"git.rescribe.xyz/testingtools/parse"
+	"git.rescribe.xyz/testingtools/parse/hocr"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	lines := make(hocr.LineDetails, 0)
+	lines := make(parse.LineDetails, 0)
 
 	for _, f := range flag.Args() {
 		file, err := ioutil.ReadFile(f)
