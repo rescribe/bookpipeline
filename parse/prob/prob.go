@@ -57,7 +57,7 @@ func GetLineDetails(name string, r *bufio.Reader) (parse.LineDetails, error) {
 		return lines, err
 	}
 
-	line.Name = name
+	line.Name = filepath.Base(filebase)
 	line.Avgconf = avg
 	line.Text = string(txt)
 	line.OcrName = filepath.Dir(filebase)
