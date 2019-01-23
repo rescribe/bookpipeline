@@ -1,142 +1,24 @@
 package main
 
-// TODO: combine this with line-conf-buckets, separating the parsing
-//       out to a separate library, probably
-// see https://github.com/OCR-D/ocrd-train/issues/7 and https://github.com/OCR-D/ocrd-train/
+// TODO: see TODO in hocr package
 //
 // TODO: Simplify things into functions more; this works well, but is a bit of a rush job
-// TODO: Parse line name to zero pad line numbers, so they come out in the correct order
 
 import (
-	"encoding/xml"
 	"flag"
 	"fmt"
-	"image"
 	"image/png"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"git.rescribe.xyz/testingtools/hocr"
 )
-
-type LineDetail struct {
-	name string
-	avgconf float64
-	img image.Image
-	text string
-	hocrname string
-}
-
-type LineDetails []LineDetail
-
-// Used by sort.Sort.
-func (l LineDetails) Len() int { return len(l) }
-
-// Used by sort.Sort.
-func (l LineDetails) Less(i, j int) bool {
-	return l[i].avgconf < l[j].avgconf
-}
-
-// Used by sort.Sort.
-func (l LineDetails) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-
-func copyline(filebase string, dirname string, basename string, avgconf string, outdir string, todir string) (err error) {
-	outname := filepath.Join(outdir, todir, filepath.Base(dirname) + "_" + basename + "_" + avgconf)
-	//log.Fatalf("I'd use '%s' as outname, and '%s' as filebase\n", outname, filebase)
-
-	for _, extn := range []string{".bin.png", ".txt"} {
-		infile, err := os.Open(filebase + extn)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to open %s\n", filebase + extn)
-			return err
-		}
-		defer infile.Close()
-
-		err = os.MkdirAll(filepath.Join(outdir, todir), 0700)
-		if err != nil {
-			return err
-		}
-
-		outfile, err := os.Create(outname + extn)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname + extn)
-			return err
-		}
-		defer outfile.Close()
-
-		_, err = io.Copy(outfile, infile)
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-type Hocr struct {
-	Lines []OcrLine `xml:"body>div>div>p>span"`
-}
-
-type OcrLine struct {
-	Class string `xml:"class,attr"`
-	Id string `xml:"id,attr"`
-	Title string `xml:"title,attr"`
-	Words []OcrWord `xml:"span"`
-	Text string `xml:",chardata"`
-}
-
-type OcrWord struct {
-	Class string `xml:"class,attr"`
-	Id string `xml:"id,attr"`
-	Title string `xml:"title,attr"`
-	Chars []OcrChar `xml:"span"`
-	Text string `xml:",chardata"`
-}
-
-type OcrChar struct {
-	Class string `xml:"class,attr"`
-	Id string `xml:"id,attr"`
-	Title string `xml:"title,attr"`
-	Chars []OcrChar `xml:"span"`
-	Text string `xml:",chardata"`
-}
-
-// Returns the confidence for a word based on its x_wconf value
-func wordConf(s string) (float64, error) {
-	re, err := regexp.Compile(`x_wconf ([0-9.]+)`)
-	if err != nil {
-		return 0.0, err
-	}
-	conf := re.FindStringSubmatch(s)
-	return strconv.ParseFloat(conf[1], 64)
-}
-
-func boxCoords(s string) ([4]int, error) {
-	var coords [4]int
-	re, err := regexp.Compile(`bbox ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+)`)
-	if err != nil {
-		return coords, err
-	}
-	coordstr := re.FindStringSubmatch(s)
-	for i := range coords {
-		c, err := strconv.Atoi(coordstr[i+1])
-		if err != nil {
-			return coords, err
-		}
-		coords[i] = c
-	}
-	return coords, nil
-}
-
-func noText(s string) bool {
-	t := strings.Trim(s, " \n")
-	return len(t) == 0
-}
 
 func main() {
 	flag.Usage = func() {
@@ -151,9 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	lines := make(LineDetails, 0)
-
-	var hocr Hocr
+	lines := make(hocr.LineDetails, 0)
 
 	for _, f := range flag.Args() {
 		file, err := ioutil.ReadFile(f)
@@ -161,7 +41,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		err = xml.Unmarshal(file, &hocr)
+		h, err := hocr.Parse(file)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -177,58 +57,13 @@ func main() {
 			log.Fatal(err)
 		}
 
-		for _, l := range hocr.Lines {
-			totalconf := float64(0)
-			num := 0
-			for _, w := range l.Words {
-				c, err := wordConf(w.Title)
-				if err != nil {
-					log.Fatal(err)
-				}
-				num++
-				totalconf += c
-			}
-
-			coords, err := boxCoords(l.Title)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			var line LineDetail
-			line.name = l.Id
-			line.avgconf = (totalconf/float64(num)) / 100
-			linetext := ""
-
-			linetext = l.Text
-			if(noText(linetext)) {
-				linetext = ""
-				for _, w := range l.Words {
-					if(w.Class != "ocrx_word") {
-						continue
-					}
-					linetext += w.Text + " "
-				}
-			}
-			if(noText(linetext)) {
-				linetext = ""
-				for _, w := range l.Words {
-					if(w.Class != "ocrx_word") {
-						continue
-					}
-					for _, c := range w.Chars {
-						if(c.Class != "ocrx_cinfo") {
-							continue
-						}
-						linetext += c.Text
-					}
-					linetext += " "
-				}
-			}
-			line.text = strings.TrimRight(linetext, " ")
-			line.text += "\n"
-			line.hocrname = strings.Replace(filepath.Base(f), ".hocr", "", 1)
-			line.img = img.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
-			lines = append(lines, line)
+		n := strings.Replace(filepath.Base(f), ".hocr", "", 1)
+		newlines, err := hocr.GetLineDetails(h, img, n)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, l := range newlines {
+			lines = append(lines, l)
 		}
 	}
 
@@ -243,10 +78,10 @@ func main() {
 
 	for _, l := range lines {
 		switch {
-		case l.avgconf < 0.95: 
+		case l.Avgconf < 0.95:
 			todir = "bad"
 			worstnum++
-		case l.avgconf < 0.98:
+		case l.Avgconf < 0.98:
 			todir = "95to98"
 			mediumnum++
 		default:
@@ -254,10 +89,9 @@ func main() {
 			bestnum++
 		}
 
-		avgstr := strconv.FormatFloat(l.avgconf, 'f', 5, 64)
+		avgstr := strconv.FormatFloat(l.Avgconf, 'f', 5, 64)
 		avgstr = avgstr[2:]
-		fmt.Printf("Line: %s, avg: %f, avgstr: %s\n", l.name, l.avgconf, avgstr)
-		outname := filepath.Join(outdir, todir, l.hocrname + "_" + l.name + "_" + avgstr + ".png")
+		outname := filepath.Join(outdir, todir, l.Hocrname + "_" + l.Name + "_" + avgstr + ".png")
 
 		err := os.MkdirAll(filepath.Join(outdir, todir), 0700)
 		if err != nil {
@@ -271,12 +105,12 @@ func main() {
 		}
 		defer outfile.Close()
 
-		err = png.Encode(outfile, l.img)
+		err = png.Encode(outfile, l.Img)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		outname = filepath.Join(outdir, todir, l.hocrname + "_" + l.name + "_" + avgstr + ".txt")
+		outname = filepath.Join(outdir, todir, l.Hocrname + "_" + l.Name + "_" + avgstr + ".txt")
 		outfile, err = os.Create(outname)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname)
@@ -284,7 +118,7 @@ func main() {
 		}
 		defer outfile.Close()
 
-		_, err = io.WriteString(outfile, l.text)
+		_, err = io.WriteString(outfile, l.Text)
 		if err != nil {
 			log.Fatal(err)
 		}
