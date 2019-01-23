@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"os"
 )
 
 type LineDetail struct {
@@ -16,7 +17,7 @@ type LineDetail struct {
 	Avgconf float64
 	Img CopyableLine
 	Text string
-	Hocrname string
+	OcrName string
 }
 
 type CopyableLine interface {
@@ -35,6 +36,21 @@ func (i ImgDirect) CopyLineTo(w io.Writer) (error) {
 		return err
 	}
 	return nil
+}
+
+type ImgPath struct {
+	Path string
+}
+
+func (i ImgPath) CopyLineTo(w io.Writer) (error) {
+	f, err := os.Open(i.Path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(w, f)
+	return err
 }
 
 type LineDetails []LineDetail

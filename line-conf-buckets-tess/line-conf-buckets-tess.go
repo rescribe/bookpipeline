@@ -92,7 +92,7 @@ func main() {
 
 		avgstr := strconv.FormatFloat(l.Avgconf, 'f', 5, 64)
 		avgstr = avgstr[2:]
-		outname := filepath.Join(outdir, todir, l.Hocrname + "_" + l.Name + "_" + avgstr + ".png")
+		outname := filepath.Join(outdir, todir, l.OcrName + "_" + l.Name + "_" + avgstr + ".png")
 
 		err := os.MkdirAll(filepath.Join(outdir, todir), 0700)
 		if err != nil {
@@ -111,7 +111,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		outname = filepath.Join(outdir, todir, l.Hocrname + "_" + l.Name + "_" + avgstr + ".txt")
+		outname = filepath.Join(outdir, todir, l.OcrName + "_" + l.Name + "_" + avgstr + ".txt")
 		outfile, err = os.Create(outname)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname)

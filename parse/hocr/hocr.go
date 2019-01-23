@@ -1,7 +1,8 @@
 package hocr
 
 // TODO: consider making GetLineDetails() a function of Hocr, so could do a
-//       similar thing with prob format files too.
+//       similar thing with prob format files too, and then fire them both
+//       off a generic interface, potentially.
 // TODO: Parse line name to zero pad line numbers, so they come out in the correct order
 
 import (
@@ -137,7 +138,7 @@ func GetLineDetails(h Hocr, i image.Image, name string) (parse.LineDetails, erro
 		}
 		line.Text = strings.TrimRight(linetext, " ")
 		line.Text += "\n"
-		line.Hocrname = name
+		line.OcrName = name
 		var imgd parse.ImgDirect
 		imgd.Img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
 		line.Img = imgd

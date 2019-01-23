@@ -5,42 +5,23 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"git.rescribe.xyz/testingtools/parse"
+	"git.rescribe.xyz/testingtools/parse/prob"
 )
 
-type LineDetail struct {
-	Filename string
-	Avgconf float64
-	Filebase string
-	Basename string
-	Dirname string
-	Fulltext string
-}
-
-type LineDetails []LineDetail
-
-// Used by sort.Sort.
-func (l LineDetails) Len() int { return len(l) }
-
-// Used by sort.Sort.
-func (l LineDetails) Less(i, j int) bool {
-	return l[i].Avgconf < l[j].Avgconf
-}
-
-// Used by sort.Sort.
-func (l LineDetails) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-
-func copyline(filebase string, dirname string, basename string, avgconf string, outdir string, todir string) (err error) {
+// TODO: this is just a placeholder, do this more sensibly, as -tess does (hint: full txt should already be in the LineDetail)
+func copyline(filebase string, dirname string, basename string, avgconf string, outdir string, todir string, l parse.LineDetail) (err error) {
 	outname := filepath.Join(outdir, todir, filepath.Base(dirname) + "_" + basename + "_" + avgconf)
 	//log.Fatalf("I'd use '%s' as outname, and '%s' as filebase\n", outname, filebase)
 
-	for _, extn := range []string{".bin.png", ".txt"} {
+	for _, extn := range []string{".txt"} {
 		infile, err := os.Open(filebase + extn)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open %s\n", filebase + extn)
@@ -66,6 +47,16 @@ func copyline(filebase string, dirname string, basename string, avgconf string, 
 		}
 	}
 
+	f, err := os.Create(outname + ".bin.png")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	err = l.Img.CopyLineTo(f)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -82,77 +73,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	lines := make(LineDetails, 0)
+	lines := make(parse.LineDetails, 0)
 
 	for _, f := range flag.Args() {
 		file, err := os.Open(f)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening %s\n", f)
 			log.Fatal(err)
 		}
 		defer file.Close()
 
 		reader := bufio.NewReader(file)
 
-		totalconf := float64(0)
-		num := 0
-
-		err = nil
-		for err == nil {
-			var line string
-                        line, err = reader.ReadString('\n')
-			fields := strings.Fields(line)
-
-			if len(fields) == 2 {
-				conf, converr := strconv.ParseFloat(fields[1], 64)
-				if converr != nil {
-					fmt.Fprintf(os.Stderr, "Error: can't convert '%s' to float (full line: %s)\n", fields[1], line)
-					continue
-				}
-				totalconf += conf
-				num += 1
-			}
+		newlines, err := prob.GetLineDetails(f, reader)
+		if err != nil {
+			log.Fatal(err)
 		}
-		avg := totalconf / float64(num)
 
-		// Explicitly close file immediately after use, rather than relying on defer,
-		// as too many files could be opened before any of the files are closed, leading
-		// to a 'too many open files' error
-		// TODO: rewrite this loop so it uses a function or two, so we can rely
-		//       on defer sensibly again.
+                for _, l := range newlines {
+                        lines = append(lines, l)
+                }
+		// explicitly close the file, so we can be sure we won't run out of
+		// handles before defer runs
 		file.Close()
-
-		if num == 0 || avg == 0 {
-			continue
-		}
-
-		var linedetail LineDetail
-		linedetail.Filename = f
-		linedetail.Avgconf = avg
-		linedetail.Filebase = strings.Replace(f, ".prob", "", 1)
-		linedetail.Basename = filepath.Base(linedetail.Filebase)
-		linedetail.Dirname = filepath.Dir(linedetail.Filebase)
-
-		txtfile, ferr := os.Open(linedetail.Filebase + ".txt")
-		if ferr != nil {
-			fmt.Fprintf(os.Stderr, "Error opening %s\n", linedetail.Filebase + ".txt")
-			log.Fatal(ferr)
-		}
-		defer txtfile.Close()
-		ft, ferr := ioutil.ReadAll(txtfile)
-		if ferr != nil {
-			fmt.Fprintf(os.Stderr, "Error reading %s\n", linedetail.Filebase + ".txt")
-			log.Fatal(ferr)
-		}
-		linedetail.Fulltext = string(ft)
-		// Explicitly close file immediately after use, rather than relying on defer,
-		// as too many files could be opened before any of the files are closed, leading
-		// to a 'too many open files' error
-		// TODO: rewrite this loop so it uses a function or two, so we can rely
-		//       on defer sensibly again.
-		txtfile.Close()
-
-		lines = append(lines, linedetail)
 	}
 
 	sort.Sort(lines)
@@ -178,8 +120,12 @@ func main() {
 		}
 
 		avgstr := strconv.FormatFloat(l.Avgconf, 'G', -1, 64)
-		avgstr = avgstr[2:]
-		err := copyline(l.Filebase, l.Dirname, l.Basename, avgstr, outdir, todir)
+		if len(avgstr) > 2 {
+			avgstr = avgstr[2:]
+		}
+		filebase := strings.Replace(l.Name, ".prob", "", 1)
+		basename := filepath.Base(filebase)
+		err := copyline(filebase, l.OcrName, basename, avgstr, outdir, todir, l)
 		if err != nil {
 			log.Fatal(err)
 		}
