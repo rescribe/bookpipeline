@@ -1,9 +1,10 @@
 package hocr
 
-// TODO: consider making GetLineDetails() a function of Hocr, so could do a
-//       similar thing with prob format files too, and then fire them both
-//       off a generic interface, potentially.
-// TODO: Parse line name to zero pad line numbers, so they come out in the correct order
+// TODO: Parse line name to zero pad line numbers, so they can
+//       be sorted easily
+// TODO: have same filename format as .prob uses, so include base
+//       dirname, and don't include line numbers if there's only
+//       one line in the hocr
 
 import (
 	"encoding/xml"
