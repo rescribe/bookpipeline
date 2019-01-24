@@ -1,25 +1,49 @@
 package main
 
-// TODO: see TODO in hocr package
-//
-// TODO: Simplify things into functions more; this works well, but is a bit of a rush job
+// TODO: rename
+// TODO: set bucket dirname from cmdline
 
 import (
 	"flag"
 	"fmt"
 	"image/png"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 
 	"git.rescribe.xyz/testingtools/parse"
 	"git.rescribe.xyz/testingtools/parse/hocr"
 )
+
+func detailsFromFile(f string) (parse.LineDetails, error) {
+	var newlines parse.LineDetails
+
+	file, err := ioutil.ReadFile(f)
+	if err != nil {
+		return newlines, err
+	}
+
+	h, err := hocr.Parse(file)
+	if err != nil {
+		return newlines, err
+	}
+
+	pngfn := strings.Replace(f, ".hocr", ".png", 1)
+	pngf, err := os.Open(pngfn)
+	if err != nil {
+		return newlines, err
+	}
+	defer pngf.Close()
+	img, err := png.Decode(pngf)
+	if err != nil {
+		return newlines, err
+	}
+
+	n := strings.Replace(filepath.Base(f), ".hocr", "", 1)
+	return hocr.GetLineDetails(h, img, n)
+}
 
 func main() {
 	flag.Usage = func() {
@@ -37,101 +61,26 @@ func main() {
 	lines := make(parse.LineDetails, 0)
 
 	for _, f := range flag.Args() {
-		file, err := ioutil.ReadFile(f)
+		newlines, err := detailsFromFile(f)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		h, err := hocr.Parse(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		pngfn := strings.Replace(f, ".hocr", ".png", 1)
-		pngf, err := os.Open(pngfn)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer pngf.Close()
-		img, err := png.Decode(pngf)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		n := strings.Replace(filepath.Base(f), ".hocr", "", 1)
-		newlines, err := hocr.GetLineDetails(h, img, n)
-		if err != nil {
-			log.Fatal(err)
-		}
 		for _, l := range newlines {
 			lines = append(lines, l)
 		}
 	}
 
-	sort.Sort(lines)
-
-	worstnum := 0
-	mediumnum := 0
-	bestnum := 0
-
-	outdir := "buckets" // TODO: set this from cmdline
-	todir := ""
-
-	for _, l := range lines {
-		switch {
-		case l.Avgconf < 0.95:
-			todir = "bad"
-			worstnum++
-		case l.Avgconf < 0.98:
-			todir = "95to98"
-			mediumnum++
-		default:
-			todir = "98plus"
-			bestnum++
-		}
-
-		avgstr := strconv.FormatFloat(l.Avgconf, 'f', 5, 64)
-		avgstr = avgstr[2:]
-		outname := filepath.Join(outdir, todir, l.OcrName + "_" + l.Name + "_" + avgstr + ".png")
-
-		err := os.MkdirAll(filepath.Join(outdir, todir), 0700)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		outfile, err := os.Create(outname)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname)
-			log.Fatal(err)
-		}
-		defer outfile.Close()
-
-		err = l.Img.CopyLineTo(outfile)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		outname = filepath.Join(outdir, todir, l.OcrName + "_" + l.Name + "_" + avgstr + ".txt")
-		outfile, err = os.Create(outname)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create %s\n", outname)
-			log.Fatal(err)
-		}
-		defer outfile.Close()
-
-		_, err = io.WriteString(outfile, l.Text)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// TODO: test whether the line.img works properly with multiple hocrs, as it could be that as it's a pointer, it always points to the latest image (don't think so, but not sure)
+	b := parse.BucketSpecs{
+		{ 0, "bad" },
+		{ 0.95, "95to98" },
+		{ 0.98, "98plus" },
 	}
 
-	total := worstnum + mediumnum + bestnum
+	stats, err := parse.BucketUp(lines, b, "newbuckets")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	fmt.Printf("Copied lines to %s\n", outdir)
-	fmt.Printf("---------------------------------\n")
-	fmt.Printf("Lines 98%%+ quality:     %d%%\n", 100 * bestnum / total)
-	fmt.Printf("Lines 95-98%% quality:   %d%%\n", 100 * mediumnum / total)
-	fmt.Printf("Lines <95%% quality:     %d%%\n", 100 * worstnum / total)
+	parse.PrintBucketStats(os.Stdout, stats)
 }

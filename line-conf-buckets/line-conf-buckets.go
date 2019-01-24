@@ -1,5 +1,8 @@
 package main
 
+// TODO: rename this emphasising that it's for .prob/ocropy
+// TODO: set bucket dirname from cmdline
+
 import (
 	"bufio"
 	"flag"
@@ -11,7 +14,7 @@ import (
 	"git.rescribe.xyz/testingtools/parse/prob"
 )
 
-func lineDetails(f string) (parse.LineDetails, error) {
+func detailsFromFile(f string) (parse.LineDetails, error) {
 	var newlines parse.LineDetails
 
 	file, err := os.Open(f)
@@ -41,7 +44,7 @@ func main() {
 	lines := make(parse.LineDetails, 0)
 
 	for _, f := range flag.Args() {
-		newlines, err := lineDetails(f)
+		newlines, err := detailsFromFile(f)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -57,7 +60,6 @@ func main() {
 		{ 0.98, "98plus" },
 	}
 
-	// TODO: set bucket dirname from cmdline
 	stats, err := parse.BucketUp(lines, b, "newbuckets")
 	if err != nil {
 		log.Fatal(err)
