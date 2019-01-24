@@ -1,7 +1,6 @@
 package prob
 
 import (
-	"bufio"
 	"io/ioutil"
 	"path/filepath"
 	"strconv"
@@ -10,22 +9,21 @@ import (
 	"git.rescribe.xyz/testingtools/parse"
 )
 
-// TODO: probably switch to just relying on io.Reader
-func getLineAvg(r *bufio.Reader) (float64, error) {
-	var err error
-
+func getLineAvg(f string) (float64, error) {
 	totalconf := float64(0)
 	num := 0
 
-	err = nil
-	for err == nil {
-		var line string
-		line, err = r.ReadString('\n')
+	prob, err := ioutil.ReadFile(f)
+        if err != nil {
+		return 0, err
+	}
+
+	for _, line := range strings.Split(string(prob), "\n") {
 		fields := strings.Fields(line)
 
 		if len(fields) == 2 {
-			conf, converr := strconv.ParseFloat(fields[1], 64)
-			if converr != nil {
+			conf, err := strconv.ParseFloat(fields[1], 64)
+			if err != nil {
 				continue
 			}
 			totalconf += conf
@@ -39,18 +37,17 @@ func getLineAvg(r *bufio.Reader) (float64, error) {
 	return avg, nil
 }
 
-// TODO: probably switch to just relying on io.Reader
 // Note this only processes one line at a time
-func GetLineDetails(name string, r *bufio.Reader) (parse.LineDetails, error) {
+func GetLineDetails(probfn string) (parse.LineDetails, error) {
 	var line parse.LineDetail
 	lines := make(parse.LineDetails, 0)
 
-	avg, err := getLineAvg(r)
+	avg, err := getLineAvg(probfn)
 	if err != nil {
 		return lines, err
 	}
 
-	filebase := strings.Replace(name, ".prob", "", 1)
+	filebase := strings.Replace(probfn, ".prob", "", 1)
 
 	txt, err := ioutil.ReadFile(filebase + ".txt")
 	if err != nil {

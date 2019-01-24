@@ -4,7 +4,6 @@ package main
 // TODO: set bucket dirname from cmdline
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -13,20 +12,6 @@ import (
 	"git.rescribe.xyz/testingtools/parse"
 	"git.rescribe.xyz/testingtools/parse/prob"
 )
-
-func detailsFromFile(f string) (parse.LineDetails, error) {
-	var newlines parse.LineDetails
-
-	file, err := os.Open(f)
-	if err != nil {
-		return newlines, err
-	}
-	defer file.Close()
-
-	reader := bufio.NewReader(file)
-
-	return prob.GetLineDetails(f, reader)
-}
 
 func main() {
 	flag.Usage = func() {
@@ -44,7 +29,7 @@ func main() {
 	lines := make(parse.LineDetails, 0)
 
 	for _, f := range flag.Args() {
-		newlines, err := detailsFromFile(f)
+		newlines, err := prob.GetLineDetails(f)
 		if err != nil {
 			log.Fatal(err)
 		}
