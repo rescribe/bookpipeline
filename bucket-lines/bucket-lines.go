@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,8 +15,6 @@ import (
 )
 
 func main() {
-	// TODO: Allow bucket specs to be determined by a json file passed
-	//       as an argument.
 	b := parse.BucketSpecs{
 		// minimum confidence, name
 		{ 0, "bad" },
@@ -23,7 +23,7 @@ func main() {
 	}
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: bucket-lines [-d dir] [hocr1] [prob1] [hocr2] [...]\n")
+		fmt.Fprintf(os.Stderr, "Usage: bucket-lines [-d dir] [-s specs.json] [hocr1] [prob1] [hocr2] [...]\n")
 		fmt.Fprintf(os.Stderr, "Copies image-text line pairs into different directories according\n")
 		fmt.Fprintf(os.Stderr, "to the average character probability for the line.\n\n")
 		fmt.Fprintf(os.Stderr, "Both .hocr and .prob files can be processed.\n\n")
@@ -33,12 +33,26 @@ func main() {
 		fmt.Fprintf(os.Stderr, "The .prob and .hocr files are assumed to be in the same directory\n")
 		fmt.Fprintf(os.Stderr, "as the line's image and text files.\n\n")
 		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\nAn example specs.json file would be the following:\n")
+		fmt.Fprintf(os.Stderr, "[{\"min\": 0, \"name\": \"terrible\"}, {\"min\": 0.80, \"name\": \"ok\"}, {\"min\": 0.98, \"name\": \"great\"}]\n")
 	}
 	dir := flag.String("d", "buckets", "Directory to store the buckets")
+	specs := flag.String("s", "", "JSON file describing specs to bucket into")
 	flag.Parse()
 	if flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	if *specs != "" {
+		js, err := ioutil.ReadFile(*specs)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = json.Unmarshal(js, &b)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var err error

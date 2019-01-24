@@ -1,5 +1,7 @@
 package main
 
+// TODO: rewrite this to use the parse/ packages
+
 import (
 	"bufio"
 	"flag"
