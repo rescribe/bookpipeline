@@ -80,7 +80,7 @@ func noText(s string) bool {
 	return len(t) == 0
 }
 
-func parseIt(b []byte) (Hocr, error) {
+func Parse(b []byte) (Hocr, error) {
 	var hocr Hocr
 
 	err := xml.Unmarshal(b, &hocr)
@@ -160,7 +160,7 @@ func GetLineDetails(hocrfn string) (parse.LineDetails, error) {
 		return newlines, err
 	}
 
-	h, err := parseIt(file)
+	h, err := Parse(file)
 	if err != nil {
 		return newlines, err
 	}
