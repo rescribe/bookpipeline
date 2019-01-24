@@ -1,7 +1,6 @@
 package main
 
-// TODO: rename
-// TODO: set bucket dirname from cmdline
+// TODO: merge with -prob, using filename extension to determine what to do for each file
 
 import (
 	"flag"
@@ -46,12 +45,24 @@ func detailsFromFile(f string) (parse.LineDetails, error) {
 }
 
 func main() {
+	b := parse.BucketSpecs{
+		// minimum confidence, name
+		{ 0, "bad" },
+		{ 0.95, "95to98" },
+		{ 0.98, "98plus" },
+	}
+
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: line-conf-buckets hocr1 [hocr2] [...]\n")
+		fmt.Fprintf(os.Stderr, "Usage: bucket-lines-hocr [-d dir] hocr1 [hocr2] [...]\n")
 		fmt.Fprintf(os.Stderr, "Copies image-text line pairs into different directories according\n")
 		fmt.Fprintf(os.Stderr, "to the average character probability for the line.\n")
+		fmt.Fprintf(os.Stderr, "This uses the x_wconf data in .hocr files, which it assumes will be.\n")
+		fmt.Fprintf(os.Stderr, "in the same directory as the line's image and text files. It can\n")
+		fmt.Fprintf(os.Stderr, "handle hocr where each character is tagged separately and hocr where\n")
+		fmt.Fprintf(os.Stderr, "only whole words are tagged.\n")
 		flag.PrintDefaults()
 	}
+	dir := flag.String("d", "buckets", "Directory to store the buckets")
 	flag.Parse()
 	if flag.NArg() < 1 {
 		flag.Usage()
@@ -71,13 +82,7 @@ func main() {
 		}
 	}
 
-	b := parse.BucketSpecs{
-		{ 0, "bad" },
-		{ 0.95, "95to98" },
-		{ 0.98, "98plus" },
-	}
-
-	stats, err := parse.BucketUp(lines, b, "newbuckets")
+	stats, err := parse.BucketUp(lines, b, *dir)
 	if err != nil {
 		log.Fatal(err)
 	}
