@@ -3,51 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"image/png"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"git.rescribe.xyz/testingtools/parse"
 	"git.rescribe.xyz/testingtools/parse/hocr"
 	"git.rescribe.xyz/testingtools/parse/prob"
 )
 
-// TODO: maybe move this into hocr.go
-func detailsFromHocr(f string) (parse.LineDetails, error) {
-	var newlines parse.LineDetails
-
-	file, err := ioutil.ReadFile(f)
-	if err != nil {
-		return newlines, err
-	}
-
-	h, err := hocr.Parse(file)
-	if err != nil {
-		return newlines, err
-	}
-
-	pngfn := strings.Replace(f, ".hocr", ".png", 1)
-	pngf, err := os.Open(pngfn)
-	if err != nil {
-		return newlines, err
-	}
-	defer pngf.Close()
-	img, err := png.Decode(pngf)
-	if err != nil {
-		return newlines, err
-	}
-
-	n := strings.Replace(filepath.Base(f), ".hocr", "", 1)
-	return hocr.GetLineDetails(h, img, n)
-}
-
 func main() {
-	// TODO: Allow different specs to be used for .prob vs .hocr. Do this
-	//       by adding a field to LineDetails that is linked to a named
-	//       BucketSpecs.
+	// TODO: Allow bucket specs to be determined by a json file passed
+	//       as an argument.
 	b := parse.BucketSpecs{
 		// minimum confidence, name
 		{ 0, "bad" },
@@ -83,7 +50,7 @@ func main() {
 			case ".prob":
 				newlines, err = prob.GetLineDetails(f)
 			case ".hocr":
-				newlines, err = detailsFromHocr(f)
+				newlines, err = hocr.GetLineDetails(f)
 			default:
 				log.Printf("Skipping file '%s' as it isn't a .prob or .hocr\n", f)
 		}

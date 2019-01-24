@@ -9,6 +9,10 @@ package hocr
 import (
 	"encoding/xml"
 	"image"
+	"image/png"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -76,7 +80,7 @@ func noText(s string) bool {
 	return len(t) == 0
 }
 
-func Parse(b []byte) (Hocr, error) {
+func parseIt(b []byte) (Hocr, error) {
 	var hocr Hocr
 
 	err := xml.Unmarshal(b, &hocr)
@@ -87,7 +91,7 @@ func Parse(b []byte) (Hocr, error) {
 	return hocr, nil
 }
 
-func GetLineDetails(h Hocr, i image.Image, name string) (parse.LineDetails, error) {
+func parseLineDetails(h Hocr, i image.Image, name string) (parse.LineDetails, error) {
 	lines := make(parse.LineDetails, 0)
 
 	for _, l := range h.Lines {
@@ -146,4 +150,32 @@ func GetLineDetails(h Hocr, i image.Image, name string) (parse.LineDetails, erro
 		lines = append(lines, line)
 	}
 	return lines, nil
+}
+
+func GetLineDetails(hocrfn string) (parse.LineDetails, error) {
+	var newlines parse.LineDetails
+
+	file, err := ioutil.ReadFile(hocrfn)
+	if err != nil {
+		return newlines, err
+	}
+
+	h, err := parseIt(file)
+	if err != nil {
+		return newlines, err
+	}
+
+	pngfn := strings.Replace(hocrfn, ".hocr", ".png", 1)
+	pngf, err := os.Open(pngfn)
+	if err != nil {
+		return newlines, err
+	}
+	defer pngf.Close()
+	img, err := png.Decode(pngf)
+	if err != nil {
+		return newlines, err
+	}
+
+	n := strings.Replace(filepath.Base(hocrfn), ".hocr", "", 1)
+	return parseLineDetails(h, img, n)
 }
