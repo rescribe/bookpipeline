@@ -67,6 +67,7 @@ func main() {
 				newlines, err = hocr.GetLineDetails(f)
 			default:
 				log.Printf("Skipping file '%s' as it isn't a .prob or .hocr\n", f)
+				continue
 		}
 		if err != nil {
 			log.Fatal(err)
