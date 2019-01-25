@@ -1,46 +1,29 @@
 package main
 
-// TODO: rewrite this to use the parse/ packages
+// TODO: rename to avglines
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
-	"strings"
+
+	"rescribe.xyz/go.git/lib/line"
+	"rescribe.xyz/go.git/lib/hocr"
+	"rescribe.xyz/go.git/lib/prob"
 )
-
-type LineDetail struct {
-	Filename string
-	Avgconf float64
-	Filebase string
-	Basename string
-	Dirname string
-	Fulltext string
-}
-
-type LineDetails []LineDetail
-
-// Used by sort.Sort.
-func (l LineDetails) Len() int { return len(l) }
-
-// Used by sort.Sort.
-func (l LineDetails) Less(i, j int) bool {
-	return l[i].Avgconf < l[j].Avgconf
-}
-
-// Used by sort.Sort.
-func (l LineDetails) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: line-conf-avg [-html] [-nosort] prob1 [prob2] [...]\n")
-		fmt.Fprintf(os.Stderr, "Prints a report of the average confidence for each line\n")
+		fmt.Fprintf(os.Stderr, "Usage: line-conf-avg [-html] [-nosort] [prob1] [hocr1] [prob2] [...]\n")
+		fmt.Fprintf(os.Stderr, "Prints a report of the average confidence for each line, sorted\n")
+		fmt.Fprintf(os.Stderr, "from worst to best.\n")
+		fmt.Fprintf(os.Stderr, "Both .hocr and .prob files can be processed.\n")
+		fmt.Fprintf(os.Stderr, "For .hocr files, the x_wconf data is used to calculate confidence.\n")
+		fmt.Fprintf(os.Stderr, "The .prob files are generated using ocropy-rpred's --probabilities\n")
+		fmt.Fprintf(os.Stderr, "option.\n\n")
 		flag.PrintDefaults()
 	}
 	var usehtml = flag.Bool("html", false, "output html page")
@@ -51,54 +34,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	lines := make(LineDetails, 0)
+	var err error
+	lines := make(line.Details, 0)
 
 	for _, f := range flag.Args() {
-		file, err := os.Open(f)
+		var newlines line.Details
+		switch ext := filepath.Ext(f); ext {
+			case ".prob":
+				newlines, err = prob.GetLineDetails(f)
+			case ".hocr":
+				newlines, err = hocr.GetLineDetails(f)
+			default:
+				log.Printf("Skipping file '%s' as it isn't a .prob or .hocr\n", f)
+				continue
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer file.Close()
 
-		reader := bufio.NewReader(file)
-
-		totalconf := float64(0)
-		num := 0
-
-		err = nil
-		for err == nil {
-			var line string
-                        line, err = reader.ReadString('\n')
-			fields := strings.Fields(line)
-
-			if len(fields) == 2 {
-				conf, converr := strconv.ParseFloat(fields[1], 64)
-				if converr != nil {
-					fmt.Fprintf(os.Stderr, "Error: can't convert '%s' to float (full line: %s)\n", fields[1], line)
-					continue
-				}
-				totalconf += conf
-				num += 1
-			}
+		for _, l := range newlines {
+			lines = append(lines, l)
 		}
-		avg := totalconf / float64(num)
-
-		if num == 0 || avg == 0 {
-			continue
-		}
-
-		var linedetail LineDetail
-		linedetail.Filename = f
-		linedetail.Avgconf = avg
-		linedetail.Filebase = strings.Replace(f, ".prob", "", 1)
-		linedetail.Basename = filepath.Base(linedetail.Filebase)
-		linedetail.Dirname = filepath.Dir(linedetail.Filebase)
-		ft, ferr := ioutil.ReadFile(linedetail.Filebase + ".txt")
-		if ferr != nil {
-			log.Fatal(err)
-		}
-		linedetail.Fulltext = string(ft)
-		lines = append(lines, linedetail)
 	}
 
 	if *nosort == false {
@@ -107,7 +63,7 @@ func main() {
 
 	if *usehtml == false {
 		for _, l := range lines {
-			fmt.Printf("%s: %.2f%%\n", l.Filename, l.Avgconf)
+			fmt.Printf("%s %s: %.2f%%\n", l.OcrName, l.Name, l.Avgconf)
 		}
 	} else {
 		fmt.Printf("<!DOCTYPE html><html><head><meta charset='UTF-8'><title></title><style>td {border: 1px solid #444}</style></head><body>\n")
@@ -115,8 +71,10 @@ func main() {
 		for _, l := range lines {
 			fmt.Printf("<tr>\n")
 			fmt.Printf("<td><h1>%.4f%%</h1></td>\n", l.Avgconf)
-			fmt.Printf("<td>%s</td>\n", l.Filebase)
-			fmt.Printf("<td><img src='%s' /><br />%s</td>\n", l.Filebase + ".bin.png", l.Fulltext)
+			fmt.Printf("<td>%s %s</td>\n", l.OcrName, l.Name)
+			// TODO: think about this, what do we want to do here? if showing imgs is important,
+			//       will need to copy them somewhere, so works with hocr too
+			//fmt.Printf("<td><img src='%s' /><br />%s</td>\n", l.Filebase + ".bin.png", l.Fulltext)
 			fmt.Printf("</tr>\n")
 		}
 		fmt.Printf("</table>\n")
