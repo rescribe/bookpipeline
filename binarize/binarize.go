@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/Ernyoke/Imger/threshold"
 	"github.com/Ernyoke/Imger/imgio"
+	"github.com/Ernyoke/Imger/threshold"
 )
 
 func main() {

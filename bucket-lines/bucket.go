@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 
@@ -12,21 +12,23 @@ import (
 )
 
 type BucketSpec struct {
-	Min float64
+	Min  float64
 	Name string
 }
 type BucketSpecs []BucketSpec
-func (b BucketSpecs) Len() int { return len(b) }
-func (b BucketSpecs) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+
+func (b BucketSpecs) Len() int           { return len(b) }
+func (b BucketSpecs) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b BucketSpecs) Less(i, j int) bool { return b[i].Min < b[j].Min }
 
 type BucketStat struct {
 	name string
-	num int
+	num  int
 }
 type BucketStats []BucketStat
-func (b BucketStats) Len() int { return len(b) }
-func (b BucketStats) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+
+func (b BucketStats) Len() int           { return len(b) }
+func (b BucketStats) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b BucketStats) Less(i, j int) bool { return b[i].num < b[j].num }
 
 // Copies the image and text for a line into a directory based on
@@ -51,7 +53,7 @@ func bucketLine(l line.Detail, buckets BucketSpecs, dirname string) (string, err
 		avgstr = avgstr[2:]
 	}
 
-	base := filepath.Join(dirname, todir, l.OcrName + "_" + l.Name + "_" + avgstr)
+	base := filepath.Join(dirname, todir, l.OcrName+"_"+l.Name+"_"+avgstr)
 
 	err := os.MkdirAll(filepath.Join(dirname, todir), 0700)
 	if err != nil {
@@ -103,7 +105,7 @@ func BucketUp(lines line.Details, buckets BucketSpecs, dirname string) (BucketSt
 	for _, b := range all {
 		i := sort.Search(len(stats), func(i int) bool { return stats[i].name == b })
 		if i == len(stats) {
-			newstat := BucketStat { b, 0 }
+			newstat := BucketStat{b, 0}
 			stats = append(stats, newstat)
 			i = len(stats) - 1
 		}
@@ -124,6 +126,6 @@ func PrintBucketStats(w io.Writer, stats BucketStats) {
 	fmt.Fprintf(w, "---------------------------------\n")
 	sort.Sort(stats)
 	for _, s := range stats {
-		fmt.Fprintf(w, "Lines in %7s: %2d%%\n", s.name, 100 * s.num / total)
+		fmt.Fprintf(w, "Lines in %7s: %2d%%\n", s.name, 100*s.num/total)
 	}
 }

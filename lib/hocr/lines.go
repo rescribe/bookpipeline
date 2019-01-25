@@ -36,27 +36,27 @@ func parseLineDetails(h Hocr, i image.Image, name string) (line.Details, error) 
 
 		var ln line.Detail
 		ln.Name = l.Id
-		ln.Avgconf = (totalconf/float64(num)) / 100
+		ln.Avgconf = (totalconf / float64(num)) / 100
 		linetext := ""
 
 		linetext = l.Text
-		if(noText(linetext)) {
+		if noText(linetext) {
 			linetext = ""
 			for _, w := range l.Words {
-				if(w.Class != "ocrx_word") {
+				if w.Class != "ocrx_word" {
 					continue
 				}
 				linetext += w.Text + " "
 			}
 		}
-		if(noText(linetext)) {
+		if noText(linetext) {
 			linetext = ""
 			for _, w := range l.Words {
-				if(w.Class != "ocrx_word") {
+				if w.Class != "ocrx_word" {
 					continue
 				}
 				for _, c := range w.Chars {
-					if(c.Class != "ocrx_cinfo") {
+					if c.Class != "ocrx_cinfo" {
 						continue
 					}
 					linetext += c.Text

@@ -8,15 +8,15 @@ import (
 )
 
 type Detail struct {
-	Name string
+	Name    string
 	Avgconf float64
-	Img CopyableImg
-	Text string
+	Img     CopyableImg
+	Text    string
 	OcrName string
 }
 
 type CopyableImg interface {
-	CopyLineTo(io.Writer) (error)
+	CopyLineTo(io.Writer) error
 }
 
 type Details []Detail
@@ -38,7 +38,7 @@ type ImgDirect struct {
 	Img image.Image
 }
 
-func (i ImgDirect) CopyLineTo(w io.Writer) (error) {
+func (i ImgDirect) CopyLineTo(w io.Writer) error {
 	err := png.Encode(w, i.Img)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ type ImgPath struct {
 	Path string
 }
 
-func (i ImgPath) CopyLineTo(w io.Writer) (error) {
+func (i ImgPath) CopyLineTo(w io.Writer) error {
 	f, err := os.Open(i.Path)
 	if err != nil {
 		return err

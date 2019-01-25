@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"rescribe.xyz/go.git/lib/line"
 	"rescribe.xyz/go.git/lib/hocr"
+	"rescribe.xyz/go.git/lib/line"
 	"rescribe.xyz/go.git/lib/prob"
 )
 
@@ -38,13 +38,13 @@ func main() {
 	for _, f := range flag.Args() {
 		var newlines line.Details
 		switch ext := filepath.Ext(f); ext {
-			case ".prob":
-				newlines, err = prob.GetLineDetails(f)
-			case ".hocr":
-				newlines, err = hocr.GetLineDetails(f)
-			default:
-				log.Printf("Skipping file '%s' as it isn't a .prob or .hocr\n", f)
-				continue
+		case ".prob":
+			newlines, err = prob.GetLineDetails(f)
+		case ".hocr":
+			newlines, err = hocr.GetLineDetails(f)
+		default:
+			log.Printf("Skipping file '%s' as it isn't a .prob or .hocr\n", f)
+			continue
 		}
 		if err != nil {
 			log.Fatal(err)

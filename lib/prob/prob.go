@@ -14,7 +14,7 @@ func getLineAvg(f string) (float64, error) {
 	num := 0
 
 	prob, err := ioutil.ReadFile(f)
-        if err != nil {
+	if err != nil {
 		return 0, err
 	}
 

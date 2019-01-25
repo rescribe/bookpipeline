@@ -12,27 +12,27 @@ type Hocr struct {
 }
 
 type OcrLine struct {
-	Class string `xml:"class,attr"`
-	Id string `xml:"id,attr"`
-	Title string `xml:"title,attr"`
+	Class string    `xml:"class,attr"`
+	Id    string    `xml:"id,attr"`
+	Title string    `xml:"title,attr"`
 	Words []OcrWord `xml:"span"`
-	Text string `xml:",chardata"`
+	Text  string    `xml:",chardata"`
 }
 
 type OcrWord struct {
-	Class string `xml:"class,attr"`
-	Id string `xml:"id,attr"`
-	Title string `xml:"title,attr"`
+	Class string    `xml:"class,attr"`
+	Id    string    `xml:"id,attr"`
+	Title string    `xml:"title,attr"`
 	Chars []OcrChar `xml:"span"`
-	Text string `xml:",chardata"`
+	Text  string    `xml:",chardata"`
 }
 
 type OcrChar struct {
-	Class string `xml:"class,attr"`
-	Id string `xml:"id,attr"`
-	Title string `xml:"title,attr"`
+	Class string    `xml:"class,attr"`
+	Id    string    `xml:"id,attr"`
+	Title string    `xml:"title,attr"`
 	Chars []OcrChar `xml:"span"`
-	Text string `xml:",chardata"`
+	Text  string    `xml:",chardata"`
 }
 
 // Returns the confidence for a word based on its x_wconf value
