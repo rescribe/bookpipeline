@@ -9,13 +9,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"git.rescribe.xyz/testingtools/parse"
-	"git.rescribe.xyz/testingtools/parse/hocr"
-	"git.rescribe.xyz/testingtools/parse/prob"
+	"git.rescribe.xyz/testingtools/lib/line"
+	"git.rescribe.xyz/testingtools/lib/hocr"
+	"git.rescribe.xyz/testingtools/lib/prob"
 )
 
 func main() {
-	b := parse.BucketSpecs{
+	b := BucketSpecs{
 		// minimum confidence, name
 		{ 0, "bad" },
 		{ 0.95, "95to98" },
@@ -56,10 +56,10 @@ func main() {
 	}
 
 	var err error
-	lines := make(parse.LineDetails, 0)
+	lines := make(line.Details, 0)
 
 	for _, f := range flag.Args() {
-		var newlines parse.LineDetails
+		var newlines line.Details
 		switch ext := filepath.Ext(f); ext {
 			case ".prob":
 				newlines, err = prob.GetLineDetails(f)
@@ -78,10 +78,10 @@ func main() {
 		}
 	}
 
-	stats, err := parse.BucketUp(lines, b, *dir)
+	stats, err := BucketUp(lines, b, *dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	parse.PrintBucketStats(os.Stdout, stats)
+	PrintBucketStats(os.Stdout, stats)
 }

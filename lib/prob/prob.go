@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.rescribe.xyz/testingtools/parse"
+	"git.rescribe.xyz/testingtools/lib/line"
 )
 
 func getLineAvg(f string) (float64, error) {
@@ -18,8 +18,8 @@ func getLineAvg(f string) (float64, error) {
 		return 0, err
 	}
 
-	for _, line := range strings.Split(string(prob), "\n") {
-		fields := strings.Fields(line)
+	for _, l := range strings.Split(string(prob), "\n") {
+		fields := strings.Fields(l)
 
 		if len(fields) == 2 {
 			conf, err := strconv.ParseFloat(fields[1], 64)
@@ -38,9 +38,9 @@ func getLineAvg(f string) (float64, error) {
 }
 
 // Note this only processes one line at a time
-func GetLineDetails(probfn string) (parse.LineDetails, error) {
-	var line parse.LineDetail
-	lines := make(parse.LineDetails, 0)
+func GetLineDetails(probfn string) (line.Details, error) {
+	var l line.Detail
+	lines := make(line.Details, 0)
 
 	avg, err := getLineAvg(probfn)
 	if err != nil {
@@ -54,16 +54,16 @@ func GetLineDetails(probfn string) (parse.LineDetails, error) {
 		return lines, err
 	}
 
-	line.Name = filepath.Base(filebase)
-	line.Avgconf = avg
-	line.Text = string(txt)
-	line.OcrName = filepath.Dir(filebase)
+	l.Name = filepath.Base(filebase)
+	l.Avgconf = avg
+	l.Text = string(txt)
+	l.OcrName = filepath.Dir(filebase)
 
-	var imgfn parse.ImgPath
+	var imgfn line.ImgPath
 	imgfn.Path = filebase + ".bin.png"
-	line.Img = imgfn
+	l.Img = imgfn
 
-	lines = append(lines, line)
+	lines = append(lines, l)
 
 	return lines, nil
 }

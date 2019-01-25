@@ -1,4 +1,4 @@
-package parse
+package main
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"sort"
 	"strconv"
+
+	"git.rescribe.xyz/testingtools/lib/line"
 )
 
 type BucketSpec struct {
@@ -18,7 +20,18 @@ func (b BucketSpecs) Len() int { return len(b) }
 func (b BucketSpecs) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b BucketSpecs) Less(i, j int) bool { return b[i].Min < b[j].Min }
 
-func bucketLine(l LineDetail, buckets BucketSpecs, dirname string) (string, error) {
+type BucketStat struct {
+	name string
+	num int
+}
+type BucketStats []BucketStat
+func (b BucketStats) Len() int { return len(b) }
+func (b BucketStats) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b BucketStats) Less(i, j int) bool { return b[i].num < b[j].num }
+
+// Copies the image and text for a line into a directory based on
+// the line confidence, as defined by the buckets struct
+func bucketLine(l line.Detail, buckets BucketSpecs, dirname string) (string, error) {
 	var bucket string
 
 	todir := ""
@@ -70,18 +83,10 @@ func bucketLine(l LineDetail, buckets BucketSpecs, dirname string) (string, erro
 	return bucket, err
 }
 
-type BucketStat struct {
-	name string
-	num int
-}
-type BucketStats []BucketStat
-func (b BucketStats) Len() int { return len(b) }
-func (b BucketStats) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
-func (b BucketStats) Less(i, j int) bool { return b[i].num < b[j].num }
-
 // Copies line images and text into directories based on their
-// confidence, as defined by the buckets struct
-func BucketUp(lines LineDetails, buckets BucketSpecs, dirname string) (BucketStats, error) {
+// confidence, as defined by the buckets struct, and returns
+// statistics of whire lines went in the process.
+func BucketUp(lines line.Details, buckets BucketSpecs, dirname string) (BucketStats, error) {
 	var all []string
 	var stats BucketStats
 
@@ -108,6 +113,7 @@ func BucketUp(lines LineDetails, buckets BucketSpecs, dirname string) (BucketSta
 	return stats, nil
 }
 
+// Prints statistics of where lines went when bucketing
 func PrintBucketStats(w io.Writer, stats BucketStats) {
 	var total int
 	for _, s := range stats {
