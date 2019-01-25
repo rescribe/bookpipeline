@@ -15,7 +15,7 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: avg-lines [-html] [-nosort] [prob1] [hocr1] [prob2] [...]\n")
+		fmt.Fprintf(os.Stderr, "Usage: avg-lines [-html dir] [-nosort] [prob1] [hocr1] [prob2] [...]\n")
 		fmt.Fprintf(os.Stderr, "Prints a report of the average confidence for each line, sorted\n")
 		fmt.Fprintf(os.Stderr, "from worst to best.\n")
 		fmt.Fprintf(os.Stderr, "Both .hocr and .prob files can be processed.\n")
@@ -24,7 +24,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "option.\n\n")
 		flag.PrintDefaults()
 	}
-	var usehtml = flag.Bool("html", false, "Output html page")
+	var html = flag.String("html", "", "Output in html format to the specified directory")
 	var nosort = flag.Bool("nosort", false, "Don't sort lines by confidence")
 	flag.Parse()
 	if flag.NArg() < 1 {
@@ -59,23 +59,11 @@ func main() {
 		sort.Sort(lines)
 	}
 
-	if *usehtml == false {
+	if *html == "" {
 		for _, l := range lines {
 			fmt.Printf("%s %s: %.2f%%\n", l.OcrName, l.Name, l.Avgconf)
 		}
 	} else {
-		fmt.Printf("<!DOCTYPE html><html><head><meta charset='UTF-8'><title></title><style>td {border: 1px solid #444}</style></head><body>\n")
-		fmt.Printf("<table>\n")
-		for _, l := range lines {
-			fmt.Printf("<tr>\n")
-			fmt.Printf("<td><h1>%.4f%%</h1></td>\n", l.Avgconf)
-			fmt.Printf("<td>%s %s</td>\n", l.OcrName, l.Name)
-			// TODO: think about this, what do we want to do here? if showing imgs is important,
-			//       will need to copy them somewhere, so works with hocr too
-			//fmt.Printf("<td><img src='%s' /><br />%s</td>\n", l.Filebase + ".bin.png", l.Fulltext)
-			fmt.Printf("</tr>\n")
-		}
-		fmt.Printf("</table>\n")
-		fmt.Printf("</body></html>\n")
+		htmlout(*html, lines)
 	}
 }
