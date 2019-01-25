@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"git.rescribe.xyz/testingtools/lib/line"
+	"rescribe.xyz/go.git/lib/line"
 )
 
 func parseLineDetails(h Hocr, i image.Image, name string) (line.Details, error) {

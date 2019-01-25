@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strconv"
 
-	"git.rescribe.xyz/testingtools/lib/line"
+	"rescribe.xyz/go.git/lib/line"
 )
 
 type BucketSpec struct {

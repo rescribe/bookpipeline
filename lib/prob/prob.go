@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.rescribe.xyz/testingtools/lib/line"
+	"rescribe.xyz/go.git/lib/line"
 )
 
 func getLineAvg(f string) (float64, error) {
