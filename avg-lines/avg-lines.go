@@ -1,7 +1,5 @@
 package main
 
-// TODO: rename to avglines
-
 import (
 	"flag"
 	"fmt"
@@ -17,7 +15,7 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: line-conf-avg [-html] [-nosort] [prob1] [hocr1] [prob2] [...]\n")
+		fmt.Fprintf(os.Stderr, "Usage: avg-lines [-html] [-nosort] [prob1] [hocr1] [prob2] [...]\n")
 		fmt.Fprintf(os.Stderr, "Prints a report of the average confidence for each line, sorted\n")
 		fmt.Fprintf(os.Stderr, "from worst to best.\n")
 		fmt.Fprintf(os.Stderr, "Both .hocr and .prob files can be processed.\n")
@@ -26,8 +24,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "option.\n\n")
 		flag.PrintDefaults()
 	}
-	var usehtml = flag.Bool("html", false, "output html page")
-	var nosort = flag.Bool("nosort", false, "don't sort lines by confidence")
+	var usehtml = flag.Bool("html", false, "Output html page")
+	var nosort = flag.Bool("nosort", false, "Don't sort lines by confidence")
 	flag.Parse()
 	if flag.NArg() < 1 {
 		flag.Usage()
