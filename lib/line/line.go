@@ -21,16 +21,9 @@ type CopyableImg interface {
 
 type Details []Detail
 
-// Used by sort.Sort.
-func (l Details) Len() int { return len(l) }
-
-// Used by sort.Sort.
-func (l Details) Less(i, j int) bool {
-	return l[i].Avgconf < l[j].Avgconf
-}
-
-// Used by sort.Sort.
-func (l Details) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l Details) Len() int           { return len(l) }
+func (l Details) Less(i, j int) bool { return l[i].Avgconf < l[j].Avgconf }
+func (l Details) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 // This is an implementation of the CopyableImg interface that
 // stores the image directly as an image.Image
