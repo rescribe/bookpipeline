@@ -2,9 +2,6 @@ package hocr
 
 // TODO: Parse line name to zero pad line numbers, so they can
 //       be sorted easily
-// TODO: have same filename format as .prob uses, so include base
-//       dirname, and don't include line numbers if there's only
-//       one line in the hocr
 
 import (
 	"image"

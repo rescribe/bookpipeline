@@ -51,7 +51,7 @@ func bucketLine(l line.Detail, buckets BucketSpecs, dirname string) (string, err
 		avgstr = avgstr[2:]
 	}
 
-	base := filepath.Join(dirname, todir, filepath.Base(l.OcrName) + "_" + l.Name + "_" + avgstr)
+	base := filepath.Join(dirname, todir, l.OcrName + "_" + l.Name + "_" + avgstr)
 
 	err := os.MkdirAll(filepath.Join(dirname, todir), 0700)
 	if err != nil {

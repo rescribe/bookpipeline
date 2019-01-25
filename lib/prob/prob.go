@@ -57,7 +57,7 @@ func GetLineDetails(probfn string) (line.Details, error) {
 	l.Name = filepath.Base(filebase)
 	l.Avgconf = avg
 	l.Text = string(txt)
-	l.OcrName = filepath.Dir(filebase)
+	l.OcrName = filepath.Base(filepath.Dir(filebase))
 
 	var imgfn line.ImgPath
 	imgfn.Path = filebase + ".bin.png"
