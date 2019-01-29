@@ -7,14 +7,15 @@ import (
 	"os"
 
 	"github.com/Ernyoke/Imger/imgio"
-	"github.com/Ernyoke/Imger/threshold"
 )
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: binarize inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: binarize [-w num] [-k num] inimg outimg\n")
 		flag.PrintDefaults()
 	}
+	wsize := flag.Int("w", 31, "Window size for sauvola algorithm")
+        ksize := flag.Float64("k", 0.5, "K for sauvola algorithm")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		flag.Usage()
@@ -26,7 +27,8 @@ func main() {
 		log.Fatalf("Could not read image %s\n", flag.Arg(0))
 	}
 
-	thresh, err := threshold.OtsuThreshold(img, threshold.ThreshBinary)
+	// TODO: should be able to estimate an appropriate window size based on resolution
+	thresh := Sauvola(img, *ksize, *wsize)
 	if err != nil {
 		log.Fatal("Error binarising image\n")
 	}
