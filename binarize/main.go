@@ -6,10 +6,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	"image/draw"
+	_ "image/jpeg"
+	"image/png"
 	"log"
 	"os"
-
-	"github.com/Ernyoke/Imger/imgio" // TODO: get rid of this and do things myself
 )
 
 func main() {
@@ -29,16 +31,29 @@ func main() {
 		*wsize++
 	}
 
-	img, err := imgio.ImreadGray(flag.Arg(0))
+	f, err := os.Open(flag.Arg(0))
+	defer f.Close()
 	if err != nil {
-		log.Fatalf("Could not read image %s\n", flag.Arg(0))
+		log.Fatalf("Could not open file %s: %v\n", flag.Arg(0), err)
 	}
+	img, _, err := image.Decode(f)
+	if err != nil {
+		log.Fatalf("Could not decode image: %v\n", err)
+	}
+	b := img.Bounds()
+	gray := image.NewGray(image.Rect(0, 0, b.Dx(), b.Dy()))
+        draw.Draw(gray, b, img, b.Min, draw.Src)
 
 	// TODO: estimate an appropriate window size based on resolution
-	thresh := IntegralSauvola(img, *ksize, *wsize)
+	thresh := IntegralSauvola(gray, *ksize, *wsize)
 
-	err = imgio.Imwrite(thresh, flag.Arg(1))
-	if err != nil {
-		log.Fatalf("Could not write image %s\n", flag.Arg(1))
-	}
+	f, err = os.Create(flag.Arg(1))
+        if err != nil {
+		log.Fatalf("Could not create file %s: %v\n", flag.Arg(1), err)
+        }
+	defer f.Close()
+	err = png.Encode(f, thresh)
+        if err != nil {
+		log.Fatalf("Could not encode image: %v\n", err)
+        }
 }
