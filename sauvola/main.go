@@ -1,8 +1,5 @@
 package main
 
-// TODO: could look into other algorithms, see for examples see
-//       the README at https://github.com/brandonmpetty/Doxa
-
 import (
 	"flag"
 	"fmt"
@@ -12,6 +9,8 @@ import (
 	"image/png"
 	"log"
 	"os"
+
+	"rescribe.xyz/go.git/binarize"
 )
 
 // TODO: do more testing to see how good this assumption is
@@ -21,7 +20,7 @@ func autowsize(bounds image.Rectangle) int {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: binarize [-w num] [-k num] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: sauvola [-w num] [-k num] inimg outimg\n")
 		flag.PrintDefaults()
 	}
 	wsize := flag.Int("w", 0, "Window size for sauvola algorithm. Set automatically based on resolution if not set.")
@@ -56,7 +55,7 @@ func main() {
 
 	// TODO: come up with a way to set a good ksize automatically
 
-	thresh := IntegralSauvola(gray, *ksize, *wsize)
+	thresh := binarize.IntegralSauvola(gray, *ksize, *wsize)
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {
