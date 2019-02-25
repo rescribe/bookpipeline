@@ -92,34 +92,9 @@ func GetText(hocrfn string) (string, error) {
 		return s, err
 	}
 
+
 	for _, l := range h.Lines {
-		linetext := l.Text
-		if noText(linetext) {
-			linetext = ""
-			for _, w := range l.Words {
-				if w.Class != "ocrx_word" {
-					continue
-				}
-				linetext += w.Text + " "
-			}
-		}
-		if noText(linetext) {
-			linetext = ""
-			for _, w := range l.Words {
-				if w.Class != "ocrx_word" {
-					continue
-				}
-				for _, c := range w.Chars {
-					if c.Class != "ocrx_cinfo" {
-						continue
-					}
-					linetext += c.Text
-				}
-				linetext += " "
-			}
-		}
-		linetext = strings.TrimRight(linetext, " ") + "\n"
-		s += linetext
+		s += getLineText(l)
 	}
 	return s, nil
 }

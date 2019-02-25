@@ -14,6 +14,39 @@ import (
 	"rescribe.xyz/go.git/lib/line"
 )
 
+func getLineText(l OcrLine) (string) {
+	linetext := ""
+
+	linetext = l.Text
+	if noText(linetext) {
+		linetext = ""
+		for _, w := range l.Words {
+			if w.Class != "ocrx_word" {
+				continue
+			}
+			linetext += w.Text + " "
+		}
+	}
+	if noText(linetext) {
+		linetext = ""
+		for _, w := range l.Words {
+			if w.Class != "ocrx_word" {
+				continue
+			}
+			for _, c := range w.Chars {
+				if c.Class != "ocrx_cinfo" {
+					continue
+				}
+				linetext += c.Text
+			}
+			linetext += " "
+		}
+	}
+	linetext = strings.TrimRight(linetext, " ")
+	linetext += "\n"
+	return linetext
+}
+
 func parseLineDetails(h Hocr, i image.Image, name string) (line.Details, error) {
 	lines := make(line.Details, 0)
 
@@ -37,35 +70,7 @@ func parseLineDetails(h Hocr, i image.Image, name string) (line.Details, error) 
 		var ln line.Detail
 		ln.Name = l.Id
 		ln.Avgconf = (totalconf / float64(num)) / 100
-		linetext := ""
-
-		linetext = l.Text
-		if noText(linetext) {
-			linetext = ""
-			for _, w := range l.Words {
-				if w.Class != "ocrx_word" {
-					continue
-				}
-				linetext += w.Text + " "
-			}
-		}
-		if noText(linetext) {
-			linetext = ""
-			for _, w := range l.Words {
-				if w.Class != "ocrx_word" {
-					continue
-				}
-				for _, c := range w.Chars {
-					if c.Class != "ocrx_cinfo" {
-						continue
-					}
-					linetext += c.Text
-				}
-				linetext += " "
-			}
-		}
-		ln.Text = strings.TrimRight(linetext, " ")
-		ln.Text += "\n"
+		ln.Text = getLineText(l)
 		ln.OcrName = name
 		var imgd line.ImgDirect
 		imgd.Img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
