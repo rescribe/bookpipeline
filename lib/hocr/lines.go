@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/png"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,9 +73,11 @@ func parseLineDetails(h Hocr, i image.Image, name string) (line.Details, error) 
 		ln.Avgconf = (totalconf / float64(num)) / 100
 		ln.Text = getLineText(l)
 		ln.OcrName = name
-		var imgd line.ImgDirect
-		imgd.Img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
-		ln.Img = imgd
+		if i != nil {
+			var imgd line.ImgDirect
+			imgd.Img = i.(*image.Gray).SubImage(image.Rect(coords[0], coords[1], coords[2], coords[3]))
+			ln.Img = imgd
+		}
 		lines = append(lines, ln)
 	}
 	return lines, nil
@@ -93,15 +96,17 @@ func GetLineDetails(hocrfn string) (line.Details, error) {
 		return newlines, err
 	}
 
+	var img image.Image
 	pngfn := strings.Replace(hocrfn, ".hocr", ".png", 1)
 	pngf, err := os.Open(pngfn)
 	if err != nil {
-		return newlines, err
-	}
-	defer pngf.Close()
-	img, err := png.Decode(pngf)
-	if err != nil {
-		return newlines, err
+		log.Println("Warning: can't open image %s\n", pngfn)
+	} else {
+		defer pngf.Close()
+		img, err = png.Decode(pngf)
+		if err != nil {
+			log.Println("Warning: can't load image %s\n", pngfn)
+		}
 	}
 
 	n := strings.Replace(filepath.Base(hocrfn), ".hocr", "", 1)
