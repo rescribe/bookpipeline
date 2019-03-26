@@ -1,6 +1,7 @@
 package binarize
 
 import (
+	"errors"
 	"image"
 	"math"
 )
@@ -64,4 +65,23 @@ func surrounding(img *image.Gray, x int, y int, size int) []int {
 		}
 	}
 	return s
+}
+
+func BinToZeroInv(bin *image.Gray, orig *image.RGBA) (*image.RGBA, error) {
+	b := bin.Bounds()
+	if ! b.Eq(orig.Bounds()) {
+		return orig, errors.New("bin and orig images need to be the same dimensions")
+	}
+	newimg := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if bin.GrayAt(x, y).Y == 255 {
+				newimg.Set(x, y, bin.GrayAt(x, y))
+			} else {
+				newimg.Set(x, y, orig.At(x, y))
+			}
+		}
+	}
+
+	return newimg, nil
 }

@@ -20,11 +20,12 @@ func autowsize(bounds image.Rectangle) int {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: sauvola [-w num] [-k num] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: binarize [-k num] [-t type] [-w num] inimg outimg\n")
 		flag.PrintDefaults()
 	}
 	wsize := flag.Int("w", 0, "Window size for sauvola algorithm. Set automatically based on resolution if not set.")
 	ksize := flag.Float64("k", 0.5, "K for sauvola algorithm. This controls the overall threshold level. Set it lower for very light text (try 0.1 or 0.2).")
+	btype := flag.String("t", "binary", "Type of threshold. binary or zeroinv are currently implemented.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		flag.Usage()
@@ -55,7 +56,15 @@ func main() {
 
 	// TODO: come up with a way to set a good ksize automatically
 
-	thresh := binarize.IntegralSauvola(gray, *ksize, *wsize)
+	var thresh image.Image
+	thresh = binarize.IntegralSauvola(gray, *ksize, *wsize)
+
+	if *btype == "zeroinv" {
+		thresh, err = binarize.BinToZeroInv(thresh.(*image.Gray), img.(*image.RGBA))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {

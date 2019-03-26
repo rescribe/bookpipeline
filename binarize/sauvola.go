@@ -28,7 +28,7 @@ func Sauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray {
 }
 
 // Implements Sauvola's algorithm using Integral Images, see paper
-// "Effcient Implementation of Local Adaptive Thresholding Techniques Using Integral Images"
+// "Efficient Implementation of Local Adaptive Thresholding Techniques Using Integral Images"
 // and
 // https://stackoverflow.com/questions/13110733/computing-image-integral
 func IntegralSauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray {
