@@ -106,7 +106,3 @@ func TestBinarization(t *testing.T) {
 		})
 	}
 }
-
-func TestIntegralImg(t *testing.T) {
-	// TODO: compare mean and stddev between integral and basic methods
-}
