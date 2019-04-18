@@ -39,7 +39,7 @@ func checkwindow(integral [][]uint64, x int, size int, thresh float64) bool {
 	// divide by 255 as each on pixel has the value of 255
 	sum := (window.bottomright + window.topleft - window.topright - window.bottomleft) / 255
 	area := size * height
-	proportion := float64(float64(area)/float64(sum)) - 1
+	proportion := float64(area)/float64(sum) - 1
 	return proportion <= thresh
 }
 
@@ -71,6 +71,30 @@ func cleanimg(img *image.Gray, lowedge int, highedge int) *image.Gray {
 	return new
 }
 
+// findedges finds the edges of the main content, by moving a window of wsize
+// from the middle of the image to the left and right, stopping when it reaches
+// a point at which there is a lower proportion of black pixels than thresh.
+func findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
+	maxx := len(integral[0]) - 1
+	var lowedge, highedge int = 0, maxx
+
+	for x := maxx / 2; x < maxx-wsize; x++ {
+		if checkwindow(integral, x, wsize, thresh) {
+			highedge = x + (wsize / 2)
+			break
+		}
+	}
+
+	for x := maxx / 2; x > 0; x-- {
+		if checkwindow(integral, x, wsize, thresh) {
+			lowedge = x - (wsize / 2)
+			break
+		}
+	}
+
+	return lowedge, highedge
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: cleanup [-t thresh] [-w winsize] inimg outimg\n")
@@ -98,22 +122,8 @@ func main() {
 	draw.Draw(gray, b, img, b.Min, draw.Src)
 
 	integral := binarize.Integralimg(gray)
-	maxx := len(integral[0]) - 1
-	var lowedge, highedge int = 0, maxx
-	// find right edge
-	for x := maxx / 2; x < maxx-*wsize; x++ {
-		if checkwindow(integral, x, *wsize, *thresh) {
-			highedge = x + (*wsize / 2)
-			break
-		}
-	}
-	// find left edge
-	for x := maxx / 2; x > 0; x-- {
-		if checkwindow(integral, x, *wsize, *thresh) {
-			lowedge = x - (*wsize / 2)
-			break
-		}
-	}
+
+	lowedge, highedge := findedges(integral, *wsize, *thresh)
 
 	clean := cleanimg(gray, lowedge, highedge)
 
