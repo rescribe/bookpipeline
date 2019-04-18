@@ -35,7 +35,7 @@ func IntegralSauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray
 	b := img.Bounds()
 	new := image.NewGray(b)
 
-	integral := integralimg(img)
+	integral := Integralimg(img)
 	integralsq := integralimgsq(img)
 
 	for y := b.Min.Y; y < b.Max.Y; y++ {

@@ -14,7 +14,7 @@ type integralwindow struct {
 	height int
 }
 
-func integralimg(img *image.Gray) [][]uint64 {
+func Integralimg(img *image.Gray) [][]uint64 {
 	b := img.Bounds()
 	var oldy, oldx, oldxy uint64
 	var integral [][]uint64
