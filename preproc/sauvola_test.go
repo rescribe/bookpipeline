@@ -1,6 +1,7 @@
 package preproc
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/png"
@@ -9,6 +10,9 @@ import (
 )
 
 func TestBinarization(t *testing.T) {
+	var slow = flag.Bool("slow", false, "include slow tests")
+	var update = flag.Bool("updatesauvola", false, "update golden files")
+
 	cases := []struct {
 		name string
 		orig string

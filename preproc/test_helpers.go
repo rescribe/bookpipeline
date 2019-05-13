@@ -4,15 +4,11 @@ package preproc
 // TODO: test non integral img version
 
 import (
-	"flag"
 	"image"
 	"image/draw"
 	"image/png"
 	"os"
 )
-
-var slow = flag.Bool("slow", false, "include slow tests")
-var update = flag.Bool("update", false, "update golden files")
 
 func decode(s string) (*image.Gray, error) {
 	f, err := os.Open(s)
