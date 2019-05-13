@@ -1,8 +1,10 @@
-package binarize
+package preproc
 
 import (
 	"image"
 	"image/color"
+
+	"rescribe.xyz/go.git/integralimg"
 )
 
 // Implements Sauvola's algorithm for text binarization, see paper
@@ -35,12 +37,11 @@ func IntegralSauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray
 	b := img.Bounds()
 	new := image.NewGray(b)
 
-	integral := Integralimg(img)
-	integralsq := integralimgsq(img)
+	integrals := integralimg.ToAllIntegralImg(img)
 
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			m, dev := integralmeanstddev(integral, integralsq, x, y, windowsize)
+			m, dev := integrals.MeanStdDevWindow(x, y, windowsize)
 			threshold := m * (1 + ksize * ((dev / 128) - 1))
 			if img.GrayAt(x, y).Y < uint8(threshold) {
 				new.SetGray(x, y, color.Gray{0})

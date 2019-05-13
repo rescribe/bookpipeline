@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"rescribe.xyz/go.git/binarize"
+	"rescribe.xyz/go.git/preproc"
 )
 
 // TODO: do more testing to see how good this assumption is
@@ -57,10 +57,10 @@ func main() {
 	// TODO: come up with a way to set a good ksize automatically
 
 	var thresh image.Image
-	thresh = binarize.IntegralSauvola(gray, *ksize, *wsize)
+	thresh = preproc.IntegralSauvola(gray, *ksize, *wsize)
 
 	if *btype == "zeroinv" {
-		thresh, err = binarize.BinToZeroInv(thresh.(*image.Gray), img.(*image.RGBA))
+		thresh, err = preproc.BinToZeroInv(thresh.(*image.Gray), img.(*image.RGBA))
 		if err != nil {
 			log.Fatal(err)
 		}

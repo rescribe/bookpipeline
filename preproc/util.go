@@ -1,10 +1,18 @@
-package binarize
+package preproc
 
 import (
 	"errors"
 	"image"
 	"math"
 )
+
+// TODO: name better; maybe verb, x-er
+// TODO: implement these for regular image, and use them to make
+//       image functions generic for integral and non- images
+type UsefulImg interface {
+	MeanWindow()
+	MeanStdDevWindow()
+}
 
 func mean(i []int) float64 {
 	sum := 0

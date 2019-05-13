@@ -7,7 +7,7 @@ import (
 	"image"
 	"image/color"
 
-	"rescribe.xyz/go.git/binarize"
+	"rescribe.xyz/go.git/integralimg"
 )
 
 type IntWindow struct { // TODO: put this in its own package
@@ -126,7 +126,7 @@ func wipesides(img *image.Gray, lowedge int, highedge int) *image.Gray {
 // wipe fills the sections of image which fall outside the content
 // area with white
 func Wipe(img *image.Gray, wsize int, thresh float64) *image.Gray {
-	integral := binarize.Integralimg(img)
+	integral := integralimg.ToIntegralImg(img)
 	lowedge, highedge := findedges(integral, wsize, thresh)
 	return wipesides(img, lowedge, highedge)
 }
