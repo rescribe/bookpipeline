@@ -89,7 +89,7 @@ func ToAllIntegralImg(img *image.Gray) WithSq {
 }
 
 
-// GetWindow gets the values of the corners of a part of an
+// GetWindow gets the values of the corners of a square part of an
 // Integral Image, plus the dimensions of the part, which can
 // be used to quickly calculate the mean of the area
 func (i I) GetWindow(x, y, size int) Window {
@@ -116,6 +116,18 @@ func (i I) GetWindow(x, y, size int) Window {
 	return Window { i[miny][minx], i[miny][maxx], i[maxy][minx], i[maxy][maxx], maxx-minx, maxy-miny}
 }
 
+// GetVerticalWindow gets the values of the corners of a vertical
+// slice of an Integral Image, starting at x
+func (i I) GetVerticalWindow(x, width int) Window {
+	maxy := len(i) - 1
+	maxx := x + width
+	if maxx > len(i[0])-1 {
+		maxx = len(i[0]) - 1
+	}
+
+	return Window { i[0][x], i[0][maxx], i[maxy][x], i[maxy][maxx], width, maxy }
+}
+
 // Sum returns the sum of all pixels in a Window
 func (w Window) Sum() uint64 {
 	return w.bottomright + w.topleft - w.topright - w.bottomleft
@@ -129,6 +141,14 @@ func (w Window) Size() int {
 // Mean returns the average value of pixels in a Window
 func (w Window) Mean() float64 {
 	return float64(w.Sum()) / float64(w.Size())
+}
+
+// Proportion returns the proportion of pixels which are on
+func (w Window) Proportion() float64 {
+	area := w.width * w.height
+	// divide by 255 as each on pixel has the value of 255
+	sum := float64(w.Sum()) / 255
+	return float64(area) / sum - 1
 }
 
 // MeanWindow calculates the mean value of a section of an Integral

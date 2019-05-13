@@ -1,7 +1,7 @@
 package preproc
 
 // TODO: add minimum size variable (default ~30%?)
-// TODO: have the integral image specific stuff done by interface functions
+// TODO: switch to an interface rather than integralimg.I
 
 import (
 	"image"
@@ -10,48 +10,15 @@ import (
 	"rescribe.xyz/go.git/integralimg"
 )
 
-type IntWindow struct { // TODO: put this in its own package
-	topleft     uint64
-	topright    uint64
-	bottomleft  uint64
-	bottomright uint64
-	width       int
-	height      int
-}
-
-type IntImg [][]uint64 // TODO: put this in its own package
-
-func (i IntImg) WindowSlice(x int, size int) IntWindow {
-	maxy := len(i) - 1
-	maxx := x + size
-	if maxx > len(i[0])-1 {
-		maxx = len(i[0]) - 1
-	}
-
-	return IntWindow{i[0][x], i[0][maxx], i[maxy][x], i[maxy][maxx], size, maxy}
-}
-
-// Sum returns how many pixels are on
-func (i IntWindow) Sum() uint64 {
-	// divide by 255 as each on pixel has the value of 255
-	return (i.bottomright + i.topleft - i.topright - i.bottomleft) / 255
-}
-
-// Proportion returns the proportion of pixels which are on
-func (i IntWindow) Proportion() float64 {
-	area := i.width * i.height
-	return float64(area) / float64(i.Sum()) - 1
-}
-
 // returns the proportion of the given window that is black pixels
-func proportion(integral IntImg, x int, size int) float64 {
-	w := integral.WindowSlice(x, size)
+func proportion(i integralimg.I, x int, size int) float64 {
+        w := i.GetVerticalWindow(x, size)
 	return w.Proportion()
 }
 
 // findbestedge goes through every vertical line from x to x+w to
 // find the one with the lowest proportion of black pixels.
-func findbestedge(integral [][]uint64, x int, w int) int {
+func findbestedge(img integralimg.I, x int, w int) int {
 	var bestx int
 	var best float64
 
@@ -61,7 +28,7 @@ func findbestedge(integral [][]uint64, x int, w int) int {
 
 	right := x + w
 	for ; x < right; x++ {
-		prop := proportion(integral, x, 1)
+		prop := proportion(img, x, 1)
 		if prop > best {
 			best = prop
 			bestx = x
@@ -74,20 +41,20 @@ func findbestedge(integral [][]uint64, x int, w int) int {
 // findedges finds the edges of the main content, by moving a window of wsize
 // from the middle of the image to the left and right, stopping when it reaches
 // a point at which there is a lower proportion of black pixels than thresh.
-func findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
-	maxx := len(integral[0]) - 1
+func findedges(img integralimg.I, wsize int, thresh float64) (int, int) {
+	maxx := len(img[0]) - 1
 	var lowedge, highedge int = 0, maxx
 
 	for x := maxx / 2; x < maxx-wsize; x++ {
-		if proportion(integral, x, wsize) <= thresh {
-			highedge = findbestedge(integral, x, wsize)
+		if proportion(img, x, wsize) <= thresh {
+			highedge = findbestedge(img, x, wsize)
 			break
 		}
 	}
 
 	for x := maxx / 2; x > 0; x-- {
-		if proportion(integral, x, wsize) <= thresh {
-			lowedge = findbestedge(integral, x, wsize)
+		if proportion(img, x, wsize) <= thresh {
+			lowedge = findbestedge(img, x, wsize)
 			break
 		}
 	}
