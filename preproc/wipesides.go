@@ -10,43 +10,43 @@ import (
 	"rescribe.xyz/go.git/binarize"
 )
 
-type windowslice struct {
+type IntWindow struct { // TODO: put this in its own package
 	topleft     uint64
 	topright    uint64
 	bottomleft  uint64
 	bottomright uint64
+	width       int
+	height      int
 }
 
-func getwindowslice(i [][]uint64, x int, size int) windowslice {
+type IntImg [][]uint64 // TODO: put this in its own package
+
+func (i IntImg) WindowSlice(x int, size int) IntWindow {
 	maxy := len(i) - 1
 	maxx := x + size
 	if maxx > len(i[0])-1 {
 		maxx = len(i[0]) - 1
 	}
 
-	return windowslice{i[0][x], i[0][maxx], i[maxy][x], i[maxy][maxx]}
+	return IntWindow{i[0][x], i[0][maxx], i[maxy][x], i[maxy][maxx], size, maxy}
 }
 
-// checkwindow checks the window from x to see whether more than
-// thresh proportion of the pixels are white, if so it returns true.
-func checkwindow(integral [][]uint64, x int, size int, thresh float64) bool {
-	height := len(integral)
-	window := getwindowslice(integral, x, size)
+// Sum returns how many pixels are on
+func (i IntWindow) Sum() uint64 {
 	// divide by 255 as each on pixel has the value of 255
-	sum := (window.bottomright + window.topleft - window.topright - window.bottomleft) / 255
-	area := size * height
-	proportion := float64(area)/float64(sum) - 1
-	return proportion <= thresh
+	return (i.bottomright + i.topleft - i.topright - i.bottomleft) / 255
+}
+
+// Proportion returns the proportion of pixels which are on
+func (i IntWindow) Proportion() float64 {
+	area := i.width * i.height
+	return float64(area) / float64(i.Sum()) - 1
 }
 
 // returns the proportion of the given window that is black pixels
-func proportion(integral [][]uint64, x int, size int) float64 {
-	height := len(integral)
-	window := getwindowslice(integral, x, size)
-	// divide by 255 as each on pixel has the value of 255
-	sum := (window.bottomright + window.topleft - window.topright - window.bottomleft) / 255
-	area := size * height
-	return float64(area)/float64(sum) - 1
+func proportion(integral IntImg, x int, size int) float64 {
+	w := integral.WindowSlice(x, size)
+	return w.Proportion()
 }
 
 // findbestedge goes through every vertical line from x to x+w to
@@ -79,14 +79,14 @@ func findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
 	var lowedge, highedge int = 0, maxx
 
 	for x := maxx / 2; x < maxx-wsize; x++ {
-		if checkwindow(integral, x, wsize, thresh) {
+		if proportion(integral, x, wsize) <= thresh {
 			highedge = findbestedge(integral, x, wsize)
 			break
 		}
 	}
 
 	for x := maxx / 2; x > 0; x-- {
-		if checkwindow(integral, x, wsize, thresh) {
+		if proportion(integral, x, wsize) <= thresh {
 			lowedge = findbestedge(integral, x, wsize)
 			break
 		}
