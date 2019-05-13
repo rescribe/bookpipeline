@@ -1,4 +1,4 @@
-package main
+package cleanup
 
 // TODO: add different pages as test cases
 // TODO: test non integral img version
@@ -80,8 +80,8 @@ func TestWipeSides(t *testing.T) {
 				t.Fatalf("Could not open file %s: %v\n", c.orig, err)
 			}
 			integral := binarize.Integralimg(orig)
-			lowedge, highedge := findedges(integral, c.wsize, c.thresh)
-			actual = wipesides(orig, lowedge, highedge)
+			lowedge, highedge := Findedges(integral, c.wsize, c.thresh)
+			actual = Wipesides(orig, lowedge, highedge)
 			if *update {
 				f, err := os.Create(c.golden)
 				defer f.Close()
