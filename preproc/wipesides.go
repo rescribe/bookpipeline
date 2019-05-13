@@ -1,4 +1,4 @@
-package cleanup
+package preproc
 
 // TODO: add minimum size variable (default ~30%?)
 // TODO: have the integral image specific stuff done by interface functions

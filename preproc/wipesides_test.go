@@ -1,4 +1,4 @@
-package cleanup
+package preproc
 
 // TODO: add different pages as test cases
 // TODO: test non integral img version
