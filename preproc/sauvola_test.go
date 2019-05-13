@@ -35,7 +35,11 @@ func TestBinarization(t *testing.T) {
 			case "integralsauvola":
 				actual = IntegralSauvola(orig, c.ksize, c.wsize)
 			case "sauvola":
-				actual = Sauvola(orig, c.ksize, c.wsize)
+				if *slow {
+					actual = Sauvola(orig, c.ksize, c.wsize)
+				} else {
+					t.Skip("Skipping slow test; use -slow to run it.\n")
+				}
 			default:
 				t.Fatalf("No method %s\n", c.name)
 			}

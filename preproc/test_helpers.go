@@ -11,6 +11,7 @@ import (
 	"os"
 )
 
+var slow = flag.Bool("slow", false, "include slow tests")
 var update = flag.Bool("update", false, "update golden files")
 
 func decode(s string) (*image.Gray, error) {
