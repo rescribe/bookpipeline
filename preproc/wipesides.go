@@ -6,6 +6,8 @@ package preproc
 import (
 	"image"
 	"image/color"
+
+	"rescribe.xyz/go.git/binarize"
 )
 
 type windowslice struct {
@@ -69,10 +71,10 @@ func findbestedge(integral [][]uint64, x int, w int) int {
 	return bestx
 }
 
-// Findedges finds the edges of the main content, by moving a window of wsize
+// findedges finds the edges of the main content, by moving a window of wsize
 // from the middle of the image to the left and right, stopping when it reaches
 // a point at which there is a lower proportion of black pixels than thresh.
-func Findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
+func findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
 	maxx := len(integral[0]) - 1
 	var lowedge, highedge int = 0, maxx
 
@@ -93,9 +95,9 @@ func Findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
 	return lowedge, highedge
 }
 
-// Wipesides fills the sections of image not within the boundaries
+// wipesides fills the sections of image not within the boundaries
 // of lowedge and highedge with white
-func Wipesides(img *image.Gray, lowedge int, highedge int) *image.Gray {
+func wipesides(img *image.Gray, lowedge int, highedge int) *image.Gray {
 	b := img.Bounds()
 	new := image.NewGray(b)
 
@@ -119,4 +121,12 @@ func Wipesides(img *image.Gray, lowedge int, highedge int) *image.Gray {
 	}
 
 	return new
+}
+
+// wipe fills the sections of image which fall outside the content
+// area with white
+func Wipe(img *image.Gray, wsize int, thresh float64) *image.Gray {
+	integral := binarize.Integralimg(img)
+	lowedge, highedge := findedges(integral, wsize, thresh)
+	return wipesides(img, lowedge, highedge)
 }

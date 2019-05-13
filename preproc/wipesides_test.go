@@ -11,8 +11,6 @@ import (
 	"image/png"
 	"os"
 	"testing"
-
-	"rescribe.xyz/go.git/binarize"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -79,9 +77,7 @@ func TestWipeSides(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Could not open file %s: %v\n", c.orig, err)
 			}
-			integral := binarize.Integralimg(orig)
-			lowedge, highedge := Findedges(integral, c.wsize, c.thresh)
-			actual = Wipesides(orig, lowedge, highedge)
+			actual = Wipe(orig, c.wsize, c.thresh)
 			if *update {
 				f, err := os.Create(c.golden)
 				defer f.Close()

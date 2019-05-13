@@ -1,8 +1,6 @@
 package main
 
 // TODO: add minimum size variable (default ~30%?)
-// TODO: make into a small library
-// TODO: have the integral image specific stuff done by interface functions
 
 import (
 	"flag"
@@ -14,13 +12,13 @@ import (
 	"log"
 	"os"
 
-	"rescribe.xyz/go.git/binarize"
 	"rescribe.xyz/go.git/preproc"
 )
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: cleanup [-t thresh] [-w winsize] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: wipe [-t thresh] [-w winsize] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Wipes the sections of an image which are outside the content area.\n")
 		flag.PrintDefaults()
 	}
 	wsize := flag.Int("w", 5, "Window size for mask finding algorithm.")
@@ -44,11 +42,7 @@ func main() {
 	gray := image.NewGray(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(gray, b, img, b.Min, draw.Src)
 
-	integral := binarize.Integralimg(gray)
-
-	lowedge, highedge := preproc.Findedges(integral, *wsize, *thresh)
-
-	clean := preproc.Wipesides(gray, lowedge, highedge)
+	clean := preproc.Wipe(gray, *wsize, *thresh)
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {
