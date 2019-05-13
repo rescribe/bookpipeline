@@ -1,5 +1,10 @@
 package main
 
+// TODO: add minimum size variable (default ~30%?)
+// TODO: add tests
+// TODO: make into a small library
+// TODO: have the integral image specific stuff done by interface functions
+
 import (
 	"flag"
 	"fmt"
@@ -43,9 +48,19 @@ func checkwindow(integral [][]uint64, x int, size int, thresh float64) bool {
 	return proportion <= thresh
 }
 
-// cleanimg fills the sections of image not within the boundaries
+// returns the proportion of the given window that is black pixels
+func proportion(integral [][]uint64, x int, size int) float64 {
+	height := len(integral)
+	window := getwindowslice(integral, x, size)
+	// divide by 255 as each on pixel has the value of 255
+	sum := (window.bottomright + window.topleft - window.topright - window.bottomleft) / 255
+	area := size * height
+	return float64(area)/float64(sum) - 1
+}
+
+// wipesides fills the sections of image not within the boundaries
 // of lowedge and highedge with white
-func cleanimg(img *image.Gray, lowedge int, highedge int) *image.Gray {
+func wipesides(img *image.Gray, lowedge int, highedge int) *image.Gray {
 	b := img.Bounds()
 	new := image.NewGray(b)
 
@@ -71,6 +86,28 @@ func cleanimg(img *image.Gray, lowedge int, highedge int) *image.Gray {
 	return new
 }
 
+// findbestedge goes through every vertical line from x to x+w to
+// find the one with the lowest proportion of black pixels.
+func findbestedge(integral [][]uint64, x int, w int) int {
+	var bestx int
+	var best float64
+
+	if w == 1 {
+		return x
+	}
+
+	right := x + w
+	for ; x < right; x++ {
+		prop := proportion(integral, x, 1)
+		if prop > best {
+			best = prop
+			bestx = x
+		}
+	}
+
+	return bestx
+}
+
 // findedges finds the edges of the main content, by moving a window of wsize
 // from the middle of the image to the left and right, stopping when it reaches
 // a point at which there is a lower proportion of black pixels than thresh.
@@ -80,14 +117,14 @@ func findedges(integral [][]uint64, wsize int, thresh float64) (int, int) {
 
 	for x := maxx / 2; x < maxx-wsize; x++ {
 		if checkwindow(integral, x, wsize, thresh) {
-			highedge = x + (wsize / 2)
+			highedge = findbestedge(integral, x, wsize)
 			break
 		}
 	}
 
 	for x := maxx / 2; x > 0; x-- {
 		if checkwindow(integral, x, wsize, thresh) {
-			lowedge = x - (wsize / 2)
+			lowedge = findbestedge(integral, x, wsize)
 			break
 		}
 	}
@@ -125,7 +162,7 @@ func main() {
 
 	lowedge, highedge := findedges(integral, *wsize, *thresh)
 
-	clean := cleanimg(gray, lowedge, highedge)
+	clean := wipesides(gray, lowedge, highedge)
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {
