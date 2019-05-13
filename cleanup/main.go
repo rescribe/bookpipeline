@@ -1,7 +1,6 @@
 package main
 
 // TODO: add minimum size variable (default ~30%?)
-// TODO: add tests
 // TODO: make into a small library
 // TODO: have the integral image specific stuff done by interface functions
 
