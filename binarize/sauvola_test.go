@@ -75,7 +75,7 @@ func TestBinarization(t *testing.T) {
 			var actual *image.Gray
 			orig, err := decode(c.orig)
 			if err != nil {
-				t.Errorf("Could not open file %s: %v\n", c.orig, err)
+				t.Fatalf("Could not open file %s: %v\n", c.orig, err)
 			}
 			switch c.name {
 			case "integralsauvola":
@@ -89,16 +89,16 @@ func TestBinarization(t *testing.T) {
 				f, err := os.Create(c.golden)
 				defer f.Close()
 				if err != nil {
-					t.Errorf("Could not open file %s to update: %v\n", c.golden, err)
+					t.Fatalf("Could not open file %s to update: %v\n", c.golden, err)
 				}
 				err = png.Encode(f, actual)
 				if err != nil {
-					t.Errorf("Could not encode update of %s: %v\n", c.golden, err)
+					t.Fatalf("Could not encode update of %s: %v\n", c.golden, err)
 				}
 			}
 			golden, err := decode(c.golden)
 			if err != nil {
-				t.Errorf("Could not open file %s: %v\n", c.golden, err)
+				t.Fatalf("Could not open file %s: %v\n", c.golden, err)
 			}
 			if ! imgsequal(golden, actual) {
 				t.Errorf("Binarized %s differs to %s\n", c.orig, c.golden)
