@@ -55,7 +55,7 @@ func main() {
 		*binwsize = autowsize(b)
 	}
 
-	if *binwsize % 2 == 0 {
+	if *binwsize%2 == 0 {
 		*binwsize++
 	}
 

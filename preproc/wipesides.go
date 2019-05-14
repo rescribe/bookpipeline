@@ -12,7 +12,7 @@ import (
 
 // returns the proportion of the given window that is black pixels
 func proportion(i integralimg.I, x int, size int) float64 {
-        w := i.GetVerticalWindow(x, size)
+	w := i.GetVerticalWindow(x, size)
 	return w.Proportion()
 }
 

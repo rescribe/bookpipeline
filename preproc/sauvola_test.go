@@ -14,11 +14,11 @@ func TestBinarization(t *testing.T) {
 	var update = flag.Bool("updatesauvola", false, "update golden files")
 
 	cases := []struct {
-		name string
-		orig string
+		name   string
+		orig   string
 		golden string
-		ksize float64
-		wsize int
+		ksize  float64
+		wsize  int
 	}{
 		{"integralsauvola", "testdata/pg1.png", "testdata/pg1_integralsauvola_k0.5_w41.png", 0.5, 41},
 		{"integralsauvola", "testdata/pg1.png", "testdata/pg1_integralsauvola_k0.5_w19.png", 0.5, 19},
@@ -62,7 +62,7 @@ func TestBinarization(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Could not open file %s: %v\n", c.golden, err)
 			}
-			if ! imgsequal(golden, actual) {
+			if !imgsequal(golden, actual) {
 				t.Errorf("Binarized %s differs to %s\n", c.orig, c.golden)
 			}
 		})

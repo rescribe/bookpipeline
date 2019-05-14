@@ -29,7 +29,7 @@ func stddev(i []int) float64 {
 	for _, n := range i {
 		sum += (float64(n) - m) * (float64(n) - m)
 	}
-	variance := sum / float64(len(i) - 1)
+	variance := sum / float64(len(i)-1)
 	return math.Sqrt(variance)
 }
 
@@ -40,7 +40,7 @@ func meanstddev(i []int) (float64, float64) {
 	for _, n := range i {
 		sum += (float64(n) - m) * (float64(n) - m)
 	}
-	variance := float64(sum) / float64(len(i) - 1)
+	variance := float64(sum) / float64(len(i)-1)
 	return m, math.Sqrt(variance)
 }
 
@@ -77,7 +77,7 @@ func surrounding(img *image.Gray, x int, y int, size int) []int {
 
 func BinToZeroInv(bin *image.Gray, orig *image.RGBA) (*image.RGBA, error) {
 	b := bin.Bounds()
-	if ! b.Eq(orig.Bounds()) {
+	if !b.Eq(orig.Bounds()) {
 		return orig, errors.New("bin and orig images need to be the same dimensions")
 	}
 	newimg := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))

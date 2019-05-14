@@ -17,7 +17,7 @@ func Sauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			window := surrounding(img, x, y, windowsize)
 			m, dev := meanstddev(window)
-			threshold := m * (1 + ksize * ((dev / 128) - 1))
+			threshold := m * (1 + ksize*((dev/128)-1))
 			if img.GrayAt(x, y).Y < uint8(threshold) {
 				new.SetGray(x, y, color.Gray{0})
 			} else {
@@ -42,7 +42,7 @@ func IntegralSauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			m, dev := integrals.MeanStdDevWindow(x, y, windowsize)
-			threshold := m * (1 + ksize * ((dev / 128) - 1))
+			threshold := m * (1 + ksize*((dev/128)-1))
 			if img.GrayAt(x, y).Y < uint8(threshold) {
 				new.SetGray(x, y, color.Gray{0})
 			} else {
@@ -63,7 +63,7 @@ func PreCalcedSauvola(integrals integralimg.WithSq, img *image.Gray, ksize float
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			m, dev := integrals.MeanStdDevWindow(x, y, windowsize)
-			threshold := m * (1 + ksize * ((dev / 128) - 1))
+			threshold := m * (1 + ksize*((dev/128)-1))
 			if img.GrayAt(x, y).Y < uint8(threshold) {
 				new.SetGray(x, y, color.Gray{0})
 			} else {

@@ -50,7 +50,7 @@ func main() {
 		log.Printf("Set window size to %d\n", *wsize)
 	}
 
-	if *wsize % 2 == 0 {
+	if *wsize%2 == 0 {
 		*wsize++
 	}
 
