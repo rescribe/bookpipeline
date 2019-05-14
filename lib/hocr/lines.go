@@ -112,3 +112,20 @@ func GetLineDetails(hocrfn string) (line.Details, error) {
 	n := strings.Replace(filepath.Base(hocrfn), ".hocr", "", 1)
 	return parseLineDetails(h, img, n)
 }
+
+func GetLineBasics(hocrfn string) (line.Details, error) {
+	var newlines line.Details
+
+	file, err := ioutil.ReadFile(hocrfn)
+	if err != nil {
+		return newlines, err
+	}
+
+	h, err := Parse(file)
+	if err != nil {
+		return newlines, err
+	}
+
+	n := strings.Replace(filepath.Base(hocrfn), ".hocr", "", 1)
+	return parseLineDetails(h, nil, n)
+}
