@@ -98,3 +98,28 @@ func GetText(hocrfn string) (string, error) {
 	}
 	return s, nil
 }
+
+func GetAvgConf(hocrfn string) (float64, error) {
+	file, err := ioutil.ReadFile(hocrfn)
+	if err != nil {
+		return 0, err
+	}
+
+	h, err := Parse(file)
+	if err != nil {
+		return 0, err
+	}
+
+	var total, num float64
+	for _, l := range h.Lines {
+		for _, w := range l.Words {
+			c, err := wordConf(w.Title)
+			if err != nil {
+				return 0, err
+			}
+			total += c
+			num++
+		}
+	}
+	return total / num, nil
+}

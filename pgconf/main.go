@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"rescribe.xyz/go.git/lib/hocr"
-	"rescribe.xyz/go.git/lib/line"
 )
 
 func main() {
@@ -22,31 +21,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	var err error
-	lines := make(line.Details, 0)
-
-	for _, f := range flag.Args() {
-		var newlines line.Details
-		newlines, err = hocr.GetLineBasics(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, l := range newlines {
-			lines = append(lines, l)
-		}
+	avg, err := hocr.GetAvgConf(flag.Arg(0))
+	if err != nil {
+		log.Fatalf("Error retreiving confidence for %s: %v\n", flag.Arg(0), err)
 	}
 
-	if len(lines) == 0 {
-		fmt.Printf("No lines found\n")
-		os.Exit(0)
-	}
-
-	var total float64
-	for _, l := range lines {
-		total += l.Avgconf
-	}
-	avg := total / float64(len(lines))
-
-	fmt.Printf("%0.0f\n", avg * 100)
+	fmt.Printf("%0.0f\n", avg)
 }
