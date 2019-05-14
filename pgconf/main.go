@@ -37,11 +37,16 @@ func main() {
 		}
 	}
 
+	if len(lines) == 0 {
+		fmt.Printf("No lines found\n")
+		os.Exit(0)
+	}
+
 	var total float64
 	for _, l := range lines {
 		total += l.Avgconf
 	}
 	avg := total / float64(len(lines))
 
-	fmt.Printf("%0.2f\n", avg)
+	fmt.Printf("%0.0f\n", avg * 100)
 }
