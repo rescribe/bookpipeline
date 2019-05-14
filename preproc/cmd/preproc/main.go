@@ -23,7 +23,7 @@ func autowsize(bounds image.Rectangle) int {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-k num] [-t thresh] [-ws wipesize] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-k num] [-wt wipethresh] [-ws wipesize] inimg outimg\n")
 		fmt.Fprintf(os.Stderr, "Binarize and preprocess an image\n")
 		flag.PrintDefaults()
 	}
@@ -31,7 +31,7 @@ func main() {
 	ksize := flag.Float64("k", 0.5, "K for sauvola binarization algorithm. This controls the overall threshold level. Set it lower for very light text (try 0.1 or 0.2).")
 	btype := flag.String("bt", "binary", "Type of binarization threshold. binary or zeroinv are currently implemented.")
 	wipewsize := flag.Int("ws", 5, "Window size for wiping algorithm.")
-	thresh := flag.Float64("t", 0.05, "Threshold for the proportion of black pixels below which a window is determined to be the edge.")
+	thresh := flag.Float64("wt", 0.05, "Threshold for the wiping algorithm to determine the proportion of black pixels below which a window is determined to be the edge.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		flag.Usage()

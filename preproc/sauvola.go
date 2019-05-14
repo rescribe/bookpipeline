@@ -53,3 +53,24 @@ func IntegralSauvola(img *image.Gray, ksize float64, windowsize int) *image.Gray
 
 	return new
 }
+
+// PreCalcedSauvola Implements Sauvola's algorithm using precalculated Integral Images
+// TODO: have this be the root function that the other two reference
+func PreCalcedSauvola(integrals integralimg.WithSq, img *image.Gray, ksize float64, windowsize int) *image.Gray {
+	b := img.Bounds()
+	new := image.NewGray(b)
+
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			m, dev := integrals.MeanStdDevWindow(x, y, windowsize)
+			threshold := m * (1 + ksize * ((dev / 128) - 1))
+			if img.GrayAt(x, y).Y < uint8(threshold) {
+				new.SetGray(x, y, color.Gray{0})
+			} else {
+				new.SetGray(x, y, color.Gray{255})
+			}
+		}
+	}
+
+	return new
+}
