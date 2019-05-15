@@ -2,6 +2,7 @@ package hocr
 
 import (
 	"encoding/xml"
+	"errors"
 	"io/ioutil"
 	"regexp"
 	"strconv"
@@ -120,6 +121,9 @@ func GetAvgConf(hocrfn string) (float64, error) {
 			total += c
 			num++
 		}
+	}
+	if num == 0 {
+		return 0, errors.New("No words found")
 	}
 	return total / num, nil
 }
