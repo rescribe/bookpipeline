@@ -22,7 +22,7 @@ func autowsize(bounds image.Rectangle) int {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-k num] [-m minperc] [-wt wipethresh] [-ws wipesize] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-k num] [-m minperc] [-nowipe] [-wt wipethresh] [-ws wipesize] inimg outimg\n")
 		fmt.Fprintf(os.Stderr, "Binarize and preprocess an image\n")
 		flag.PrintDefaults()
 	}
@@ -30,6 +30,7 @@ func main() {
 	ksize := flag.Float64("k", 0.5, "K for sauvola binarization algorithm. This controls the overall threshold level. Set it lower for very light text (try 0.1 or 0.2).")
 	btype := flag.String("bt", "binary", "Type of binarization threshold. binary or zeroinv are currently implemented.")
 	min := flag.Int("m", 30, "Minimum percentage of the image width for the content width calculation to be considered valid.")
+	nowipe := flag.Bool("nowipe", false, "Disable wiping completely.")
 	wipewsize := flag.Int("ws", 5, "Window size for wiping algorithm.")
 	thresh := flag.Float64("wt", 0.05, "Threshold for the wiping algorithm to determine the proportion of black pixels below which a window is determined to be the edge.")
 	flag.Parse()
@@ -60,7 +61,7 @@ func main() {
 	}
 
 	log.Print("Binarising")
-	var threshimg image.Image
+	var clean, threshimg image.Image
 	threshimg = preproc.IntegralSauvola(gray, *ksize, *binwsize)
 
 	if *btype == "zeroinv" {
@@ -70,8 +71,12 @@ func main() {
 		}
 	}
 
-	log.Print("Wiping sides")
-	clean := preproc.Wipe(threshimg.(*image.Gray), *wipewsize, *thresh, *min)
+	if ! *nowipe {
+		log.Print("Wiping sides")
+		clean = preproc.Wipe(threshimg.(*image.Gray), *wipewsize, *thresh, *min)
+	} else {
+		clean = threshimg
+	}
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {

@@ -25,7 +25,7 @@ func main() {
 	ksizes := []float64{0.2, 0.3, 0.4, 0.5, 0.6}
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-m minperc] [-wt wipethresh] [-ws wipesize] inimg outbase\n")
+		fmt.Fprintf(os.Stderr, "Usage: preprocmulti [-bt bintype] [-bw winsize] [-m minperc] [-nowipe] [-wt wipethresh] [-ws wipesize] inimg outbase\n")
 		fmt.Fprintf(os.Stderr, "Binarize and preprocess an image, with multiple binarisation levels,\n")
 		fmt.Fprintf(os.Stderr, "saving images to outbase_bin{k}.png.\n")
 		fmt.Fprintf(os.Stderr, "Binarises with these levels for k: %v.\n", ksizes)
@@ -34,6 +34,7 @@ func main() {
 	binwsize := flag.Int("bw", 0, "Window size for sauvola binarization algorithm. Set automatically based on resolution if not set.")
 	btype := flag.String("bt", "binary", "Type of binarization threshold. binary or zeroinv are currently implemented.")
 	min := flag.Int("m", 30, "Minimum percentage of the image width for the content width calculation to be considered valid.")
+	nowipe := flag.Bool("nowipe", false, "Disable wiping completely.")
 	wipewsize := flag.Int("ws", 5, "Window size for wiping algorithm.")
 	thresh := flag.Float64("wt", 0.05, "Threshold for the wiping algorithm to determine the proportion of black pixels below which a window is determined to be the edge.")
 	flag.Parse()
@@ -64,7 +65,7 @@ func main() {
 		*binwsize++
 	}
 
-	var threshimg image.Image
+	var clean, threshimg image.Image
 	log.Print("Precalculating integral images")
 	integrals := integralimg.ToAllIntegralImg(gray)
 
@@ -79,8 +80,12 @@ func main() {
 			}
 		}
 
-		log.Print("Wiping sides")
-		clean := preproc.Wipe(threshimg.(*image.Gray), *wipewsize, *thresh, *min)
+		if ! *nowipe {
+			log.Print("Wiping sides")
+			clean = preproc.Wipe(threshimg.(*image.Gray), *wipewsize, *thresh, *min)
+		} else {
+			clean = threshimg
+		}
 
 		savefn := fmt.Sprintf("%s_bin%0.1f.png", flag.Arg(1), k)
 		log.Printf("Saving %s\n", savefn)
