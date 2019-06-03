@@ -90,10 +90,25 @@ func wipesides(img *image.Gray, lowedge int, highedge int) *image.Gray {
 	return new
 }
 
+// toonarrow checks whether the area between lowedge and highedge is
+// less than min % of the total image width
+func toonarrow(img *image.Gray, lowedge int, highedge int, min int) bool {
+	b := img.Bounds()
+	imgw := b.Max.X - b.Min.X
+	wipew := highedge - lowedge
+	if float64(wipew) / float64(imgw) * 100 < float64(min) {
+		return true
+	}
+	return false
+}
+
 // wipe fills the sections of image which fall outside the content
-// area with white
-func Wipe(img *image.Gray, wsize int, thresh float64) *image.Gray {
+// area with white, providing the content area is above min %
+func Wipe(img *image.Gray, wsize int, thresh float64, min int) *image.Gray {
 	integral := integralimg.ToIntegralImg(img)
 	lowedge, highedge := findedges(integral, wsize, thresh)
+	if toonarrow(img, lowedge, highedge, min) {
+		return img
+	}
 	return wipesides(img, lowedge, highedge)
 }

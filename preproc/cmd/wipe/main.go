@@ -1,7 +1,5 @@
 package main
 
-// TODO: add minimum size variable (default ~30%?)
-
 import (
 	"flag"
 	"fmt"
@@ -17,12 +15,13 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: wipe [-t thresh] [-w winsize] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: wipe [-m minperc] [-t thresh] [-w winsize] inimg outimg\n")
 		fmt.Fprintf(os.Stderr, "Wipes the sections of an image which are outside the content area.\n")
 		flag.PrintDefaults()
 	}
-	wsize := flag.Int("w", 5, "Window size for mask finding algorithm.")
+	min := flag.Int("m", 30, "Minimum percentage of the image width for the content width calculation to be considered valid.")
 	thresh := flag.Float64("t", 0.05, "Threshold for the proportion of black pixels below which a window is determined to be the edge.")
+	wsize := flag.Int("w", 5, "Window size for mask finding algorithm.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		flag.Usage()
@@ -42,7 +41,7 @@ func main() {
 	gray := image.NewGray(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(gray, b, img, b.Min, draw.Src)
 
-	clean := preproc.Wipe(gray, *wsize, *thresh)
+	clean := preproc.Wipe(gray, *wsize, *thresh, *min)
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {

@@ -1,7 +1,6 @@
 package main
 
 // TODO: come up with a way to set a good ksize automatically
-// TODO: add minimum size variable (default ~30%?) for wipe
 
 import (
 	"flag"
@@ -23,13 +22,14 @@ func autowsize(bounds image.Rectangle) int {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-k num] [-wt wipethresh] [-ws wipesize] inimg outimg\n")
+		fmt.Fprintf(os.Stderr, "Usage: preproc [-bt bintype] [-bw winsize] [-k num] [-m minperc] [-wt wipethresh] [-ws wipesize] inimg outimg\n")
 		fmt.Fprintf(os.Stderr, "Binarize and preprocess an image\n")
 		flag.PrintDefaults()
 	}
 	binwsize := flag.Int("bw", 0, "Window size for sauvola binarization algorithm. Set automatically based on resolution if not set.")
 	ksize := flag.Float64("k", 0.5, "K for sauvola binarization algorithm. This controls the overall threshold level. Set it lower for very light text (try 0.1 or 0.2).")
 	btype := flag.String("bt", "binary", "Type of binarization threshold. binary or zeroinv are currently implemented.")
+	min := flag.Int("m", 30, "Minimum percentage of the image width for the content width calculation to be considered valid.")
 	wipewsize := flag.Int("ws", 5, "Window size for wiping algorithm.")
 	thresh := flag.Float64("wt", 0.05, "Threshold for the wiping algorithm to determine the proportion of black pixels below which a window is determined to be the edge.")
 	flag.Parse()
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	log.Print("Wiping sides")
-	clean := preproc.Wipe(threshimg.(*image.Gray), *wipewsize, *thresh)
+	clean := preproc.Wipe(threshimg.(*image.Gray), *wipewsize, *thresh, *min)
 
 	f, err = os.Create(flag.Arg(1))
 	if err != nil {
