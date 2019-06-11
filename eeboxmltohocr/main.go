@@ -84,10 +84,8 @@ func main() {
 		content := t[strings.Index(t, ">")+1:]
 		ungap := regexp.MustCompile(`(?s)<gap[ >].+?</gap>`).ReplaceAllString(content, "")
 		unxml := regexp.MustCompile(`<.+?>`).ReplaceAllString(ungap, "")
-		// could of course make this much more elaborate
-		unentity := regexp.MustCompile(`&amp;`).ReplaceAllString(unxml, "&")
 
-		finaltxt := strings.TrimLeft(unentity, " \n")
+		finaltxt := strings.TrimLeft(unxml, " \n")
 		if len(finaltxt) == 0 {
 			continue
 		}
@@ -96,7 +94,7 @@ func main() {
 	}
 
 	for _, pg := range pgs {
-		fn := fmt.Sprintf("%s_%03d.hocr", flag.Arg(1), pg.number)
+		fn := fmt.Sprintf("%s-%03d.hocr", flag.Arg(1), pg.number - 1)
 		f, err := os.Create(fn)
 		if err != nil {
 			log.Fatalf("Could not create file %s: %v\n", fn, err)
