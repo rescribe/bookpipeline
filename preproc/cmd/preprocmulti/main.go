@@ -22,7 +22,7 @@ func autowsize(bounds image.Rectangle) int {
 }
 
 func main() {
-	ksizes := []float64{0.2, 0.3, 0.4, 0.5, 0.6}
+	ksizes := []float64{0.2, 0.3, 0.4, 0.5}
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: preprocmulti [-bt bintype] [-bw winsize] [-m minperc] [-nowipe] [-ws wipesize] inimg outbase\n")
