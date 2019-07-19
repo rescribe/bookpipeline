@@ -13,7 +13,7 @@ import (
 
 func main() {
 	if len(os.Args) != 1 {
-		log.Fatal("Usage: setupawspipeline\n\nSets up necessary S3 buckets and SQS queues for our AWS pipeline\n")
+		log.Fatal("Usage: mkpipeline\n\nSets up necessary S3 buckets and SQS queues for our AWS pipeline\n")
 	}
 
 	sess, err := session.NewSession(&aws.Config{
