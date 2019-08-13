@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,6 +32,7 @@ var verboselog *log.Logger
 
 const HeartbeatTime = 60
 const PauseBetweenChecks = 60 * time.Second
+const PreprocPattern = `_bin[0-9].[0-9].png`
 
 // TODO: could restructure like so:
 //       have the goroutine functions run outside of the main loop in the program,
@@ -127,6 +129,8 @@ func main() {
 		verboselog = log.New(n, "", log.LstdFlags)
 	}
 
+	alreadydone := regexp.MustCompile(PreprocPattern)
+
 	verboselog.Println("Setting up AWS session")
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("eu-west-2"),
@@ -187,7 +191,7 @@ func main() {
 
 
 		d := filepath.Join(os.TempDir(), bookname)
-		err = os.Mkdir(d, 0755)
+		err = os.MkdirAll(d, 0755)
 		if err != nil {
 			log.Fatalln("Failed to create directory", d, err)
 		}
@@ -203,12 +207,16 @@ func main() {
 		go up(upc, done, uploader, bookname)
 
 
-		verboselog.Println("Getting list of appropriate objects to download")
+		verboselog.Println("Getting list of objects to download")
 		err = s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
 			Bucket: aws.String("rescribeinprogress"),
 			Prefix: aws.String(bookname),
 		}, func(page *s3.ListObjectsV2Output, last bool) bool {
 			for _, r := range page.Contents {
+				if alreadydone.MatchString(*r.Key) {
+					verboselog.Println("Skipping item that looks like it has already been processed", *r.Key)
+					continue
+				}
 				dl <- *r.Key
 			}
 			return true
@@ -237,6 +245,11 @@ func main() {
 		})
 		if err != nil {
 			log.Fatalln("Error deleting message from queue", preqname, ":", err)
+		}
+
+		err = os.RemoveAll(d)
+		if err != nil {
+			log.Fatalln("Failed to remove directory", d, err)
 		}
 	}
 }
