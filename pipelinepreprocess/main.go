@@ -180,6 +180,7 @@ func main() {
 			continue
 		}
 
+		verboselog.Println("Starting heartbeat every", HeartbeatTime, "seconds")
 		t := time.NewTicker(HeartbeatTime * time.Second)
 		go heartbeat(t, *msgResult.Messages[0].ReceiptHandle, prequrl, sqssvc)
 
@@ -201,6 +202,7 @@ func main() {
 		go up(upc, done, uploader, bookname)
 
 
+		verboselog.Println("Getting list of appropriate objects to download")
 		err = s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
 			Bucket: aws.String("rescribeinprogress"),
 			Prefix: aws.String(bookname),
@@ -216,6 +218,7 @@ func main() {
 		// wait for the done channel to be posted to
 		<-done
 
+		verboselog.Println("Sending", bookname, "to queue", ocrqurl)
 		_, err = sqssvc.SendMessage(&sqs.SendMessageInput{
 			MessageBody: aws.String(bookname),
 			QueueUrl: &ocrqurl,
@@ -226,6 +229,7 @@ func main() {
 
 		t.Stop()
 
+		verboselog.Println("Deleting original message from queue", prequrl)
 		_, err = sqssvc.DeleteMessage(&sqs.DeleteMessageInput{
 			QueueUrl: &prequrl,
 			ReceiptHandle: msgResult.Messages[0].ReceiptHandle,
