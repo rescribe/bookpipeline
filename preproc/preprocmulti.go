@@ -30,6 +30,7 @@ func autowsize(bounds image.Rectangle) int {
 // Note: copied from cmd/preprocmulti/main.go, should think about the best way
 //       to organise this code later.
 // TODO: return errors that encapsulate the err describing where it was encountered
+// TODO: do the post-integral image stuff in separate goroutines for speed
 func PreProcMulti(inPath string, ksizes []float64, binType string, binWsize int, wipe bool, wipeWsize int, wipeMinWidthPerc int) ([]string, error) {
 	// Make outBase inPath up to final .
 	s := strings.Split(inPath, ".")
