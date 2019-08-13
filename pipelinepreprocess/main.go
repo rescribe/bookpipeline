@@ -20,7 +20,7 @@ import (
 	"rescribe.xyz/go.git/preproc"
 )
 
-const usage = "Usage: pipelinepreprocess [-v]\n\nContinuously checks the preprocess queue for books.\nWhen a book is found it's downloaded from the S3 inprogress bucket, preprocessed, and the results are uploaded to the S3 inprogress bucket. The book name is then added to the ocr queue, and removed from the preprocess queue.\n\n  -v: verbose\n"
+const usage = "Usage: pipelinepreprocess [-v]\n\nContinuously checks the preprocess queue for books.\nWhen a book is found it's downloaded from the S3 inprogress bucket, preprocessed, and the results are uploaded to the S3 inprogress bucket. The book name is then added to the ocr queue, and removed from the preprocess queue.\n\n-v  verbose\n"
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -127,6 +127,7 @@ func main() {
 		verboselog = log.New(n, "", log.LstdFlags)
 	}
 
+	verboselog.Println("Setting up AWS session")
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("eu-west-2"),
 	})
@@ -139,6 +140,7 @@ func main() {
 	uploader := s3manager.NewUploader(sess)
 
 	preqname := "rescribepreprocess"
+	verboselog.Println("Getting Queue URL for", preqname)
 	result, err := sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: aws.String(preqname),
 	})
@@ -148,6 +150,7 @@ func main() {
 	prequrl := *result.QueueUrl
 
 	ocrqname := "rescribeocr"
+	verboselog.Println("Getting Queue URL for", ocrqname)
 	result, err = sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: aws.String(ocrqname),
 	})
@@ -161,7 +164,7 @@ func main() {
 		msgResult, err := sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
 			MaxNumberOfMessages: aws.Int64(1),
 			VisibilityTimeout: aws.Int64(HeartbeatTime * 2),
-			WaitTimeSeconds: aws.Int64(HeartbeatTime),
+			WaitTimeSeconds: aws.Int64(20),
 			QueueUrl: &prequrl,
 		})
 		if err != nil {
