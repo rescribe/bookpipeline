@@ -54,7 +54,7 @@ func download(dl chan string, pre chan string, downloader *s3manager.Downloader,
 
 		_, err = downloader.Download(f,
 			&s3.GetObjectInput{
-				Bucket: aws.String("inprogress"),
+				Bucket: aws.String("rescribeinprogress"),
 				Key: &key })
 		if err != nil {
 			log.Fatalln("Failed to download", key, err)
@@ -176,6 +176,7 @@ func main() {
 			bookname = *msgResult.Messages[0].Body
 			verboselog.Println("Message received:", bookname)
 		} else {
+			verboselog.Println("No message received, sleeping")
 			time.Sleep(PauseBetweenChecks)
 			continue
 		}
