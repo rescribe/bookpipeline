@@ -42,9 +42,6 @@ const PreprocPattern = `_bin[0-9].[0-9].png`
 //       so use them for multiple books indefinitely. would require finding a way to
 //       signal when the queues need to be updated (e.g. when a book is finished)
 //
-// MAYBE use a struct holding config info ala downloader in
-// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/sdk-utilities.html
-//
 // TODO: consider having the download etc functions return a channel like a generator, like in rob pike's talk
 
 type Clouder interface {
@@ -52,7 +49,7 @@ type Clouder interface {
 	ListObjects(bucket string, prefix string, names chan string) error
 	Download(bucket string, key string, fn string) error
 	Upload(bucket string, key string, path string) error
-	CheckQueue(url string) (qmsg, error)
+	CheckQueue(url string) (Qmsg, error)
 	AddToQueue(url string, msg string) error
 	DelFromQueue(url string, handle string) error
 	QueueHeartbeat(t *time.Ticker, msgHandle string, qurl string) error
@@ -63,13 +60,13 @@ type Pipeliner interface {
 	ListInProgress(bookname string, names chan string) error
 	DownloadFromInProgress(key string, fn string) error
 	UploadToInProgress(key string, path string) error
-	CheckPreQueue() (qmsg, error)
+	CheckPreQueue() (Qmsg, error)
 	AddToOCRQueue(msg string) error
 	DelFromPreQueue(handle string) error
 	PreQueueHeartbeat(t *time.Ticker, msgHandle string) error
 }
 
-type qmsg struct {
+type Qmsg struct {
 	Handle, Body string
 }
 
@@ -127,7 +124,7 @@ func (a *awsConn) Init() error {
 	return nil
 }
 
-func (a *awsConn) CheckQueue(url string) (qmsg, error) {
+func (a *awsConn) CheckQueue(url string) (Qmsg, error) {
 	msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
 		MaxNumberOfMessages: aws.Int64(1),
 		VisibilityTimeout: aws.Int64(HeartbeatTime * 2),
@@ -135,19 +132,19 @@ func (a *awsConn) CheckQueue(url string) (qmsg, error) {
 		QueueUrl: &url,
 	})
 	if err != nil {
-		return qmsg{}, err
+		return Qmsg{}, err
 	}
 
 	if len(msgResult.Messages) > 0 {
-		msg := qmsg{ Handle: *msgResult.Messages[0].ReceiptHandle, Body: *msgResult.Messages[0].Body }
+		msg := Qmsg{ Handle: *msgResult.Messages[0].ReceiptHandle, Body: *msgResult.Messages[0].Body }
 		a.logger.Println("Message received:", msg.Body)
 		return msg, nil
 	} else {
-		return qmsg{}, nil
+		return Qmsg{}, nil
 	}
 }
 
-func (a *awsConn) CheckPreQueue() (qmsg, error) {
+func (a *awsConn) CheckPreQueue() (Qmsg, error) {
 	a.logger.Println("Checking preprocessing queue for new messages")
 	return a.CheckQueue(a.prequrl)
 }
