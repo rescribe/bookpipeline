@@ -32,8 +32,7 @@ const PauseBetweenChecks = 60 * time.Second
 
 type Clouder interface {
 	Init() error
-	//ListObjects(bucket string, prefix string, names chan string) error
-	ListObjects(bucket string, prefix string, names chan string)
+	ListObjects(bucket string, prefix string) ([]string, error)
 	Download(bucket string, key string, fn string) error
 	Upload(bucket string, key string, path string) error
 	CheckQueue(url string) (Qmsg, error)
@@ -44,8 +43,8 @@ type Clouder interface {
 
 type Pipeliner interface {
 	Clouder
-	ListToPreprocess(bookname string, names chan string) error
-	ListToOCR(bookname string, names chan string) error
+	ListToPreprocess(bookname string) ([]string, error)
+	ListToOCR(bookname string) ([]string, error)
 	DownloadFromInProgress(key string, fn string) error
 	UploadToInProgress(key string, path string) error
 	CheckPreQueue() (Qmsg, error)
@@ -149,11 +148,14 @@ func preProcBook(msg Qmsg, conn Pipeliner) {
 	go up(upc, done, conn, bookname)
 
 	conn.Logger().Println("Getting list of objects to download")
-	err = conn.ListToPreprocess(bookname, dl)
+	todl, err := conn.ListToPreprocess(bookname)
 	if err != nil {
 		log.Println("Failed to get list of files for book", bookname, err)
 		t.Stop()
 		return
+	}
+	for _, d := range todl {
+		dl <- d
 	}
 
 	// wait for the done channel to be posted to
@@ -206,13 +208,15 @@ func ocrBook(msg Qmsg, conn Pipeliner) {
 	go up(upc, done, conn, bookname)
 
 	conn.Logger().Println("Getting list of objects to download")
-	go conn.ListToOCR(bookname, dl)
-	//err = conn.ListToOCR(bookname, dl)
-	//if err != nil {
-	//	log.Println("Failed to get list of files for book", bookname, err)
-	//	t.Stop()
-	//	return
-	//}
+	todl, err := conn.ListToOCR(bookname)
+	if err != nil {
+		log.Println("Failed to get list of files for book", bookname, err)
+		t.Stop()
+		return
+	}
+	for _, d := range todl {
+		dl <- d
+	}
 
 	// wait for the done channel to be posted to
 	<-done

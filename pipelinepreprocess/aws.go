@@ -142,56 +142,54 @@ func (a *awsConn) OCRQueueHeartbeat(t *time.Ticker, msgHandle string) error {
 	return a.QueueHeartbeat(t, msgHandle, a.ocrqurl)
 }
 
-func (a *awsConn) ListObjects(bucket string, prefix string, names chan string) {
+func (a *awsConn) ListObjects(bucket string, prefix string) ([]string, error) {
+	var names []string
 	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
 	}, func(page *s3.ListObjectsV2Output, last bool) bool {
 		for _, r := range page.Contents {
-			names <- *r.Key
+			names = append(names, *r.Key)
 		}
 		return true
 	})
-	close(names)
-	if err != nil {
-		// TODO: handle error properly
-		log.Println("Error getting objects")
-	}
+	return names, err
 }
 
-func (a *awsConn) ListToPreprocess(bookname string, names chan string) error {
-	objs := make(chan string)
+func (a *awsConn) ListToPreprocess(bookname string) ([]string, error) {
+	var names []string
 	preprocessed := regexp.MustCompile(PreprocPattern)
-	go a.ListObjects("rescribeinprogress", bookname, objs)
+	objs, err := a.ListObjects("rescribeinprogress", bookname)
+	if err != nil {
+		return names, err
+	}
 	// Filter out any object that looks like it's already been preprocessed
-	for n := range objs {
+	for _, n := range objs {
 		if preprocessed.MatchString(n) {
 			a.logger.Println("Skipping item that looks like it has already been processed", n)
 			continue
 		}
-		names <- n
+		names = append(names, n)
 	}
-	close(names)
-	// TODO: handle errors from ListObjects
-	return nil
+	return names, nil
 }
 
-func (a *awsConn) ListToOCR(bookname string, names chan string) error {
-	objs := make(chan string)
+func (a *awsConn) ListToOCR(bookname string) ([]string, error) {
+	var names []string
 	preprocessed := regexp.MustCompile(PreprocPattern)
-	go a.ListObjects("rescribeinprogress", bookname, objs)
-	a.logger.Println("Completed running listobjects")
+	objs, err := a.ListObjects("rescribeinprogress", bookname)
+	if err != nil {
+		return names, err
+	}
 	// Filter out any object that looks like it hasn't already been preprocessed
-	for n := range objs {
+	for _, n := range objs {
 		if ! preprocessed.MatchString(n) {
 			a.logger.Println("Skipping item that looks like it is not preprocessed", n)
 			continue
 		}
-		names <- n
+		names = append(names, n)
 	}
-	close(names)
-	// TODO: handle errors from ListObjects
-	return nil
+	return names, nil
 }
 
 func (a *awsConn) AddToQueue(url string, msg string) error {
