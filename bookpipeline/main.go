@@ -15,7 +15,23 @@ import (
 	"rescribe.xyz/go.git/preproc"
 )
 
-const usage = "Usage: pipelinepreprocess [-v]\n\nContinuously checks the preprocess queue for books.\nWhen a book is found it's downloaded from the S3 inprogress bucket, preprocessed, and the results are uploaded to the S3 inprogress bucket. The book name is then added to the ocr queue, and removed from the preprocess queue.\n\n-v  verbose\n"
+const usage = `Usage: bookpipeline [-v]
+
+Watches the preprocess, ocr and analyse queues for book names. When
+one is found this general process is followed:
+
+- The book name is hidden from the queue, and a 'heartbeat' is
+  started which keeps it hidden (this will time out after 2 minutes
+  if the program is terminated)
+- The necessary files from bookname/ are downloaded
+- The files are processed
+- The resulting files are uploaded to bookname/
+- The heartbeat is stopped
+- The book name is removed from the queue it was taken from, and
+  added to the next queue for future processing
+
+-v  verbose
+`
 
 const training = "rescribealphav5" // TODO: allow to set on cmdline
 
@@ -121,7 +137,7 @@ func ocr(toocr chan string, up chan string, logger *log.Logger, errc chan error)
 	close(up)
 }
 
-func preProcBook(msg Qmsg, conn Pipeliner) error {
+func preprocBook(msg Qmsg, conn Pipeliner) error {
 	bookname := msg.Body
 
 	t := time.NewTicker(HeartbeatTime * time.Second)
@@ -191,6 +207,7 @@ func preProcBook(msg Qmsg, conn Pipeliner) error {
 	return nil
 }
 
+// TODO: this is very similar to preprocBook; try to at least mostly merge them
 func ocrBook(msg Qmsg, conn Pipeliner) error {
 	bookname := msg.Body
 
@@ -206,8 +223,8 @@ func ocrBook(msg Qmsg, conn Pipeliner) error {
 
 	dl := make(chan string)
 	ocrc := make(chan string)
-	upc := make(chan string) // TODO: rename
-	done := make(chan bool) // this is just to communicate when up has finished, so the queues can be updated
+	upc := make(chan string)
+	done := make(chan bool)
 	errc := make(chan error)
 
 	// these functions will do their jobs when their channels have data
@@ -302,7 +319,7 @@ func main() {
 				verboselog.Println("No message received on preprocess queue, sleeping")
 				continue
 			}
-			err = preProcBook(msg, conn)
+			err = preprocBook(msg, conn)
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
