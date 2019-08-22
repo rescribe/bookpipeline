@@ -60,18 +60,18 @@ type Qmsg struct {
 	Handle, Body string
 }
 
-func download(dl chan string, pre chan string, conn Pipeliner, dir string, errc chan error) {
+func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error) {
 	for key := range dl {
 		fn := filepath.Join(dir, filepath.Base(key))
 		err := conn.DownloadFromInProgress(key, fn)
 		if err != nil {
-			close(pre)
+			close(process)
 			errc <- err
 			return
 		}
-		pre <- fn
+		process <- fn
 	}
-	close(pre)
+	close(process)
 }
 
 func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc chan error) {
@@ -155,6 +155,7 @@ func preProcBook(msg Qmsg, conn Pipeliner) error {
 	for _, d := range todl {
 		dl <- d
 	}
+	close(dl)
 
 	// wait for either the done or errc channel to be sent to
 	select {
@@ -162,7 +163,7 @@ func preProcBook(msg Qmsg, conn Pipeliner) error {
 			t.Stop()
 			_ = os.RemoveAll(d)
 			return err
-		case <- done:
+		case <-done:
 	}
 
 	conn.Logger().Println("Sending", bookname, "to OCR queue")
@@ -224,6 +225,7 @@ func ocrBook(msg Qmsg, conn Pipeliner) error {
 	for _, a := range todl {
 		dl <- a
 	}
+	close(dl)
 
 	// wait for either the done or errc channel to be sent to
 	select {
@@ -231,7 +233,7 @@ func ocrBook(msg Qmsg, conn Pipeliner) error {
 			t.Stop()
 			_ = os.RemoveAll(d)
 			return err
-		case <- done:
+		case <-done:
 	}
 
 	conn.Logger().Println("Sending", bookname, "to analyse queue")
