@@ -25,7 +25,7 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-const PauseBetweenChecks = 60 * time.Second
+const PauseBetweenChecks = 3 * time.Minute
 
 type Clouder interface {
 	Init() error
@@ -293,38 +293,34 @@ func main() {
 		select {
 		case <- checkPreQueue:
 			msg, err := conn.CheckPreQueue()
+			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				log.Println("Error checking preprocess queue", err)
-				checkPreQueue = time.After(PauseBetweenChecks)
 				continue
 			}
 			if msg.Handle == "" {
 				verboselog.Println("No message received on preprocess queue, sleeping")
-				checkPreQueue = time.After(PauseBetweenChecks)
 				continue
 			}
 			err = preProcBook(msg, conn)
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
-			checkPreQueue = time.After(0)
 		case <- checkOCRQueue:
 			msg, err := conn.CheckOCRQueue()
+			checkOCRQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				log.Println("Error checking OCR queue", err)
-				checkOCRQueue = time.After(PauseBetweenChecks)
 				continue
 			}
 			if msg.Handle == "" {
 				verboselog.Println("No message received on OCR queue, sleeping")
-				checkOCRQueue = time.After(PauseBetweenChecks)
 				continue
 			}
 			err = ocrBook(msg, conn)
 			if err != nil {
 				log.Println("Error during OCR process", err)
 			}
-			checkOCRQueue = time.After(0)
 		}
 	}
 }
