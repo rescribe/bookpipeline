@@ -1,4 +1,5 @@
 package main
+
 // TODO: have logs go somewhere useful, like email
 // TODO: check if images are prebinarised and if so skip multiple binarisation
 
@@ -37,6 +38,7 @@ const training = "rescribealphav5" // TODO: allow to set on cmdline
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
+
 func (w NullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
@@ -175,11 +177,11 @@ func preprocBook(msg Qmsg, conn Pipeliner) error {
 
 	// wait for either the done or errc channel to be sent to
 	select {
-		case err = <-errc:
-			t.Stop()
-			_ = os.RemoveAll(d)
-			return err
-		case <-done:
+	case err = <-errc:
+		t.Stop()
+		_ = os.RemoveAll(d)
+		return err
+	case <-done:
 	}
 
 	conn.Logger().Println("Sending", bookname, "to OCR queue")
@@ -246,11 +248,11 @@ func ocrBook(msg Qmsg, conn Pipeliner) error {
 
 	// wait for either the done or errc channel to be sent to
 	select {
-		case err = <-errc:
-			t.Stop()
-			_ = os.RemoveAll(d)
-			return err
-		case <-done:
+	case err = <-errc:
+		t.Stop()
+		_ = os.RemoveAll(d)
+		return err
+	case <-done:
 	}
 
 	conn.Logger().Println("Sending", bookname, "to analyse queue")
@@ -292,7 +294,7 @@ func main() {
 	}
 
 	var conn Pipeliner
-	conn = &awsConn{ region: "eu-west-2", logger: verboselog }
+	conn = &awsConn{region: "eu-west-2", logger: verboselog}
 
 	verboselog.Println("Setting up AWS session")
 	err := conn.Init()
@@ -308,7 +310,7 @@ func main() {
 
 	for {
 		select {
-		case <- checkPreQueue:
+		case <-checkPreQueue:
 			msg, err := conn.CheckPreQueue()
 			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
@@ -323,7 +325,7 @@ func main() {
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
-		case <- checkOCRQueue:
+		case <-checkOCRQueue:
 			msg, err := conn.CheckOCRQueue()
 			checkOCRQueue = time.After(PauseBetweenChecks)
 			if err != nil {
