@@ -104,7 +104,7 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 	done <- true
 }
 
-func preprocess(pre chan string, up chan string, logger *log.Logger, errc chan error) {
+func preprocess(pre chan string, up chan string, errc chan error, logger *log.Logger) {
 	for path := range pre {
 		logger.Println("Preprocessing", path)
 		done, err := preproc.PreProcMulti(path, []float64{0.1, 0.2, 0.4, 0.5}, "binary", 0, true, 5, 30)
@@ -120,95 +120,25 @@ func preprocess(pre chan string, up chan string, logger *log.Logger, errc chan e
 	close(up)
 }
 
-// TODO: use Tesseract API rather than calling the executable
-func ocr(toocr chan string, up chan string, logger *log.Logger, training string, errc chan error) {
-	for path := range toocr {
-		logger.Println("OCRing", path)
-		name := strings.Replace(path, ".png", "", 1) // TODO: handle any file extension
-		cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
-		err := cmd.Run()
-		if err != nil {
-			close(up)
-			errc <- errors.New(fmt.Sprintf("Error ocring %s: %s", path, err))
-			return
+func ocr(training string) func(chan string, chan string, chan error, *log.Logger) {
+	return func (toocr chan string, up chan string, errc chan error, logger *log.Logger) {
+		for path := range toocr {
+			logger.Println("OCRing", path)
+			name := strings.Replace(path, ".png", "", 1) // TODO: handle any file extension
+			cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
+			err := cmd.Run()
+			if err != nil {
+				close(up)
+				errc <- errors.New(fmt.Sprintf("Error ocring %s: %s", path, err))
+				return
+			}
+			up <- name + ".hocr"
 		}
-		up <- name + ".hocr"
+		close(up)
 	}
-	close(up)
 }
 
-func preprocBook(msg Qmsg, conn Pipeliner) error {
-	bookname := msg.Body
-
-	t := time.NewTicker(HeartbeatTime * time.Second)
-	go conn.PreQueueHeartbeat(t, msg.Handle)
-
-	d := filepath.Join(os.TempDir(), bookname)
-	err := os.MkdirAll(d, 0755)
-	if err != nil {
-		t.Stop()
-		return errors.New(fmt.Sprintf("Failed to create directory %s: %s", d, err))
-	}
-
-	dl := make(chan string)
-	pre := make(chan string)
-	upc := make(chan string)
-	done := make(chan bool)
-	errc := make(chan error)
-
-	// these functions will do their jobs when their channels have data
-	go download(dl, pre, conn, d, errc)
-	go preprocess(pre, upc, conn.Logger(), errc)
-	go up(upc, done, conn, bookname, errc)
-
-	conn.Logger().Println("Getting list of objects to download")
-	todl, err := conn.ListToPreprocess(bookname)
-	if err != nil {
-		t.Stop()
-		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Failed to get list of files for book %s: %s", bookname, err))
-	}
-	for _, d := range todl {
-		dl <- d
-	}
-	close(dl)
-
-	// wait for either the done or errc channel to be sent to
-	select {
-	case err = <-errc:
-		t.Stop()
-		_ = os.RemoveAll(d)
-		return err
-	case <-done:
-	}
-
-	conn.Logger().Println("Sending", bookname, "to OCR queue")
-	err = conn.AddToOCRQueue(bookname)
-	if err != nil {
-		t.Stop()
-		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Error adding to ocr queue %s: %s", bookname, err))
-	}
-
-	t.Stop()
-
-	conn.Logger().Println("Deleting original message from preprocessing queue")
-	err = conn.DelFromPreQueue(msg.Handle)
-	if err != nil {
-		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Error deleting message from preprocessing queue: %s", err))
-	}
-
-	err = os.RemoveAll(d)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to remove directory %s: %s", d, err))
-	}
-
-	return nil
-}
-
-// TODO: this is very similar to preprocBook; try to at least mostly merge them
-func ocrBook(msg Qmsg, conn Pipeliner, training string) error {
+func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string, chan error, *log.Logger)) error {
 	bookname := msg.Body
 
 	t := time.NewTicker(HeartbeatTime * time.Second)
@@ -222,14 +152,14 @@ func ocrBook(msg Qmsg, conn Pipeliner, training string) error {
 	}
 
 	dl := make(chan string)
-	ocrc := make(chan string)
+	processc := make(chan string)
 	upc := make(chan string)
 	done := make(chan bool)
 	errc := make(chan error)
 
 	// these functions will do their jobs when their channels have data
-	go download(dl, ocrc, conn, d, errc)
-	go ocr(ocrc, upc, conn.Logger(), training, errc)
+	go download(dl, processc, conn, d, errc)
+	go process(processc, upc, errc, conn.Logger())
 	go up(upc, done, conn, bookname, errc)
 
 	conn.Logger().Println("Getting list of objects to download")
@@ -323,7 +253,7 @@ func main() {
 				verboselog.Println("No message received on preprocess queue, sleeping")
 				continue
 			}
-			err = preprocBook(msg, conn)
+			err = processBook(msg, conn, preprocess)
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
@@ -338,7 +268,7 @@ func main() {
 				verboselog.Println("No message received on OCR queue, sleeping")
 				continue
 			}
-			err = ocrBook(msg, conn, *training)
+			err = processBook(msg, conn, ocr(*training))
 			if err != nil {
 				log.Println("Error during OCR process", err)
 			}
