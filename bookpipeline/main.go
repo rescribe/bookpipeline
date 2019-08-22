@@ -5,6 +5,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -16,7 +17,7 @@ import (
 	"rescribe.xyz/go.git/preproc"
 )
 
-const usage = `Usage: bookpipeline [-v]
+const usage = `Usage: bookpipeline [-v] [-t training]
 
 Watches the preprocess, ocr and analyse queues for book names. When
 one is found this general process is followed:
@@ -31,10 +32,7 @@ one is found this general process is followed:
 - The book name is removed from the queue it was taken from, and
   added to the next queue for future processing
 
--v  verbose
 `
-
-const training = "rescribealphav5" // TODO: allow to set on cmdline
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -123,7 +121,7 @@ func preprocess(pre chan string, up chan string, logger *log.Logger, errc chan e
 }
 
 // TODO: use Tesseract API rather than calling the executable
-func ocr(toocr chan string, up chan string, logger *log.Logger, errc chan error) {
+func ocr(toocr chan string, up chan string, logger *log.Logger, training string, errc chan error) {
 	for path := range toocr {
 		logger.Println("OCRing", path)
 		name := strings.Replace(path, ".png", "", 1) // TODO: handle any file extension
@@ -210,7 +208,7 @@ func preprocBook(msg Qmsg, conn Pipeliner) error {
 }
 
 // TODO: this is very similar to preprocBook; try to at least mostly merge them
-func ocrBook(msg Qmsg, conn Pipeliner) error {
+func ocrBook(msg Qmsg, conn Pipeliner, training string) error {
 	bookname := msg.Body
 
 	t := time.NewTicker(HeartbeatTime * time.Second)
@@ -231,7 +229,7 @@ func ocrBook(msg Qmsg, conn Pipeliner) error {
 
 	// these functions will do their jobs when their channels have data
 	go download(dl, ocrc, conn, d, errc)
-	go ocr(ocrc, upc, conn.Logger(), errc)
+	go ocr(ocrc, upc, conn.Logger(), training, errc)
 	go up(upc, done, conn, bookname, errc)
 
 	conn.Logger().Println("Getting list of objects to download")
@@ -281,13 +279,17 @@ func ocrBook(msg Qmsg, conn Pipeliner) error {
 }
 
 func main() {
+	verbose := flag.Bool("v", false, "verbose")
+	training := flag.String("t", "rescribealphav5", "tesseract training file to use")
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), usage)
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
 	var verboselog *log.Logger
-	if len(os.Args) > 1 {
-		if os.Args[1] == "-v" {
-			verboselog = log.New(os.Stdout, "", log.LstdFlags)
-		} else {
-			log.Fatal(usage)
-		}
+	if *verbose {
+		verboselog = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
 		var n NullWriter
 		verboselog = log.New(n, "", log.LstdFlags)
@@ -336,7 +338,7 @@ func main() {
 				verboselog.Println("No message received on OCR queue, sleeping")
 				continue
 			}
-			err = ocrBook(msg, conn)
+			err = ocrBook(msg, conn, *training)
 			if err != nil {
 				log.Println("Error during OCR process", err)
 			}
