@@ -116,7 +116,7 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 	return func (toocr chan string, up chan string, errc chan error, logger *log.Logger) {
 		for path := range toocr {
 			logger.Println("OCRing", path)
-			name := strings.Replace(path, ".png", "", 1) // TODO: handle any file extension
+			name := strings.Replace(path, ".png", "", 1)
 			cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
 			err := cmd.Run()
 			if err != nil {
@@ -226,7 +226,7 @@ func main() {
 	}
 
 	// TODO: match jpg too
-	origPattern := regexp.MustCompile(`[0-9]{4}.png$`) // TODO: match other file naming
+	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`) // TODO: match other file naming
 	preprocessedPattern := regexp.MustCompile(`_bin[0-9].[0-9].png$`)
 	//ocredPattern := regexp.MustCompile(`.hocr$`)
 
