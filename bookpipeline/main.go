@@ -231,9 +231,13 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	}
 	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].pgnum < graphconf[j].pgnum })
 	var xvalues, yvalues []float64
+	var annotations []chart.Value2
 	for _, c := range graphconf {
 		xvalues = append(xvalues, c.pgnum)
 		yvalues = append(yvalues, c.conf)
+		if c.conf < 70 {
+			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.pgnum), XValue: c.pgnum, YValue: c.conf})
+		}
 	}
 	mainSeries := chart.ContinuousSeries{
 		XValues: xvalues,
@@ -305,6 +309,9 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 			maxSeries,
 			chart.LastValueAnnotation(minSeries),
 			chart.LastValueAnnotation(maxSeries),
+			chart.AnnotationSeries{
+				Annotations: annotations,
+			},
 			//chart.ContinuousSeries{
 			//	YAxis: chart.YAxisSecondary,
 			//	XValues: xvalues,
