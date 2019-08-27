@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"rescribe.xyz/go.git/lib/hocr"
 	"rescribe.xyz/go.git/preproc"
 )
 
@@ -130,6 +131,86 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 	}
 }
 
+type Conf struct {
+	path, code string
+	conf float64
+}
+
+func analyse(toanalyse chan string, up chan string, errc chan error, logger *log.Logger) {
+	confs := make(map[string][]*Conf)
+	bestconfs := make(map[string]*Conf)
+	savedir := ""
+
+	for path := range toanalyse {
+		if savedir == "" {
+			savedir = filepath.Dir(path)
+		}
+		logger.Println("Calculating confidence for", path)
+		avg, err := hocr.GetAvgConf(path)
+		if err != nil {
+			close(up)
+			errc <- errors.New(fmt.Sprintf("Error retreiving confidence for %s: %s", path, err))
+			return
+		}
+		base := filepath.Base(path)
+		codestart := strings.Index(base, "_bin")
+		name := base[0:codestart]
+		var c Conf
+		c.path = path
+		c.code = base[codestart:]
+		c.conf = avg
+		confs[name] = append(confs[name], &c)
+
+	}
+
+	conffn := filepath.Join(savedir, "conf")
+	logger.Println("Saving confidences in file", conffn)
+	f, err := os.Create(conffn)
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Error creating conf file %s: %s", conffn, err))
+		return
+	}
+	defer f.Close()
+
+	logger.Println("Finding best confidence for each page, and saving all confidences")
+	for base, conf := range confs {
+		var best float64
+		for _, c := range conf {
+			if c.conf > best {
+				best = c.conf
+				bestconfs[base] = c
+			}
+			_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.path, c.conf)
+			if err != nil {
+				close(up)
+				errc <- errors.New(fmt.Sprintf("Error writing confidences file: %s", err))
+				return
+			}
+		}
+	}
+	up <- conffn
+
+	logger.Println("Creating best file listing the best file for each page")
+	bestfn := filepath.Join(savedir, "best")
+	f, err = os.Create(bestfn)
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Error creating best file %s: %s", bestfn, err))
+		return
+	}
+	defer f.Close()
+	for _, conf := range bestconfs {
+		_, err = fmt.Fprintf(f, "%s\n", filepath.Base(conf.path))
+	}
+	up <- bestfn
+
+	// TODO: plot a graph with the confs, using https://github.com/gonum/plot, send to up
+	// TODO: generate a general report.txt with statistics etc for the book, send to up
+
+	close(up)
+}
+
 func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string, chan error, *log.Logger), match *regexp.Regexp, fromQueue string, toQueue string) error {
 	bookname := msg.Body
 
@@ -183,12 +264,14 @@ func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string
 	case <-done:
 	}
 
-	conn.Logger().Println("Sending", bookname, "to queue")
-	err = conn.AddToQueue(toQueue, bookname)
-	if err != nil {
-		t.Stop()
-		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Error adding to queue %s: %s", bookname, err))
+	if toQueue != "" {
+		conn.Logger().Println("Sending", bookname, "to queue")
+		err = conn.AddToQueue(toQueue, bookname)
+		if err != nil {
+			t.Stop()
+			_ = os.RemoveAll(d)
+			return errors.New(fmt.Sprintf("Error adding to queue %s: %s", bookname, err))
+		}
 	}
 
 	t.Stop()
@@ -228,7 +311,7 @@ func main() {
 	// TODO: match jpg too
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`) // TODO: match other file naming
 	preprocessedPattern := regexp.MustCompile(`_bin[0-9].[0-9].png$`)
-	//ocredPattern := regexp.MustCompile(`.hocr$`)
+	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var conn Pipeliner
 	conn = &awsConn{region: "eu-west-2", logger: verboselog}
@@ -242,8 +325,10 @@ func main() {
 
 	var checkPreQueue <-chan time.Time
 	var checkOCRQueue <-chan time.Time
+	var checkAnalyseQueue <-chan time.Time
 	checkPreQueue = time.After(0)
 	checkOCRQueue = time.After(0)
+	checkAnalyseQueue = time.After(0)
 
 	for {
 		select {
@@ -276,6 +361,21 @@ func main() {
 			err = processBook(msg, conn, ocr(*training), preprocessedPattern, conn.OCRQueueId(), conn.AnalyseQueueId())
 			if err != nil {
 				log.Println("Error during OCR process", err)
+			}
+		case <-checkAnalyseQueue:
+			msg, err := conn.CheckQueue(conn.AnalyseQueueId())
+			checkAnalyseQueue = time.After(PauseBetweenChecks)
+			if err != nil {
+				log.Println("Error checking analyse queue", err)
+				continue
+			}
+			if msg.Handle == "" {
+				verboselog.Println("No message received on analyse queue, sleeping")
+				continue
+			}
+			err = processBook(msg, conn, analyse, ocredPattern, conn.AnalyseQueueId(), "")
+			if err != nil {
+				log.Println("Error during analysis", err)
 			}
 		}
 	}
