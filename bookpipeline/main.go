@@ -232,11 +232,18 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].pgnum < graphconf[j].pgnum })
 	var xvalues, yvalues []float64
 	var annotations []chart.Value2
+	var ticks []chart.Tick
+	i := 0
+	tickevery := len(graphconf) / 20
 	for _, c := range graphconf {
+		i = i + 1
 		xvalues = append(xvalues, c.pgnum)
 		yvalues = append(yvalues, c.conf)
 		if c.conf < 70 {
 			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.pgnum), XValue: c.pgnum, YValue: c.conf})
+		}
+		if tickevery % i == 0 {
+			ticks = append(ticks, chart.Tick{c.pgnum, fmt.Sprintf("%.0f", c.pgnum)})
 		}
 	}
 	mainSeries := chart.ContinuousSeries{
@@ -277,9 +284,6 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		InnerSeries: mostSeries,
 	}
 
-	// TODO: annotate all values below 70%; see
-	// https://github.com/wcharczuk/go-chart/blob/master/_examples/annotations/main.go
-
 	// TODO: add number of words series using yaxissecondary
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
@@ -289,6 +293,7 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 			},
+			Ticks: ticks,
 		},
 		YAxis: chart.YAxis{
 			Name: "Confidence",
