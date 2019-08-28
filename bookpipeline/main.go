@@ -7,18 +7,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
-
-	"github.com/wcharczuk/go-chart"
 
 	"rescribe.xyz/go.git/lib/hocr"
 	"rescribe.xyz/go.git/preproc"
@@ -40,9 +35,6 @@ one is found this general process is followed:
   added to the next queue for future processing
 
 `
-
-const maxticks = 20
-const cutoff = 70
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -142,138 +134,6 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 type Conf struct {
 	path, code string
 	conf float64
-}
-type GraphConf struct {
-	pgnum, conf float64
-}
-
-func graph(confs map[string]*Conf, bookname string, w io.Writer) (error) {
-	// Organise confs to sort them by page
-	var graphconf []GraphConf
-	for _, conf := range confs {
-		name := filepath.Base(conf.path)
-		numend := strings.Index(name, "_")
-		pgnum, err := strconv.ParseFloat(name[0:numend], 64)
-		if err != nil {
-			continue
-		}
-		var c GraphConf
-		c.pgnum = pgnum
-		c.conf = conf.conf
-		graphconf = append(graphconf, c)
-	}
-	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].pgnum < graphconf[j].pgnum })
-
-	// Create main xvalues and yvalues, annotations and ticks
-	var xvalues, yvalues []float64
-	var annotations []chart.Value2
-	var ticks []chart.Tick
-	i := 0
-	tickevery := len(graphconf) / maxticks
-	for _, c := range graphconf {
-		i = i + 1
-		xvalues = append(xvalues, c.pgnum)
-		yvalues = append(yvalues, c.conf)
-		if c.conf < cutoff {
-			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.pgnum), XValue: c.pgnum, YValue: c.conf})
-		}
-		if tickevery % i == 0 {
-			ticks = append(ticks, chart.Tick{c.pgnum, fmt.Sprintf("%.0f", c.pgnum)})
-		}
-	}
-	mainSeries := chart.ContinuousSeries{
-		XValues: xvalues,
-		YValues: yvalues,
-	}
-
-	// Create 70% line
-	yvalues = []float64{}
-	for _, _ = range xvalues {
-		yvalues = append(yvalues, cutoff)
-	}
-	cutoffSeries := chart.ContinuousSeries{
-		XValues: xvalues,
-		YValues: yvalues,
-		Style: chart.Style{
-			Show:            true,
-			StrokeColor:     chart.ColorAlternateGreen,
-			StrokeDashArray: []float64{10.0, 5.0},
-		},
-	}
-
-	// Create lines marking top and bottom 10% confidence
-	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].conf < graphconf[j].conf })
-	cutoff := int(len(graphconf) / 10)
-	mostconf := graphconf[cutoff:len(graphconf)-cutoff]
-	sort.Slice(mostconf, func(i, j int) bool { return mostconf[i].pgnum < mostconf[j].pgnum })
-	xvalues = []float64{}
-	yvalues = []float64{}
-	for _, c := range mostconf {
-		xvalues = append(xvalues, c.pgnum)
-		yvalues = append(yvalues, c.conf)
-	}
-	mostSeries := chart.ContinuousSeries{
-		XValues: xvalues,
-		YValues: yvalues,
-	}
-	minSeries := &chart.MinSeries{
-		Style: chart.Style{
-			Show:            true,
-			StrokeColor:     chart.ColorAlternateGray,
-			StrokeDashArray: []float64{5.0, 5.0},
-		},
-		InnerSeries: mostSeries,
-	}
-	maxSeries := &chart.MaxSeries{
-		Style: chart.Style{
-			Show:            true,
-			StrokeColor:     chart.ColorAlternateGray,
-			StrokeDashArray: []float64{5.0, 5.0},
-		},
-		InnerSeries: mostSeries,
-	}
-
-	graph := chart.Chart{
-		Title: fmt.Sprintf("Confidence of pages from %s", bookname),
-		TitleStyle: chart.StyleShow(),
-		Width: 1920,
-		Height: 1080,
-		XAxis: chart.XAxis{
-			Name: "Page number",
-			NameStyle: chart.StyleShow(),
-			Style: chart.StyleShow(),
-			Range: &chart.ContinuousRange{
-				Min: 0.0,
-			},
-			Ticks: ticks,
-		},
-		YAxis: chart.YAxis{
-			Name: "Confidence",
-			NameStyle: chart.StyleShow(),
-			Style: chart.StyleShow(),
-			Range: &chart.ContinuousRange{
-				Min: 0.0,
-				Max: 100.0,
-			},
-		},
-		Series: []chart.Series{
-			mainSeries,
-			minSeries,
-			maxSeries,
-			cutoffSeries,
-			chart.LastValueAnnotation(minSeries),
-			chart.LastValueAnnotation(maxSeries),
-			chart.AnnotationSeries{
-				Annotations: annotations,
-			},
-			//chart.ContinuousSeries{
-			//	YAxis: chart.YAxisSecondary,
-			//	XValues: xvalues,
-			//	YValues: yvalues,
-			//},
-		},
-	}
-	return graph.Render(chart.PNG, w)
 }
 
 func analyse(toanalyse chan string, up chan string, errc chan error, logger *log.Logger) {
