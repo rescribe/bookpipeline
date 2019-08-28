@@ -23,12 +23,16 @@ type GraphConf struct {
 	Pgnum, Conf float64
 }
 
-func Graph(confs map[string]*Conf, bookname string, w io.Writer) (error) {
+func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	// Organise confs to sort them by page
 	var graphconf []GraphConf
 	for _, conf := range confs {
 		name := filepath.Base(conf.Path)
-		numend := strings.Index(name, "_")
+		var numend int
+		numend = strings.Index(name, "_")
+		if numend == -1 {
+			numend = strings.Index(name, ".")
+		}
 		pgnum, err := strconv.ParseFloat(name[0:numend], 64)
 		if err != nil {
 			continue
