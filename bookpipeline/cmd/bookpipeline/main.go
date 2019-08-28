@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"rescribe.xyz/go.git/bookpipeline"
 	"rescribe.xyz/go.git/lib/hocr"
 	"rescribe.xyz/go.git/preproc"
 )
@@ -36,6 +37,9 @@ one is found this general process is followed:
 
 `
 
+const PauseBetweenChecks = 3 * time.Minute
+const HeartbeatTime = 60
+
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
 
@@ -43,14 +47,12 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-const PauseBetweenChecks = 3 * time.Minute
-
 type Clouder interface {
 	Init() error
 	ListObjects(bucket string, prefix string) ([]string, error)
 	Download(bucket string, key string, fn string) error
 	Upload(bucket string, key string, path string) error
-	CheckQueue(url string) (Qmsg, error)
+	CheckQueue(url string) (bookpipeline.Qmsg, error)
 	AddToQueue(url string, msg string) error
 	DelFromQueue(url string, handle string) error
 	QueueHeartbeat(t *time.Ticker, msgHandle string, qurl string) error
@@ -62,11 +64,7 @@ type Pipeliner interface {
 	OCRQueueId() string
 	AnalyseQueueId() string
 	WIPStorageId() string
-	Logger() *log.Logger
-}
-
-type Qmsg struct {
-	Handle, Body string
+	GetLogger() *log.Logger
 }
 
 func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error) {
@@ -131,14 +129,9 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 	}
 }
 
-type Conf struct {
-	path, code string
-	conf float64
-}
-
 func analyse(toanalyse chan string, up chan string, errc chan error, logger *log.Logger) {
-	confs := make(map[string][]*Conf)
-	bestconfs := make(map[string]*Conf)
+	confs := make(map[string][]*bookpipeline.Conf)
+	bestconfs := make(map[string]*bookpipeline.Conf)
 	savedir := ""
 
 	for path := range toanalyse {
@@ -155,10 +148,10 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		base := filepath.Base(path)
 		codestart := strings.Index(base, "_bin")
 		name := base[0:codestart]
-		var c Conf
-		c.path = path
-		c.code = base[codestart:]
-		c.conf = avg
+		var c bookpipeline.Conf
+		c.Path = path
+		c.Code = base[codestart:]
+		c.Conf = avg
 		confs[name] = append(confs[name], &c)
 
 	}
@@ -177,11 +170,11 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	for base, conf := range confs {
 		var best float64
 		for _, c := range conf {
-			if c.conf > best {
-				best = c.conf
+			if c.Conf > best {
+				best = c.Conf
 				bestconfs[base] = c
 			}
-			_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.path, c.conf)
+			_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.Path, c.Conf)
 			if err != nil {
 				close(up)
 				errc <- errors.New(fmt.Sprintf("Error writing confidences file: %s", err))
@@ -201,7 +194,7 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	}
 	defer f.Close()
 	for _, conf := range bestconfs {
-		_, err = fmt.Fprintf(f, "%s\n", filepath.Base(conf.path))
+		_, err = fmt.Fprintf(f, "%s\n", filepath.Base(conf.Path))
 	}
 	up <- fn
 
@@ -214,7 +207,7 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		return
 	}
 	defer f.Close()
-	err = graph(bestconfs, filepath.Base(savedir), f)
+	err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
 	if err != nil {
 		close(up)
 		errc <- errors.New(fmt.Sprintf("Error rendering graph: %s", err))
@@ -222,12 +215,10 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	}
 	up <- fn
 
-	// TODO: generate a general report.txt with statistics etc for the book, send to up
-
 	close(up)
 }
 
-func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string, chan error, *log.Logger), match *regexp.Regexp, fromQueue string, toQueue string) error {
+func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, chan string, chan error, *log.Logger), match *regexp.Regexp, fromQueue string, toQueue string) error {
 	bookname := msg.Body
 
 	t := time.NewTicker(HeartbeatTime * time.Second)
@@ -248,10 +239,10 @@ func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string
 
 	// these functions will do their jobs when their channels have data
 	go download(dl, processc, conn, d, errc)
-	go process(processc, upc, errc, conn.Logger())
+	go process(processc, upc, errc, conn.GetLogger())
 	go up(upc, done, conn, bookname, errc)
 
-	conn.Logger().Println("Getting list of objects to download")
+	conn.GetLogger().Println("Getting list of objects to download")
 	objs, err := conn.ListObjects(conn.WIPStorageId(), bookname)
 	if err != nil {
 		t.Stop()
@@ -261,7 +252,7 @@ func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string
 	var todl []string
 	for _, n := range objs {
 		if !match.MatchString(n) {
-			conn.Logger().Println("Skipping item that doesn't match target", n)
+			conn.GetLogger().Println("Skipping item that doesn't match target", n)
 			continue
 		}
 		todl = append(todl, n)
@@ -281,7 +272,7 @@ func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string
 	}
 
 	if toQueue != "" {
-		conn.Logger().Println("Sending", bookname, "to queue")
+		conn.GetLogger().Println("Sending", bookname, "to queue")
 		err = conn.AddToQueue(toQueue, bookname)
 		if err != nil {
 			t.Stop()
@@ -292,7 +283,7 @@ func processBook(msg Qmsg, conn Pipeliner, process func(chan string, chan string
 
 	t.Stop()
 
-	conn.Logger().Println("Deleting original message from queue")
+	conn.GetLogger().Println("Deleting original message from queue")
 	err = conn.DelFromQueue(fromQueue, msg.Handle)
 	if err != nil {
 		_ = os.RemoveAll(d)
@@ -329,7 +320,7 @@ func main() {
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var conn Pipeliner
-	conn = &awsConn{region: "eu-west-2", logger: verboselog}
+	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
 
 	verboselog.Println("Setting up AWS session")
 	err := conn.Init()

@@ -1,4 +1,4 @@
-package main
+package bookpipeline
 
 import (
 	"fmt"
@@ -14,26 +14,31 @@ import (
 const maxticks = 20
 const cutoff = 70
 
-type GraphConf struct {
-	pgnum, conf float64
+type Conf struct {
+        Path, Code string
+        Conf float64
 }
 
-func graph(confs map[string]*Conf, bookname string, w io.Writer) (error) {
+type GraphConf struct {
+	Pgnum, Conf float64
+}
+
+func Graph(confs map[string]*Conf, bookname string, w io.Writer) (error) {
 	// Organise confs to sort them by page
 	var graphconf []GraphConf
 	for _, conf := range confs {
-		name := filepath.Base(conf.path)
+		name := filepath.Base(conf.Path)
 		numend := strings.Index(name, "_")
 		pgnum, err := strconv.ParseFloat(name[0:numend], 64)
 		if err != nil {
 			continue
 		}
 		var c GraphConf
-		c.pgnum = pgnum
-		c.conf = conf.conf
+		c.Pgnum = pgnum
+		c.Conf = conf.Conf
 		graphconf = append(graphconf, c)
 	}
-	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].pgnum < graphconf[j].pgnum })
+	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Pgnum < graphconf[j].Pgnum })
 
 	// Create main xvalues and yvalues, annotations and ticks
 	var xvalues, yvalues []float64
@@ -43,13 +48,13 @@ func graph(confs map[string]*Conf, bookname string, w io.Writer) (error) {
 	tickevery := len(graphconf) / maxticks
 	for _, c := range graphconf {
 		i = i + 1
-		xvalues = append(xvalues, c.pgnum)
-		yvalues = append(yvalues, c.conf)
-		if c.conf < cutoff {
-			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.pgnum), XValue: c.pgnum, YValue: c.conf})
+		xvalues = append(xvalues, c.Pgnum)
+		yvalues = append(yvalues, c.Conf)
+		if c.Conf < cutoff {
+			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
 		}
 		if tickevery % i == 0 {
-			ticks = append(ticks, chart.Tick{c.pgnum, fmt.Sprintf("%.0f", c.pgnum)})
+			ticks = append(ticks, chart.Tick{c.Pgnum, fmt.Sprintf("%.0f", c.Pgnum)})
 		}
 	}
 	mainSeries := chart.ContinuousSeries{
@@ -73,9 +78,9 @@ func graph(confs map[string]*Conf, bookname string, w io.Writer) (error) {
 	}
 
 	// Create lines marking top and bottom 10% confidence
-	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].conf < graphconf[j].conf })
-	lowconf := graphconf[int(len(graphconf) / 10)].conf
-	highconf := graphconf[int((len(graphconf) / 10) * 9)].conf
+	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Conf < graphconf[j].Conf })
+	lowconf := graphconf[int(len(graphconf) / 10)].Conf
+	highconf := graphconf[int((len(graphconf) / 10) * 9)].Conf
 	yvalues = []float64{}
 	for _ = range graphconf {
 		yvalues = append(yvalues, lowconf)
