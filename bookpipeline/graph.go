@@ -9,10 +9,13 @@ import (
 	"strings"
 
 	"github.com/wcharczuk/go-chart"
+	"github.com/wcharczuk/go-chart/drawing"
 )
 
 const maxticks = 20
-const cutoff = 70
+const goodCutoff = 70
+const mediumCutoff = 65
+const badCutoff = 60
 
 type Conf struct {
         Path, Code string
@@ -21,6 +24,22 @@ type Conf struct {
 
 type GraphConf struct {
 	Pgnum, Conf float64
+}
+
+func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousSeries {
+	var yvalues []float64
+	for _ = range xvalues {
+		yvalues = append(yvalues, y)
+	}
+	return chart.ContinuousSeries{
+		XValues: xvalues,
+		YValues: yvalues,
+		Style: chart.Style{
+			Show:            true,
+			StrokeColor:     c,
+			StrokeDashArray: []float64{10.0, 5.0},
+		},
+	}
 }
 
 func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
@@ -54,7 +73,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		i = i + 1
 		xvalues = append(xvalues, c.Pgnum)
 		yvalues = append(yvalues, c.Conf)
-		if c.Conf < cutoff {
+		if c.Conf < goodCutoff {
 			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
 		}
 		if tickevery % i == 0 {
@@ -66,20 +85,10 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		YValues: yvalues,
 	}
 
-	// Create 70% line
-	yvalues = []float64{}
-	for _ = range xvalues {
-		yvalues = append(yvalues, cutoff)
-	}
-	cutoffSeries := chart.ContinuousSeries{
-		XValues: xvalues,
-		YValues: yvalues,
-		Style: chart.Style{
-			Show:            true,
-			StrokeColor:     chart.ColorAlternateGreen,
-			StrokeDashArray: []float64{10.0, 5.0},
-		},
-	}
+	// Create lines
+	goodCutoffSeries := createLine(xvalues, goodCutoff, chart.ColorAlternateGreen)
+	mediumCutoffSeries := createLine(xvalues, mediumCutoff, chart.ColorOrange)
+	badCutoffSeries := createLine(xvalues, badCutoff, chart.ColorRed)
 
 	// Create lines marking top and bottom 10% confidence
 	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Conf < graphconf[j].Conf })
@@ -139,7 +148,9 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 			mainSeries,
 			minSeries,
 			maxSeries,
-			cutoffSeries,
+			goodCutoffSeries,
+			mediumCutoffSeries,
+			badCutoffSeries,
 			chart.AnnotationSeries{
 				Annotations: annotations,
 			},
