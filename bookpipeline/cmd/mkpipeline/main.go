@@ -1,5 +1,7 @@
 package main
 
+// TODO: use the bookpipeline package for aws stuff
+
 import (
 	"log"
 	"os"
