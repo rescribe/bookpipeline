@@ -67,9 +67,10 @@ type Pipeliner interface {
 	GetLogger() *log.Logger
 }
 
-func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error) {
+func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error, logger *log.Logger) {
 	for key := range dl {
 		fn := filepath.Join(dir, filepath.Base(key))
+		logger.Println("Downloading", key)
 		err := conn.Download(conn.WIPStorageId(), key, fn)
 		if err != nil {
 			close(process)
@@ -81,10 +82,11 @@ func download(dl chan string, process chan string, conn Pipeliner, dir string, e
 	close(process)
 }
 
-func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc chan error) {
+func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc chan error, logger *log.Logger) {
 	for path := range c {
 		name := filepath.Base(path)
 		key := filepath.Join(bookname, name)
+		logger.Println("Downloading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
 		if err != nil {
 			errc <- err
@@ -238,9 +240,9 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	errc := make(chan error)
 
 	// these functions will do their jobs when their channels have data
-	go download(dl, processc, conn, d, errc)
+	go download(dl, processc, conn, d, errc, conn.GetLogger())
 	go process(processc, upc, errc, conn.GetLogger())
-	go up(upc, done, conn, bookname, errc)
+	go up(upc, done, conn, bookname, errc, conn.GetLogger())
 
 	conn.GetLogger().Println("Getting list of objects to download")
 	objs, err := conn.ListObjects(conn.WIPStorageId(), bookname)
