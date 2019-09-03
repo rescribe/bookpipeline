@@ -86,7 +86,7 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 	for path := range c {
 		name := filepath.Base(path)
 		key := filepath.Join(bookname, name)
-		logger.Println("Downloading", key)
+		logger.Println("Uploading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
 		if err != nil {
 			errc <- err
@@ -274,7 +274,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	}
 
 	if toQueue != "" {
-		conn.GetLogger().Println("Sending", bookname, "to queue")
+		conn.GetLogger().Println("Sending", bookname, "to queue", toQueue)
 		err = conn.AddToQueue(toQueue, bookname)
 		if err != nil {
 			t.Stop()
@@ -285,7 +285,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 
 	t.Stop()
 
-	conn.GetLogger().Println("Deleting original message from queue")
+	conn.GetLogger().Println("Deleting original message from queue", fromQueue)
 	err = conn.DelFromQueue(fromQueue, msg.Handle)
 	if err != nil {
 		_ = os.RemoveAll(d)
@@ -351,6 +351,7 @@ func main() {
 				verboselog.Println("No message received on preprocess queue, sleeping")
 				continue
 			}
+			verboselog.Println("Message received on preprocess queue, processing", msg.Body)
 			err = processBook(msg, conn, preprocess, origPattern, conn.PreQueueId(), conn.OCRQueueId())
 			if err != nil {
 				log.Println("Error during preprocess", err)
@@ -366,6 +367,7 @@ func main() {
 				verboselog.Println("No message received on OCR queue, sleeping")
 				continue
 			}
+			verboselog.Println("Message received on OCR queue, processing", msg.Body)
 			err = processBook(msg, conn, ocr(*training), preprocessedPattern, conn.OCRQueueId(), conn.AnalyseQueueId())
 			if err != nil {
 				log.Println("Error during OCR process", err)
@@ -381,6 +383,7 @@ func main() {
 				verboselog.Println("No message received on analyse queue, sleeping")
 				continue
 			}
+			verboselog.Println("Message received on analyse queue, processing", msg.Body)
 			err = processBook(msg, conn, analyse, ocredPattern, conn.AnalyseQueueId(), "")
 			if err != nil {
 				log.Println("Error during analysis", err)
