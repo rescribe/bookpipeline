@@ -73,6 +73,7 @@ func download(dl chan string, process chan string, conn Pipeliner, dir string, e
 		logger.Println("Downloading", key)
 		err := conn.Download(conn.WIPStorageId(), key, fn)
 		if err != nil {
+			for range dl {} // consume the rest of the receiving channel so it isn't blocked
 			close(process)
 			errc <- err
 			return
@@ -89,6 +90,7 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 		logger.Println("Uploading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
 		if err != nil {
+			for range c {} // consume the rest of the receiving channel so it isn't blocked
 			errc <- err
 			return
 		}
@@ -102,6 +104,7 @@ func preprocess(pre chan string, up chan string, errc chan error, logger *log.Lo
 		logger.Println("Preprocessing", path)
 		done, err := preproc.PreProcMulti(path, []float64{0.1, 0.2, 0.4, 0.5}, "binary", 0, true, 5, 30)
 		if err != nil {
+			for range pre {} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
 			errc <- err
 			return
@@ -121,6 +124,7 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 			cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
 			err := cmd.Run()
 			if err != nil {
+				for range toocr {} // consume the rest of the receiving channel so it isn't blocked
 				close(up)
 				errc <- errors.New(fmt.Sprintf("Error ocring %s: %s", path, err))
 				return
@@ -143,6 +147,7 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		logger.Println("Calculating confidence for", path)
 		avg, err := hocr.GetAvgConf(path)
 		if err != nil {
+			for range toanalyse {} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
 			errc <- errors.New(fmt.Sprintf("Error retreiving confidence for %s: %s", path, err))
 			return
