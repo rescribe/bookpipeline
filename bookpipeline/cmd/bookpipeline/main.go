@@ -156,6 +156,9 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 			errc <- errors.New(fmt.Sprintf("Error retreiving confidence for %s: %s", path, err))
 			return
 		}
+		if avg == 0 {
+			continue
+		}
 		base := filepath.Base(path)
 		codestart := strings.Index(base, "_bin")
 		name := base[0:codestart]

@@ -123,7 +123,7 @@ func GetAvgConf(hocrfn string) (float64, error) {
 		}
 	}
 	if num == 0 {
-		return 0, errors.New("No words found")
+		return 0, nil
 	}
 	return total / num, nil
 }
