@@ -58,8 +58,8 @@ func main() {
 		_, err = sqssvc.CreateQueue(&sqs.CreateQueueInput{
 			QueueName: aws.String(qname),
 			Attributes: map[string]*string{
-				"VisibilityTimeout": aws.String("120"), // 2 minutes
-				"MessageRetentionPeriod": aws.String("1209600"), // 14 days; max allowed by sqs
+				"VisibilityTimeout":             aws.String("120"),     // 2 minutes
+				"MessageRetentionPeriod":        aws.String("1209600"), // 14 days; max allowed by sqs
 				"ReceiveMessageWaitTimeSeconds": aws.String("20"),
 			},
 		})

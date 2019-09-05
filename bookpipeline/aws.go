@@ -16,7 +16,7 @@ import (
 const PreprocPattern = `_bin[0-9].[0-9].png`
 
 type Qmsg struct {
-        Handle, Body string
+	Handle, Body string
 }
 
 type AwsConn struct {

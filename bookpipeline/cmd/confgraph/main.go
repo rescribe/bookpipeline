@@ -17,7 +17,7 @@ func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {
 		if info.IsDir() {
 			return nil
 		}
-		if ! strings.HasSuffix(path, ".hocr") {
+		if !strings.HasSuffix(path, ".hocr") {
 			return nil
 		}
 		avg, err := hocr.GetAvgConf(path)

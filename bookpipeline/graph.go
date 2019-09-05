@@ -18,8 +18,8 @@ const mediumCutoff = 65
 const badCutoff = 60
 
 type Conf struct {
-        Path, Code string
-        Conf float64
+	Path, Code string
+	Conf       float64
 }
 
 type GraphConf struct {
@@ -76,7 +76,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		if c.Conf < goodCutoff {
 			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
 		}
-		if tickevery % i == 0 {
+		if tickevery%i == 0 {
 			ticks = append(ticks, chart.Tick{c.Pgnum, fmt.Sprintf("%.0f", c.Pgnum)})
 		}
 	}
@@ -92,8 +92,8 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 
 	// Create lines marking top and bottom 10% confidence
 	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Conf < graphconf[j].Conf })
-	lowconf := graphconf[int(len(graphconf) / 10)].Conf
-	highconf := graphconf[int((len(graphconf) / 10) * 9)].Conf
+	lowconf := graphconf[int(len(graphconf)/10)].Conf
+	highconf := graphconf[int((len(graphconf)/10)*9)].Conf
 	yvalues = []float64{}
 	for _ = range graphconf {
 		yvalues = append(yvalues, lowconf)
@@ -122,23 +122,23 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	}
 
 	graph := chart.Chart{
-		Title: bookname,
+		Title:      bookname,
 		TitleStyle: chart.StyleShow(),
-		Width: 1920,
-		Height: 1080,
+		Width:      1920,
+		Height:     1080,
 		XAxis: chart.XAxis{
-			Name: "Page number",
+			Name:      "Page number",
 			NameStyle: chart.StyleShow(),
-			Style: chart.StyleShow(),
+			Style:     chart.StyleShow(),
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 			},
 			Ticks: ticks,
 		},
 		YAxis: chart.YAxis{
-			Name: "Confidence",
+			Name:      "Confidence",
 			NameStyle: chart.StyleShow(),
-			Style: chart.StyleShow(),
+			Style:     chart.StyleShow(),
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 				Max: 100.0,

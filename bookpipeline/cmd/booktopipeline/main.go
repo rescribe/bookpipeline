@@ -1,4 +1,5 @@
 package main
+
 // TODO: use bookpipeline package to do aws stuff
 
 import (
@@ -15,9 +16,11 @@ import (
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
+
 func (w NullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
+
 var verboselog *log.Logger
 
 type fileWalk chan string
@@ -52,7 +55,7 @@ func main() {
 		verboselog = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
 		var n NullWriter
-                verboselog = log.New(n, "", log.LstdFlags)
+		verboselog = log.New(n, "", log.LstdFlags)
 	}
 
 	verboselog.Println("Setting up AWS session")
@@ -108,7 +111,7 @@ func main() {
 	verboselog.Println("Sending message", bookname, "to queue", qurl)
 	_, err = sqssvc.SendMessage(&sqs.SendMessageInput{
 		MessageBody: aws.String(bookname),
-		QueueUrl: &qurl,
+		QueueUrl:    &qurl,
 	})
 	if err != nil {
 		log.Fatalln("Error adding book to queue:", err)

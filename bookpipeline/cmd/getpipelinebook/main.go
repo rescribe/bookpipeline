@@ -15,6 +15,7 @@ const usage = "Usage: getpipelinebook [-a] [-v] bookname\n\nDownloads the pipeli
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
+
 func (w NullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
@@ -72,9 +73,9 @@ func main() {
 	if *all {
 		verboselog.Println("Downloading all files for", bookname)
 		objs, err := conn.ListObjects(conn.WIPStorageId(), bookname)
-        	if err != nil {
-        	        log.Fatalln("Failed to get list of files for book", bookname, err)
-        	}
+		if err != nil {
+			log.Fatalln("Failed to get list of files for book", bookname, err)
+		}
 		for _, i := range objs {
 			verboselog.Println("Downloading", i)
 			err = conn.Download(conn.WIPStorageId(), i, i)

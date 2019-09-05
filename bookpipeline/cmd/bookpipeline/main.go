@@ -72,7 +72,8 @@ func download(dl chan string, process chan string, conn Pipeliner, dir string, e
 		logger.Println("Downloading", key)
 		err := conn.Download(conn.WIPStorageId(), key, fn)
 		if err != nil {
-			for range dl {} // consume the rest of the receiving channel so it isn't blocked
+			for range dl {
+			} // consume the rest of the receiving channel so it isn't blocked
 			close(process)
 			errc <- err
 			return
@@ -89,7 +90,8 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 		logger.Println("Uploading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
 		if err != nil {
-			for range c {} // consume the rest of the receiving channel so it isn't blocked
+			for range c {
+			} // consume the rest of the receiving channel so it isn't blocked
 			errc <- err
 			return
 		}
@@ -103,7 +105,8 @@ func preprocess(pre chan string, up chan string, errc chan error, logger *log.Lo
 		logger.Println("Preprocessing", path)
 		done, err := preproc.PreProcMulti(path, []float64{0.1, 0.2, 0.4, 0.5}, "binary", 0, true, 5, 30)
 		if err != nil {
-			for range pre {} // consume the rest of the receiving channel so it isn't blocked
+			for range pre {
+			} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
 			errc <- err
 			return
@@ -116,14 +119,15 @@ func preprocess(pre chan string, up chan string, errc chan error, logger *log.Lo
 }
 
 func ocr(training string) func(chan string, chan string, chan error, *log.Logger) {
-	return func (toocr chan string, up chan string, errc chan error, logger *log.Logger) {
+	return func(toocr chan string, up chan string, errc chan error, logger *log.Logger) {
 		for path := range toocr {
 			logger.Println("OCRing", path)
 			name := strings.Replace(path, ".png", "", 1)
 			cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
 			err := cmd.Run()
 			if err != nil {
-				for range toocr {} // consume the rest of the receiving channel so it isn't blocked
+				for range toocr {
+				} // consume the rest of the receiving channel so it isn't blocked
 				close(up)
 				errc <- errors.New(fmt.Sprintf("Error ocring %s: %s", path, err))
 				return
@@ -146,7 +150,8 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		logger.Println("Calculating confidence for", path)
 		avg, err := hocr.GetAvgConf(path)
 		if err != nil {
-			for range toanalyse {} // consume the rest of the receiving channel so it isn't blocked
+			for range toanalyse {
+			} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
 			errc <- errors.New(fmt.Sprintf("Error retreiving confidence for %s: %s", path, err))
 			return
@@ -226,7 +231,7 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 
 func heartbeat(conn Pipeliner, t *time.Ticker, msg string, queue string, errc chan error) {
 	for range t.C {
-		err := conn.QueueHeartbeat(msg, queue, HeartbeatTime * 2)
+		err := conn.QueueHeartbeat(msg, queue, HeartbeatTime*2)
 		if err != nil {
 			errc <- err
 			t.Stop()
@@ -355,7 +360,7 @@ func main() {
 	for {
 		select {
 		case <-checkPreQueue:
-			msg, err := conn.CheckQueue(conn.PreQueueId(), HeartbeatTime * 2)
+			msg, err := conn.CheckQueue(conn.PreQueueId(), HeartbeatTime*2)
 			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				log.Println("Error checking preprocess queue", err)
@@ -371,7 +376,7 @@ func main() {
 				log.Println("Error during preprocess", err)
 			}
 		case <-checkOCRQueue:
-			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime * 2)
+			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime*2)
 			checkOCRQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				log.Println("Error checking OCR queue", err)
@@ -387,7 +392,7 @@ func main() {
 				log.Println("Error during OCR process", err)
 			}
 		case <-checkAnalyseQueue:
-			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatTime * 2)
+			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatTime*2)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				log.Println("Error checking analyse queue", err)
