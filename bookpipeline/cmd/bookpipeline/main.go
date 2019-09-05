@@ -149,15 +149,15 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		}
 		logger.Println("Calculating confidence for", path)
 		avg, err := hocr.GetAvgConf(path)
+		if err != nil && err.Error() == "No words found" {
+			continue
+		}
 		if err != nil {
 			for range toanalyse {
 			} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
 			errc <- errors.New(fmt.Sprintf("Error retreiving confidence for %s: %s", path, err))
 			return
-		}
-		if avg == 0 {
-			continue
 		}
 		base := filepath.Base(path)
 		codestart := strings.Index(base, "_bin")
