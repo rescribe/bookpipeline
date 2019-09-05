@@ -1,6 +1,11 @@
 package main
 
 // TODO: use the bookpipeline package for aws stuff
+// TODO: set up iam role and policy needed for ec2 instances to access this stuff;
+//       see arn:aws:iam::557852942063:policy/pipelinestorageandqueue
+//       and arn:aws:iam::557852942063:role/pipeliner
+// TODO: set up launch template for ec2 instances
+// NOTE: potentially use json templates to define things, ala aws cli
 
 import (
 	"log"

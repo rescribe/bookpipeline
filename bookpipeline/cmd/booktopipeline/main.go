@@ -1,6 +1,5 @@
 package main
 // TODO: use bookpipeline package to do aws stuff
-// TODO: have logs go somewhere useful, like email
 
 import (
 	"flag"

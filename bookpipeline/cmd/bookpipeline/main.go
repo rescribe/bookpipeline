@@ -1,6 +1,5 @@
 package main
 
-// TODO: have logs go somewhere useful, like email
 // TODO: check if images are prebinarised and if so skip multiple binarisation
 
 import (

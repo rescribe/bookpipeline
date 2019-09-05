@@ -24,7 +24,7 @@ type Pipeliner interface {
 	ListObjects(bucket string, prefix string) ([]string, error)
 	Download(bucket string, key string, fn string) error
 	Upload(bucket string, key string, path string) error
-	CheckQueue(url string) (bookpipeline.Qmsg, error)
+	CheckQueue(url string, timeout int64) (bookpipeline.Qmsg, error)
 	AddToQueue(url string, msg string) error
 	DelFromQueue(url string, handle string) error
 	WIPStorageId() string
