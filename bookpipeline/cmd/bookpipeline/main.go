@@ -19,7 +19,7 @@ import (
 	"rescribe.xyz/go.git/preproc"
 )
 
-const usage = `Usage: bookpipeline [-v] [-t training]
+const usage = `Usage: bookpipeline [-v] [-np] [-no] [-na] [-t training]
 
 Watches the preprocess, ocr and analyse queues for book names. When
 one is found this general process is followed:
@@ -325,6 +325,10 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "rescribealphav5", "tesseract training file to use")
+	nopreproc := flag.Bool("np", false, "disable preprocessing")
+	noocr := flag.Bool("no", false, "disable ocr")
+	noanalyse := flag.Bool("na", false, "disable analysis")
+
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -356,9 +360,15 @@ func main() {
 	var checkPreQueue <-chan time.Time
 	var checkOCRQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
-	checkPreQueue = time.After(0)
-	checkOCRQueue = time.After(0)
-	checkAnalyseQueue = time.After(0)
+	if !*nopreproc {
+		checkPreQueue = time.After(0)
+	}
+	if !*noocr {
+		checkOCRQueue = time.After(0)
+	}
+	if !*noanalyse {
+		checkAnalyseQueue = time.After(0)
+	}
 
 	for {
 		select {
