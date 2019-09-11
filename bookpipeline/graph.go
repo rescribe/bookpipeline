@@ -37,7 +37,6 @@ func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousS
 		Style: chart.Style{
 			Show:            true,
 			StrokeColor:     c,
-			StrokeDashArray: []float64{10.0, 5.0},
 		},
 	}
 }
@@ -67,19 +66,20 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	var xvalues, yvalues []float64
 	var annotations []chart.Value2
 	var ticks []chart.Tick
-	i := 0
 	tickevery := len(graphconf) / maxticks
-	for _, c := range graphconf {
-		i = i + 1
+	for i, c := range graphconf {
 		xvalues = append(xvalues, c.Pgnum)
 		yvalues = append(yvalues, c.Conf)
 		if c.Conf < goodCutoff {
 			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
 		}
-		if tickevery%i == 0 {
+		if i%tickevery == 0 {
 			ticks = append(ticks, chart.Tick{c.Pgnum, fmt.Sprintf("%.0f", c.Pgnum)})
 		}
 	}
+	// make last tick the final page
+	final := graphconf[len(graphconf)-1]
+	ticks[len(ticks)-1] = chart.Tick{final.Pgnum, fmt.Sprintf("%.0f", final.Pgnum)}
 	mainSeries := chart.ContinuousSeries{
 		XValues: xvalues,
 		YValues: yvalues,
