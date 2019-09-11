@@ -12,7 +12,7 @@ import (
 	"github.com/wcharczuk/go-chart/drawing"
 )
 
-const maxticks = 20
+const maxticks = 40
 const goodCutoff = 70
 const mediumCutoff = 65
 const badCutoff = 60
@@ -28,7 +28,7 @@ type GraphConf struct {
 
 func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousSeries {
 	var yvalues []float64
-	for _ = range xvalues {
+	for range xvalues {
 		yvalues = append(yvalues, y)
 	}
 	return chart.ContinuousSeries{
@@ -95,7 +95,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	lowconf := graphconf[int(len(graphconf)/10)].Conf
 	highconf := graphconf[int((len(graphconf)/10)*9)].Conf
 	yvalues = []float64{}
-	for _ = range graphconf {
+	for range graphconf {
 		yvalues = append(yvalues, lowconf)
 	}
 	minSeries := &chart.ContinuousSeries{
@@ -124,8 +124,8 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	graph := chart.Chart{
 		Title:      bookname,
 		TitleStyle: chart.StyleShow(),
-		Width:      1920,
-		Height:     1080,
+		Width:      3840,
+		Height:     2160,
 		XAxis: chart.XAxis{
 			Name:      "Page number",
 			NameStyle: chart.StyleShow(),
