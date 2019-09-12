@@ -355,10 +355,10 @@ func main() {
 
 	var verboselog *log.Logger
 	if *verbose {
-		verboselog = log.New(os.Stdout, "", log.LstdFlags)
+		verboselog = log.New(os.Stdout, "", 0)
 	} else {
 		var n NullWriter
-		verboselog = log.New(n, "", log.LstdFlags)
+		verboselog = log.New(n, "", 0)
 	}
 
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`) // TODO: match alternative file naming
