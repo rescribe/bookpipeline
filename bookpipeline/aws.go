@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -131,6 +132,8 @@ func (a *AwsConn) QueueHeartbeat(msg Qmsg, qurl string, duration int64) (Qmsg, e
 		// Check if the visibility timeout has exceeded the maximum allowed,
 		// and if so try to find the message again to get a new handle.
 		if ok && aerr.Code() == "InvalidParameterValue" {
+			// Wait for existing visibilitytimeout to expire
+			time.Sleep(time.Duration(duration) * time.Second)
 			// Try 3 times to find the message
 			for range [3]bool{} {
 				msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{

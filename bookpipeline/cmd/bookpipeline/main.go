@@ -242,6 +242,7 @@ func heartbeat(conn Pipeliner, t *time.Ticker, msg bookpipeline.Qmsg, queue stri
 			return
 		}
 		if m.Id != "" {
+			conn.GetLogger().Println("Replaced message handle as visibilitytimeout limit was reached")
 			currentmsg = m
 			// TODO: maybe handle communicating new msg more gracefully than this
 			for range msgc {
