@@ -322,8 +322,10 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	case m, ok := <-msgc :
 		if ok {
 			msg = m
+			conn.GetLogger().Println("Using new message handle to delete message from old queue")
 		}
 	default:
+		conn.GetLogger().Println("Using original message handle to delete message from old queue")
 	}
 
 	conn.GetLogger().Println("Deleting original message from queue", fromQueue)
