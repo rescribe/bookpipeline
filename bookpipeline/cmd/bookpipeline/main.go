@@ -319,7 +319,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 
 	// check whether we're using a newer msg handle
 	select {
-	case m, ok := <-msgc :
+	case m, ok := <-msgc:
 		if ok {
 			msg = m
 			conn.GetLogger().Println("Using new message handle to delete message from old queue")
