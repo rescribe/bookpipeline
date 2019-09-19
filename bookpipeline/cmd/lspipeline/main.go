@@ -24,37 +24,48 @@ Lists useful things related to the pipeline.
 - Last 5 lines of bookpipeline logs from each running instance (with -v)
 `
 
-func printInstances(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
-	for _, r := range page.Reservations {
-		for _, i := range r.Instances {
-			var ip, name, spot string
-			for _, t := range i.Tags {
-				if *t.Key == "Name" {
-					name = *t.Value
-				}
-			}
-			if i.PublicIpAddress != nil {
-				ip = *i.PublicIpAddress
-			}
-			if i.SpotInstanceRequestId != nil {
-				spot = *i.SpotInstanceRequestId
-			}
-			fmt.Printf("Type: %s", *i.InstanceType)
-			if name != "" {
-				fmt.Printf(", Name: %s", name)
-			}
-			fmt.Printf(", LaunchTime: %s, State: %s", i.LaunchTime, *i.State.Name)
-			if ip != "" {
-				fmt.Printf(", IP: %s", ip)
-			}
-			if spot != "" {
-				fmt.Printf(", SpotRequest: %s", spot)
-			}
-			fmt.Printf("\n")
-		}
-	}
+type instanceDetails struct {
+	id, name, ip, spot, iType, state, launchTime string
+}
 
-	return !lastPage
+func ec2getInstances(ec2svc *ec2.EC2, instances chan instanceDetails) {
+	err := ec2svc.DescribeInstancesPages(&ec2.DescribeInstancesInput{}, parseInstances(instances))
+        if err != nil {
+                close(instances)
+                log.Println("Error with ec2 DescribeInstancePages call:", err)
+	}
+}
+
+func parseInstances(details chan instanceDetails) (func(*ec2.DescribeInstancesOutput, bool) bool) {
+	return func(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
+		for _, r := range page.Reservations {
+			for _, i := range r.Instances {
+				var d instanceDetails
+
+				for _, t := range i.Tags {
+					if *t.Key == "Name" {
+						d.name = *t.Value
+					}
+				}
+				if i.PublicIpAddress != nil {
+					d.ip = *i.PublicIpAddress
+				}
+				if i.SpotInstanceRequestId != nil {
+					d.spot = *i.SpotInstanceRequestId
+				}
+				d.iType = *i.InstanceType
+				d.id = *i.InstanceId
+				d.launchTime = i.LaunchTime.String()
+				d.state = *i.State.Name
+
+				details <- d
+			}
+		}
+		if lastPage {
+			close(details)
+		}
+		return !lastPage
+	}
 }
 
 func main() {
@@ -74,9 +85,23 @@ func main() {
 	//s3svc := s3.New(sess)
 	//sqssvc := sqs.New(sess)
 
-	err = ec2svc.DescribeInstancesPages(&ec2.DescribeInstancesInput{}, printInstances)
-	if err != nil {
-		log.Fatalln("Failed to get ec2 instances", err)
+	instances := make(chan instanceDetails, 100)
+
+	go ec2getInstances(ec2svc, instances)
+
+	fmt.Println("# Instances")
+	for i := range instances {
+		fmt.Printf("ID: %s, Type: %s, LaunchTime: %s, State: %s", i.id, i.iType, i.launchTime, i.state)
+		if i.name != "" {
+			fmt.Printf(", Name: %s", i.name)
+		}
+		if i.ip != "" {
+			fmt.Printf(", IP: %s", i.ip)
+		}
+		if i.spot != "" {
+			fmt.Printf(", SpotRequest: %s", i.spot)
+		}
+		fmt.Printf("\n")
 	}
 
 	// TODO: See remaining items in the usage statement
