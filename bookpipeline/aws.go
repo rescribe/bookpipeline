@@ -102,8 +102,8 @@ func (a *AwsConn) CheckQueue(url string, timeout int64) (Qmsg, error) {
 
 	if len(msgResult.Messages) > 0 {
 		msg := Qmsg{Id: *msgResult.Messages[0].MessageId,
-		            Handle: *msgResult.Messages[0].ReceiptHandle,
-		            Body: *msgResult.Messages[0].Body}
+			Handle: *msgResult.Messages[0].ReceiptHandle,
+			Body:   *msgResult.Messages[0].Body}
 		a.Logger.Println("Message received:", msg.Body)
 		return msg, nil
 	} else {
@@ -150,9 +150,9 @@ func (a *AwsConn) QueueHeartbeat(msg Qmsg, qurl string, duration int64) (Qmsg, e
 				for _, m := range msgResult.Messages {
 					if *m.MessageId == msg.Id {
 						return Qmsg{
-							Id: *m.MessageId,
+							Id:     *m.MessageId,
 							Handle: *m.ReceiptHandle,
-							Body: *m.Body,
+							Body:   *m.Body,
 						}, nil
 					}
 				}
@@ -172,7 +172,7 @@ func (a *AwsConn) GetQueueDetails(url string) (string, string, error) {
 	numInProgress := "ApproximateNumberOfMessagesNotVisible"
 	attrs, err := a.sqssvc.GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		AttributeNames: []*string{&numAvailable, &numInProgress},
-		QueueUrl: &url,
+		QueueUrl:       &url,
 	})
 	if err != nil {
 		return "", "", errors.New(fmt.Sprintf("Failed to get queue attributes: %s", err))
