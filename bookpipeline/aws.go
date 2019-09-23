@@ -165,6 +165,21 @@ func (a *AwsConn) QueueHeartbeat(msg Qmsg, qurl string, duration int64) (Qmsg, e
 	return Qmsg{}, nil
 }
 
+// GetQueueDetails gets the number of in progress and available
+// messages for a queue. These are returned as strings.
+func (a *AwsConn) GetQueueDetails(url string) (string, string, error) {
+	numAvailable := "ApproximateNumberOfMessages"
+	numInProgress := "ApproximateNumberOfMessagesNotVisible"
+	attrs, err := a.sqssvc.GetQueueAttributes(&sqs.GetQueueAttributesInput{
+		AttributeNames: []*string{&numAvailable, &numInProgress},
+		QueueUrl: &url,
+	})
+	if err != nil {
+		return "", "", errors.New(fmt.Sprintf("Failed to get queue attributes: %s", err))
+	}
+	return *attrs.Attributes[numAvailable], *attrs.Attributes[numInProgress], nil
+}
+
 func (a *AwsConn) PreQueueId() string {
 	return a.prequrl
 }
