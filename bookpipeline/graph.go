@@ -35,8 +35,8 @@ func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousS
 		XValues: xvalues,
 		YValues: yvalues,
 		Style: chart.Style{
-			Show:            true,
-			StrokeColor:     c,
+			Show:        true,
+			StrokeColor: c,
 		},
 	}
 }
