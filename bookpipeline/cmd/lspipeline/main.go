@@ -4,13 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
+	"os/exec"
 	"strings"
 
 	"rescribe.xyz/go.git/bookpipeline"
 )
 
-const usage = `Usage: lspipeline [-v]
+const usage = `Usage: lspipeline [-i key] [-n num]
 
 Lists useful things related to the pipeline.
 
@@ -18,7 +18,7 @@ Lists useful things related to the pipeline.
 - Messages in each queue
 - Books not completed
 - Books done
-- Last 5 lines of bookpipeline logs from each running instance (with -v)
+- Last n lines of bookpipeline logs from each running instance
 `
 
 type LsPipeliner interface {
@@ -144,8 +144,25 @@ func getBookStatusChan(conn LsPipeliner, inprogressc chan string, donec chan str
 	close(donec)
 }
 
+func getRecentSSHLogs(ip string, id string, n int) (string, error) {
+	addr := fmt.Sprintf("%s@%s", "admin", ip)
+	logcmd := fmt.Sprintf("journalctl -n %d -u bookpipeline", n)
+	var cmd *exec.Cmd
+	if id == "" {
+		cmd = exec.Command("ssh", addr, logcmd)
+	} else {
+		cmd = exec.Command("ssh", "-i", id, addr, logcmd)
+	}
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
 func main() {
-	verbose := flag.Bool("v", false, "verbose")
+	keyfile := flag.String("i", "", "private key file for SSH")
+	lognum := flag.Int("n", 5, "number of lines to include in SSH logs")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -153,12 +170,8 @@ func main() {
 	flag.Parse()
 
 	var verboselog *log.Logger
-	if *verbose {
-		verboselog = log.New(os.Stdout, "", 0)
-	} else {
-		var n NullWriter
-		verboselog = log.New(n, "", 0)
-	}
+	var n NullWriter
+	verboselog = log.New(n, "", 0)
 
 	var conn LsPipeliner
 	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
@@ -169,12 +182,14 @@ func main() {
 
 	instances := make(chan bookpipeline.InstanceDetails, 100)
 	queues := make(chan queueDetails)
-	inprogress := make(chan string)
-	done := make(chan string)
+	inprogress := make(chan string, 100)
+	done := make(chan string, 100)
 
 	go getInstances(conn, instances)
 	go getQueueDetails(conn, queues)
 	go getBookStatusChan(conn, inprogress, done)
+
+	var ips []string
 
 	fmt.Println("# Instances")
 	for i := range instances {
@@ -184,6 +199,7 @@ func main() {
 		}
 		if i.Ip != "" {
 			fmt.Printf(", IP: %s", i.Ip)
+			ips = append(ips, i.Ip)
 		}
 		if i.Spot != "" {
 			fmt.Printf(", SpotRequest: %s", i.Spot)
@@ -206,5 +222,15 @@ func main() {
 		fmt.Println(i)
 	}
 
-	// TODO: See remaining items in the usage statement
+	if len(ips) > 0 {
+		fmt.Println("\n# Recent logs")
+		for _, ip := range ips {
+			logs, err := getRecentSSHLogs(ip, *keyfile, *lognum)
+			if err != nil {
+				log.Printf("Error running ssh for %s: %v\n", ip, err)
+				continue
+			}
+			fmt.Printf("\n%s\n%s\n", ip, logs)
+		}
+	}
 }
