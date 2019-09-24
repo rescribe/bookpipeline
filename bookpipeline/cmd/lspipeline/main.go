@@ -7,12 +7,6 @@ import (
 	"os"
 
 	"rescribe.xyz/go.git/bookpipeline"
-
-	// TODO: abstract out the aws stuff into aws.go in due course
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	//"github.com/aws/aws-sdk-go/service/s3"
 )
 
 const usage = `Usage: lspipeline [-v]
@@ -32,6 +26,7 @@ type LsPipeliner interface {
 	OCRQueueId() string
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
+	GetInstanceDetails() ([]bookpipeline.InstanceDetails, error)
 }
 
 // NullWriter is used so non-verbose logging may be discarded
@@ -41,52 +36,19 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-type instanceDetails struct {
-	id, name, ip, spot, iType, state, launchTime string
-}
-
 type queueDetails struct {
 	name, numAvailable, numInProgress string
 }
 
-func ec2getInstances(svc *ec2.EC2, instances chan instanceDetails) {
-	err := svc.DescribeInstancesPages(&ec2.DescribeInstancesInput{}, parseInstances(instances))
+func getInstances(conn LsPipeliner, detailsc chan bookpipeline.InstanceDetails) {
+	details, err := conn.GetInstanceDetails()
 	if err != nil {
-		close(instances)
-		log.Println("Error with ec2 DescribeInstancePages call:", err)
+		log.Println("Error getting instance details:", err)
 	}
-}
-
-func parseInstances(details chan instanceDetails) (func(*ec2.DescribeInstancesOutput, bool) bool) {
-	return func(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
-		for _, r := range page.Reservations {
-			for _, i := range r.Instances {
-				var d instanceDetails
-
-				for _, t := range i.Tags {
-					if *t.Key == "Name" {
-						d.name = *t.Value
-					}
-				}
-				if i.PublicIpAddress != nil {
-					d.ip = *i.PublicIpAddress
-				}
-				if i.SpotInstanceRequestId != nil {
-					d.spot = *i.SpotInstanceRequestId
-				}
-				d.iType = *i.InstanceType
-				d.id = *i.InstanceId
-				d.launchTime = i.LaunchTime.String()
-				d.state = *i.State.Name
-
-				details <- d
-			}
-		}
-		if lastPage {
-			close(details)
-		}
-		return !lastPage
+	for _, d := range details {
+		detailsc <- d
 	}
+	close(detailsc)
 }
 
 func getQueueDetails(conn LsPipeliner, qdetails chan queueDetails) {
@@ -132,31 +94,23 @@ func main() {
 		log.Fatalln("Failed to set up cloud connection:", err)
 	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("eu-west-2"),
-	})
-	if err != nil {
-		log.Fatalln("Failed to set up aws session", err)
-	}
-	ec2svc := ec2.New(sess)
-
-	instances := make(chan instanceDetails, 100)
+	instances := make(chan bookpipeline.InstanceDetails, 100)
 	queues := make(chan queueDetails)
 
-	go ec2getInstances(ec2svc, instances)
+	go getInstances(conn, instances)
 	go getQueueDetails(conn, queues)
 
 	fmt.Println("# Instances")
 	for i := range instances {
-		fmt.Printf("ID: %s, Type: %s, LaunchTime: %s, State: %s", i.id, i.iType, i.launchTime, i.state)
-		if i.name != "" {
-			fmt.Printf(", Name: %s", i.name)
+		fmt.Printf("ID: %s, Type: %s, LaunchTime: %s, State: %s", i.Id, i.Type, i.LaunchTime, i.State)
+		if i.Name != "" {
+			fmt.Printf(", Name: %s", i.Name)
 		}
-		if i.ip != "" {
-			fmt.Printf(", IP: %s", i.ip)
+		if i.Ip != "" {
+			fmt.Printf(", IP: %s", i.Ip)
 		}
-		if i.spot != "" {
-			fmt.Printf(", SpotRequest: %s", i.spot)
+		if i.Spot != "" {
+			fmt.Printf(", SpotRequest: %s", i.Spot)
 		}
 		fmt.Printf("\n")
 	}

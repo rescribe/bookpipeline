@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -22,6 +23,10 @@ type Qmsg struct {
 	Id, Handle, Body string
 }
 
+type InstanceDetails struct {
+	Id, Name, Ip, Spot, Type, State, LaunchTime string
+}
+
 type AwsConn struct {
 	// these need to be set before running Init()
 	Region string
@@ -29,6 +34,7 @@ type AwsConn struct {
 
 	// these are used internally
 	sess                          *session.Session
+	ec2svc                        *ec2.EC2
 	s3svc                         *s3.S3
 	sqssvc                        *sqs.SQS
 	downloader                    *s3manager.Downloader
@@ -37,6 +43,7 @@ type AwsConn struct {
 	wipstorageid                  string
 }
 
+// TODO: split this up, as not everything is needed for different uses
 func (a *AwsConn) Init() error {
 	if a.Region == "" {
 		return errors.New("No Region set")
@@ -52,6 +59,7 @@ func (a *AwsConn) Init() error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Failed to set up aws session: %s", err))
 	}
+	a.ec2svc = ec2.New(a.sess)
 	a.s3svc = s3.New(a.sess)
 	a.sqssvc = sqs.New(a.sess)
 	a.downloader = s3manager.NewDownloader(a.sess)
@@ -258,4 +266,37 @@ func (a *AwsConn) Upload(bucket string, key string, path string) error {
 
 func (a *AwsConn) GetLogger() *log.Logger {
 	return a.Logger
+}
+
+// TODO: split pages function so it can be encapsulated by
+//       downstream and to feed a channel
+func (a *AwsConn) GetInstanceDetails() ([]InstanceDetails, error) {
+	var details []InstanceDetails
+	err := a.ec2svc.DescribeInstancesPages(&ec2.DescribeInstancesInput{}, func(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
+		for _, r := range page.Reservations {
+			for _, i := range r.Instances {
+				var d InstanceDetails
+
+				for _, t := range i.Tags {
+					if *t.Key == "Name" {
+						d.Name = *t.Value
+					}
+				}
+				if i.PublicIpAddress != nil {
+					d.Ip = *i.PublicIpAddress
+				}
+				if i.SpotInstanceRequestId != nil {
+					d.Spot = *i.SpotInstanceRequestId
+				}
+				d.Type = *i.InstanceType
+				d.Id = *i.InstanceId
+				d.LaunchTime = i.LaunchTime.String()
+				d.State = *i.State.Name
+
+				details = append(details, d)
+			}
+		}
+		return !lastPage
+	})
+	return details, err
 }
