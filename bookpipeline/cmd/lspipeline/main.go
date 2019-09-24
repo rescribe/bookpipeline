@@ -160,6 +160,18 @@ func getRecentSSHLogs(ip string, id string, n int) (string, error) {
 	return string(out), nil
 }
 
+func getRecentSSHLogsChan(ips []string, id string, lognum int, logs chan string) {
+	for _, ip := range ips {
+		sshlog, err := getRecentSSHLogs(ip, id, lognum)
+		if err != nil {
+			log.Printf("Error getting SSH logs for %s: %s\n", ip, err)
+			continue
+		}
+		logs <- fmt.Sprintf("%s\n%s", ip, sshlog)
+	}
+	close(logs)
+}
+
 func main() {
 	keyfile := flag.String("i", "", "private key file for SSH")
 	lognum := flag.Int("n", 5, "number of lines to include in SSH logs")
@@ -184,6 +196,7 @@ func main() {
 	queues := make(chan queueDetails)
 	inprogress := make(chan string, 100)
 	done := make(chan string, 100)
+	logs := make(chan string, 10)
 
 	go getInstances(conn, instances)
 	go getQueueDetails(conn, queues)
@@ -207,6 +220,8 @@ func main() {
 		fmt.Printf("\n")
 	}
 
+	go getRecentSSHLogsChan(ips, *keyfile, *lognum, logs)
+
 	fmt.Println("\n# Queues")
 	for i := range queues {
 		fmt.Printf("%s: %s available, %s in progress\n", i.name, i.numAvailable, i.numInProgress)
@@ -224,13 +239,8 @@ func main() {
 
 	if len(ips) > 0 {
 		fmt.Println("\n# Recent logs")
-		for _, ip := range ips {
-			logs, err := getRecentSSHLogs(ip, *keyfile, *lognum)
-			if err != nil {
-				log.Printf("Error running ssh for %s: %v\n", ip, err)
-				continue
-			}
-			fmt.Printf("\n%s\n%s\n", ip, logs)
+		for i := range logs {
+			fmt.Printf("\n%s", i)
 		}
 	}
 }
