@@ -149,9 +149,9 @@ func getRecentSSHLogs(ip string, id string, n int) (string, error) {
 	logcmd := fmt.Sprintf("journalctl -n %d -u bookpipeline", n)
 	var cmd *exec.Cmd
 	if id == "" {
-		cmd = exec.Command("ssh", addr, logcmd)
+		cmd = exec.Command("ssh", "-o", "StrictHostKeyChecking no", addr, logcmd)
 	} else {
-		cmd = exec.Command("ssh", "-i", id, addr, logcmd)
+		cmd = exec.Command("ssh", "-o", "StrictHostKeyChecking no", "-i", id, addr, logcmd)
 	}
 	out, err := cmd.Output()
 	if err != nil {
@@ -212,7 +212,9 @@ func main() {
 		}
 		if i.Ip != "" {
 			fmt.Printf(", IP: %s", i.Ip)
-			ips = append(ips, i.Ip)
+			if i.State == "running" {
+				ips = append(ips, i.Ip)
+			}
 		}
 		if i.Spot != "" {
 			fmt.Printf(", SpotRequest: %s", i.Spot)
