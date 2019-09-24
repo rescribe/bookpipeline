@@ -268,33 +268,40 @@ func (a *AwsConn) GetLogger() *log.Logger {
 	return a.Logger
 }
 
-// TODO: split pages function so it can be encapsulated by
-//       downstream and to feed a channel
+func instanceDetailsFromPage(page *ec2.DescribeInstancesOutput) []InstanceDetails {
+	var details []InstanceDetails
+	for _, r := range page.Reservations {
+		for _, i := range r.Instances {
+			var d InstanceDetails
+
+			for _, t := range i.Tags {
+				if *t.Key == "Name" {
+					d.Name = *t.Value
+				}
+			}
+			if i.PublicIpAddress != nil {
+				d.Ip = *i.PublicIpAddress
+			}
+			if i.SpotInstanceRequestId != nil {
+				d.Spot = *i.SpotInstanceRequestId
+			}
+			d.Type = *i.InstanceType
+			d.Id = *i.InstanceId
+			d.LaunchTime = i.LaunchTime.String()
+			d.State = *i.State.Name
+
+			details = append(details, d)
+		}
+	}
+
+	return details
+}
+
 func (a *AwsConn) GetInstanceDetails() ([]InstanceDetails, error) {
 	var details []InstanceDetails
 	err := a.ec2svc.DescribeInstancesPages(&ec2.DescribeInstancesInput{}, func(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
-		for _, r := range page.Reservations {
-			for _, i := range r.Instances {
-				var d InstanceDetails
-
-				for _, t := range i.Tags {
-					if *t.Key == "Name" {
-						d.Name = *t.Value
-					}
-				}
-				if i.PublicIpAddress != nil {
-					d.Ip = *i.PublicIpAddress
-				}
-				if i.SpotInstanceRequestId != nil {
-					d.Spot = *i.SpotInstanceRequestId
-				}
-				d.Type = *i.InstanceType
-				d.Id = *i.InstanceId
-				d.LaunchTime = i.LaunchTime.String()
-				d.State = *i.State.Name
-
-				details = append(details, d)
-			}
+		for _, d := range instanceDetailsFromPage(page) {
+			details = append(details, d)
 		}
 		return !lastPage
 	})
