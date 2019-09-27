@@ -212,7 +212,7 @@ func main() {
 		}
 		if i.Ip != "" {
 			fmt.Printf(", IP: %s", i.Ip)
-			if i.State == "running" {
+			if i.State == "running" && i.Name != "workhorse" {
 				ips = append(ips, i.Ip)
 			}
 		}
