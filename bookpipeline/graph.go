@@ -111,7 +111,6 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	}
 	maxSeries := &chart.ContinuousSeries{
 		Style: chart.Style{
-			Show:            true,
 			StrokeColor:     chart.ColorAlternateGray,
 			StrokeDashArray: []float64{5.0, 5.0},
 		},

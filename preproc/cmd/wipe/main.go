@@ -20,7 +20,7 @@ func main() {
 		flag.PrintDefaults()
 	}
 	min := flag.Int("m", 30, "Minimum percentage of the image width for the content width calculation to be considered valid.")
-	thresh := flag.Float64("t", 0.05, "Threshold for the proportion of black pixels below which a window is determined to be the edge.")
+	thresh := flag.Float64("t", 0.05, "Threshold for the proportion of black pixels below which a window is determined to be the edge. Higher means more aggressive wiping.")
 	wsize := flag.Int("w", 5, "Window size for mask finding algorithm.")
 	flag.Parse()
 	if flag.NArg() < 2 {
