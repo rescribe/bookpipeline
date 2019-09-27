@@ -35,7 +35,6 @@ func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousS
 		XValues: xvalues,
 		YValues: yvalues,
 		Style: chart.Style{
-			Show:        true,
 			StrokeColor: c,
 		},
 	}
@@ -100,7 +99,6 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	}
 	minSeries := &chart.ContinuousSeries{
 		Style: chart.Style{
-			Show:            true,
 			StrokeColor:     chart.ColorAlternateGray,
 			StrokeDashArray: []float64{5.0, 5.0},
 		},
@@ -123,13 +121,10 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 
 	graph := chart.Chart{
 		Title:      bookname,
-		TitleStyle: chart.StyleShow(),
 		Width:      3840,
 		Height:     2160,
 		XAxis: chart.XAxis{
 			Name:      "Page number",
-			NameStyle: chart.StyleShow(),
-			Style:     chart.StyleShow(),
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 			},
@@ -137,8 +132,6 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		},
 		YAxis: chart.YAxis{
 			Name:      "Confidence",
-			NameStyle: chart.StyleShow(),
-			Style:     chart.StyleShow(),
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 				Max: 100.0,
