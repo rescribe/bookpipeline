@@ -66,6 +66,9 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	var annotations []chart.Value2
 	var ticks []chart.Tick
 	tickevery := len(graphconf) / maxticks
+	if tickevery < 1 {
+		tickevery = 1
+	}
 	for i, c := range graphconf {
 		xvalues = append(xvalues, c.Pgnum)
 		yvalues = append(yvalues, c.Conf)
