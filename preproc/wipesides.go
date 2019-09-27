@@ -39,20 +39,24 @@ func findbestedge(img integralimg.I, x int, w int) int {
 }
 
 // findedges finds the edges of the main content, by moving a window of wsize
-// from the middle of the image to the left and right, stopping when it reaches
+// from near the middle of the image to the left and right, stopping when it reaches
 // a point at which there is a lower proportion of black pixels than thresh.
 func findedges(img integralimg.I, wsize int, thresh float64) (int, int) {
 	maxx := len(img[0]) - 1
 	var lowedge, highedge int = 0, maxx
 
-	for x := maxx / 2; x < maxx-wsize; x++ {
+	// don't start at the middle, as this will fail for 2 column layouts,
+	// start 10% left or right of the middle
+	notcentre := maxx / 10
+
+	for x := maxx / 2 + notcentre; x < maxx-wsize; x++ {
 		if proportion(img, x, wsize) <= thresh {
 			highedge = findbestedge(img, x, wsize)
 			break
 		}
 	}
 
-	for x := maxx / 2; x > 0; x-- {
+	for x := maxx / 2 - notcentre; x > 0; x-- {
 		if proportion(img, x, wsize) <= thresh {
 			lowedge = findbestedge(img, x, wsize)
 			break
