@@ -37,6 +37,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 
 func main() {
 	verbose := flag.Bool("v", false, "Verbose")
+	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -68,7 +69,12 @@ func main() {
 	sqssvc := sqs.New(sess)
 	uploader := s3manager.NewUploader(sess)
 
-	qname := "rescribepreprocess"
+	var qname string
+	if *wipeonly {
+		qname = "rescribewipeonly"
+	} else {
+		qname = "rescribepreprocess"
+	}
 	verboselog.Println("Getting Queue URL for", qname)
 	result, err := sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: aws.String(qname),
