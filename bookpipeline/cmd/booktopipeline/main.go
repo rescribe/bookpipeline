@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +14,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
+
+const usage = `Usage: booktopipeline [-prebinarised] [-v] bookdir [bookname]
+
+Uploads the book in bookdir to the S3 'inprogress' bucket and adds it
+to the 'preprocess' SQS queue, or the 'wipeonly' queue if the
+prebinarised flag is set.
+
+If bookname is omitted the last part of the bookdir is used.
+`
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -38,10 +48,15 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 func main() {
 	verbose := flag.Bool("v", false, "Verbose")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
-	flag.Parse()
 
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), usage)
+		flag.PrintDefaults()
+	}
+	flag.Parse()
 	if flag.NArg() < 1 {
-		log.Fatal("Usage: booktopipeline [-v] bookdir [bookname]\n\nUploads the book in bookdir to the S3 'inprogress' bucket and adds it to the 'preprocess' SQS queue\nIf bookname is omitted the last part of the bookdir is used\n")
+		flag.Usage()
+		return
 	}
 
 	bookdir := flag.Arg(0)
