@@ -79,9 +79,9 @@ func main() {
 			}
 		}
 
-		if ! *nowipe {
+		if !*nowipe {
 			log.Print("Wiping sides")
-			clean = preproc.Wipe(threshimg.(*image.Gray), *wipewsize, k * 0.02, *min)
+			clean = preproc.Wipe(threshimg.(*image.Gray), *wipewsize, k*0.02, *min)
 		} else {
 			clean = threshimg
 		}

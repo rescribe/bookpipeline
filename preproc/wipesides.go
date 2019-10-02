@@ -55,14 +55,14 @@ func findedges(img integralimg.I, wsize int, thresh float64) (int, int) {
 	// start 10% left or right of the middle
 	notcentre := maxx / 10
 
-	for x := maxx / 2 + notcentre; x < maxx-wsize; x++ {
+	for x := maxx/2 + notcentre; x < maxx-wsize; x++ {
 		if proportion(img, x, wsize) <= thresh {
 			highedge = findbestedge(img, x, wsize)
 			break
 		}
 	}
 
-	for x := maxx / 2 - notcentre; x > 0; x-- {
+	for x := maxx/2 - notcentre; x > 0; x-- {
 		if proportion(img, x, wsize) <= thresh {
 			lowedge = findbestedge(img, x, wsize)
 			break
@@ -106,7 +106,7 @@ func toonarrow(img *image.Gray, lowedge int, highedge int, min int) bool {
 	b := img.Bounds()
 	imgw := b.Max.X - b.Min.X
 	wipew := highedge - lowedge
-	if float64(wipew) / float64(imgw) * 100 < float64(min) {
+	if float64(wipew)/float64(imgw)*100 < float64(min) {
 		return true
 	}
 	return false

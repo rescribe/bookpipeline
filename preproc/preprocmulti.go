@@ -73,7 +73,7 @@ func PreProcMulti(inPath string, ksizes []float64, binType string, binWsize int,
 		}
 
 		if wipe {
-			clean = Wipe(threshimg.(*image.Gray), wipeWsize, k * 0.02, wipeMinWidthPerc)
+			clean = Wipe(threshimg.(*image.Gray), wipeWsize, k*0.02, wipeMinWidthPerc)
 		} else {
 			clean = threshimg
 		}
