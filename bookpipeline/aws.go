@@ -33,14 +33,14 @@ type AwsConn struct {
 	Logger *log.Logger
 
 	// these are used internally
-	sess                          *session.Session
-	ec2svc                        *ec2.EC2
-	s3svc                         *s3.S3
-	sqssvc                        *sqs.SQS
-	downloader                    *s3manager.Downloader
-	uploader                      *s3manager.Uploader
-	prequrl, ocrqurl, analysequrl string
-	wipstorageid                  string
+	sess                                    *session.Session
+	ec2svc                                  *ec2.EC2
+	s3svc                                   *s3.S3
+	sqssvc                                  *sqs.SQS
+	downloader                              *s3manager.Downloader
+	uploader                                *s3manager.Uploader
+	wipequrl, prequrl, ocrqurl, analysequrl string
+	wipstorageid                            string
 }
 
 // TODO: split this up, as not everything is needed for different uses
@@ -73,6 +73,15 @@ func (a *AwsConn) Init() error {
 		return errors.New(fmt.Sprintf("Error getting preprocess queue URL: %s", err))
 	}
 	a.prequrl = *result.QueueUrl
+
+	a.Logger.Println("Getting wipeonly queue URL")
+	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: aws.String("rescribewipeonly"),
+	})
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error getting wipeonly queue URL: %s", err))
+	}
+	a.wipequrl = *result.QueueUrl
 
 	a.Logger.Println("Getting OCR queue URL")
 	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
@@ -190,6 +199,10 @@ func (a *AwsConn) GetQueueDetails(url string) (string, string, error) {
 
 func (a *AwsConn) PreQueueId() string {
 	return a.prequrl
+}
+
+func (a *AwsConn) WipeQueueId() string {
+	return a.wipequrl
 }
 
 func (a *AwsConn) OCRQueueId() string {

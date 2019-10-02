@@ -24,6 +24,7 @@ Lists useful things related to the pipeline.
 type LsPipeliner interface {
 	Init() error
 	PreQueueId() string
+	WipeQueueId() string
 	OCRQueueId() string
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
@@ -57,6 +58,7 @@ func getInstances(conn LsPipeliner, detailsc chan bookpipeline.InstanceDetails) 
 func getQueueDetails(conn LsPipeliner, qdetails chan queueDetails) {
 	queues := []struct{ name, id string }{
 		{"preprocess", conn.PreQueueId()},
+		{"wipeonly", conn.WipeQueueId()},
 		{"ocr", conn.OCRQueueId()},
 		{"analyse", conn.AnalyseQueueId()},
 	}

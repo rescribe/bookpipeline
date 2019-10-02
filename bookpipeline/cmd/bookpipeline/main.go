@@ -19,7 +19,7 @@ import (
 	"rescribe.xyz/go.git/preproc"
 )
 
-const usage = `Usage: bookpipeline [-v] [-np] [-no] [-na] [-t training]
+const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-na] [-t training]
 
 Watches the preprocess, ocr and analyse queues for book names. When
 one is found this general process is followed:
@@ -60,6 +60,7 @@ type Clouder interface {
 type Pipeliner interface {
 	Clouder
 	PreQueueId() string
+	WipeQueueId() string
 	OCRQueueId() string
 	AnalyseQueueId() string
 	WIPStorageId() string
@@ -114,6 +115,25 @@ func preprocess(pre chan string, up chan string, errc chan error, logger *log.Lo
 		for _, p := range done {
 			up <- p
 		}
+	}
+	close(up)
+}
+
+func wipe(towipe chan string, up chan string, errc chan error, logger *log.Logger) {
+	for path := range towipe {
+		logger.Println("Wiping", path)
+		s := strings.Split(path, ".")
+		base := strings.Join(s[:len(s)-1], "")
+		outpath := base + "_bin0.0.png"
+		err := preproc.WipeFile(path, outpath, 5, 0.03, 30)
+		if err != nil {
+			for range towipe {
+			} // consume the rest of the receiving channel so it isn't blocked
+			close(up)
+			errc <- err
+			return
+		}
+		up <- outpath
 	}
 	close(up)
 }
@@ -347,6 +367,7 @@ func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "rescribealphav5", "tesseract training file to use")
 	nopreproc := flag.Bool("np", false, "disable preprocessing")
+	nowipe := flag.Bool("nw", false, "disable wipeonly")
 	noocr := flag.Bool("no", false, "disable ocr")
 	noanalyse := flag.Bool("na", false, "disable analysis")
 
@@ -379,10 +400,14 @@ func main() {
 	verboselog.Println("Finished setting up AWS session")
 
 	var checkPreQueue <-chan time.Time
+	var checkWipeQueue <-chan time.Time
 	var checkOCRQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
 	if !*nopreproc {
 		checkPreQueue = time.After(0)
+	}
+	if !*nowipe {
+		checkWipeQueue = time.After(0)
 	}
 	if !*noocr {
 		checkOCRQueue = time.After(0)
@@ -408,6 +433,22 @@ func main() {
 			err = processBook(msg, conn, preprocess, origPattern, conn.PreQueueId(), conn.OCRQueueId())
 			if err != nil {
 				log.Println("Error during preprocess", err)
+			}
+		case <-checkWipeQueue:
+			msg, err := conn.CheckQueue(conn.WipeQueueId(), HeartbeatTime*2)
+			checkWipeQueue = time.After(PauseBetweenChecks)
+			if err != nil {
+				log.Println("Error checking wipeonly queue", err)
+				continue
+			}
+			if msg.Handle == "" {
+				verboselog.Println("No message received on wipeonly queue, sleeping")
+				continue
+			}
+			verboselog.Println("Message received on wipeonly queue, processing", msg.Body)
+			err = processBook(msg, conn, wipe, origPattern, conn.WipeQueueId(), conn.OCRQueueId())
+			if err != nil {
+				log.Println("Error during wipe", err)
 			}
 		case <-checkOCRQueue:
 			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime*2)

@@ -34,7 +34,7 @@ func main() {
 
 	prefix := "rescribe"
 	buckets := []string{"inprogress", "done"}
-	queues := []string{"preprocess", "ocr", "analyse"}
+	queues := []string{"preprocess", "wipeonly", "ocr", "analyse"}
 
 	for _, bucket := range buckets {
 		bname := prefix + bucket

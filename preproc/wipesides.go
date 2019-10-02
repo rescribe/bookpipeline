@@ -4,8 +4,14 @@ package preproc
 // TODO: switch to an interface rather than integralimg.I
 
 import (
+	"errors"
+	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
+	_ "image/jpeg"
+	"image/png"
+	"os"
 
 	"rescribe.xyz/go.git/integralimg"
 )
@@ -106,7 +112,7 @@ func toonarrow(img *image.Gray, lowedge int, highedge int, min int) bool {
 	return false
 }
 
-// wipe fills the sections of image which fall outside the content
+// Wipe fills the sections of image which fall outside the content
 // area with white, providing the content area is above min %
 func Wipe(img *image.Gray, wsize int, thresh float64, min int) *image.Gray {
 	integral := integralimg.ToIntegralImg(img)
@@ -115,4 +121,40 @@ func Wipe(img *image.Gray, wsize int, thresh float64, min int) *image.Gray {
 		return img
 	}
 	return wipesides(img, lowedge, highedge)
+}
+
+// WipeFile wipes an image file, filling the sections of the image
+// which fall outside the content area with white, providing the
+// content area is above min %.
+// inPath: path of the input image.
+// outPath: path to save the output image.
+// wsize: window size for wipe algorithm.
+// thresh: threshold for wipe algorithm.
+// min: minimum % of content area width to consider valid.
+func WipeFile(inPath string, outPath string, wsize int, thresh float64, min int) error {
+	f, err := os.Open(inPath)
+	defer f.Close()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not open file %s: %v", inPath, err))
+	}
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not decode image: %v", err))
+	}
+	b := img.Bounds()
+	gray := image.NewGray(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(gray, b, img, b.Min, draw.Src)
+
+	clean := Wipe(gray, wsize, thresh, min)
+
+	f, err = os.Create(outPath)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not create file %s: %v", outPath, err))
+	}
+	defer f.Close()
+	err = png.Encode(f, clean)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not encode image: %v", err))
+	}
+	return nil
 }
