@@ -386,6 +386,7 @@ func main() {
 	}
 
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`) // TODO: match alternative file naming
+	wipePattern := regexp.MustCompile(`[0-9]{4}.png$`)
 	preprocessedPattern := regexp.MustCompile(`_bin[0-9].[0-9].png$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
@@ -446,7 +447,7 @@ func main() {
 				continue
 			}
 			verboselog.Println("Message received on wipeonly queue, processing", msg.Body)
-			err = processBook(msg, conn, wipe, origPattern, conn.WipeQueueId(), conn.OCRQueueId())
+			err = processBook(msg, conn, wipe, wipePattern, conn.WipeQueueId(), conn.OCRQueueId())
 			if err != nil {
 				log.Println("Error during wipe", err)
 			}
