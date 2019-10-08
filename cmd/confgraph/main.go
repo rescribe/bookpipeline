@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"rescribe.xyz/bookpipeline"
-	"rescribe.xyz/go.git/lib/hocr"
+	"rescribe.xyz/utils/pkg/hocr"
 )
 
 func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {

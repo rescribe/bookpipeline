@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"rescribe.xyz/bookpipeline"
-	"rescribe.xyz/go.git/lib/hocr"
-	"rescribe.xyz/go.git/preproc"
+	"rescribe.xyz/preproc"
+	"rescribe.xyz/utils/pkg/hocr"
 )
 
 const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-na] [-t training]
