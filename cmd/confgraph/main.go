@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"rescribe.xyz/go.git/bookpipeline"
+	"rescribe.xyz/bookpipeline"
 	"rescribe.xyz/go.git/lib/hocr"
 )
 

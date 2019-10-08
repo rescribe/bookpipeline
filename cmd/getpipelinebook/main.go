@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"rescribe.xyz/go.git/bookpipeline"
+	"rescribe.xyz/bookpipeline"
 )
 
 const usage = "Usage: getpipelinebook [-a] [-v] bookname\n\nDownloads the pipeline results for a book.\n"

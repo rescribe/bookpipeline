@@ -1,7 +1,5 @@
 package main
 
-// TODO: check if images are prebinarised and if so skip multiple binarisation
-
 import (
 	"errors"
 	"flag"
@@ -14,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"rescribe.xyz/go.git/bookpipeline"
+	"rescribe.xyz/bookpipeline"
 	"rescribe.xyz/go.git/lib/hocr"
 	"rescribe.xyz/go.git/preproc"
 )

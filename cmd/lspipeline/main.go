@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"rescribe.xyz/go.git/bookpipeline"
+	"rescribe.xyz/bookpipeline"
 )
 
 const usage = `Usage: lspipeline [-i key] [-n num]
