@@ -1,6 +1,7 @@
 package bookpipeline
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -60,6 +61,10 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		graphconf = append(graphconf, c)
 	}
 	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Pgnum < graphconf[j].Pgnum })
+
+	if len(graphconf) == 0 {
+		return errors.New("No valid confidences")
+	}
 
 	// Create main xvalues and yvalues, annotations and ticks
 	var xvalues, yvalues []float64

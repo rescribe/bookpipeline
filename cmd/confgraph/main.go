@@ -22,6 +22,9 @@ func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {
 		}
 		avg, err := hocr.GetAvgConf(path)
 		if err != nil {
+			if err.Error() == "No words found" {
+				return nil
+			}
 			return err
 		}
 		c := bookpipeline.Conf{
@@ -35,7 +38,7 @@ func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: bookpipeline hocrdir graph.png")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: confgraph hocrdir graph.png")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
