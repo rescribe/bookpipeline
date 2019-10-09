@@ -383,8 +383,8 @@ func main() {
 		verboselog = log.New(n, "", 0)
 	}
 
-	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`) // TODO: match alternative file naming
-	wipePattern := regexp.MustCompile(`[0-9]{4}.png$`)
+	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`)
+	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
 	preprocessedPattern := regexp.MustCompile(`_bin[0-9].[0-9].png$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
