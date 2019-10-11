@@ -42,6 +42,10 @@ func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousS
 }
 
 func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
+	if len(confs) == 0 {
+		return errors.New("No valid confidences")
+	}
+
 	// Organise confs to sort them by page
 	var graphconf []GraphConf
 	for _, conf := range confs {
@@ -60,11 +64,20 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		c.Conf = conf.Conf
 		graphconf = append(graphconf, c)
 	}
-	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Pgnum < graphconf[j].Pgnum })
 
+	// If we failed to get any page numbers, just fake the lot
 	if len(graphconf) == 0 {
-		return errors.New("No valid confidences")
+		i := float64(1)
+		for _, conf := range confs {
+			var c GraphConf
+			c.Pgnum = i
+			c.Conf = conf.Conf
+			graphconf = append(graphconf, c)
+			i++
+		}
 	}
+
+	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Pgnum < graphconf[j].Pgnum })
 
 	// Create main xvalues and yvalues, annotations and ticks
 	var xvalues, yvalues []float64
