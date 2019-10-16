@@ -127,6 +127,10 @@ func main() {
 		if err != nil {
 			log.Fatalln("Failed to upload", path, err)
 		}
+		// Explicitly close here rather than wait for the defer, so we
+		// don't end up with too many open files which can cause os.Open
+		// to fail.
+		file.Close()
 	}
 
 	verboselog.Println("Sending message", bookname, "to queue", qurl)
