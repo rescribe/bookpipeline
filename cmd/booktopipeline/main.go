@@ -54,7 +54,7 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	if flag.NArg() < 1 {
+	if flag.NArg() < 1 || flag.NArg() > 3 {
 		flag.Usage()
 		return
 	}
