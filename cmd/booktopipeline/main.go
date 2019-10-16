@@ -118,7 +118,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("Open file", path, "failed:", err)
 		}
-		defer file.Close()
+		//defer file.Close() // done explicitly below
 		_, err = uploader.Upload(&s3manager.UploadInput{
 			Bucket: aws.String("rescribeinprogress"),
 			Key:    aws.String(filepath.Join(bookname, name)),
@@ -130,7 +130,10 @@ func main() {
 		// Explicitly close here rather than wait for the defer, so we
 		// don't end up with too many open files which can cause os.Open
 		// to fail.
-		file.Close()
+		err = file.Close()
+		if err != nil {
+			log.Fatalln("Failed to close file", path, err)
+		}
 	}
 
 	verboselog.Println("Sending message", bookname, "to queue", qurl)
