@@ -27,6 +27,11 @@ type InstanceDetails struct {
 	Id, Name, Ip, Spot, Type, State, LaunchTime string
 }
 
+type ObjMeta struct {
+	Name string
+	Date time.Time
+}
+
 type AwsConn struct {
 	// these need to be set before running Init()
 	Region string
@@ -229,6 +234,20 @@ func (a *AwsConn) ListObjects(bucket string, prefix string) ([]string, error) {
 		return true
 	})
 	return names, err
+}
+
+func (a *AwsConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta, error) {
+	var objs []ObjMeta
+	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(prefix),
+	}, func(page *s3.ListObjectsV2Output, last bool) bool {
+		for _, r := range page.Contents {
+			objs = append(objs, ObjMeta{Name: *r.Key, Date: *r.LastModified})
+		}
+		return true
+	})
+	return objs, err
 }
 
 func (a *AwsConn) AddToQueue(url string, msg string) error {

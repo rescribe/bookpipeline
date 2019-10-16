@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"rescribe.xyz/bookpipeline"
@@ -29,7 +31,7 @@ type LsPipeliner interface {
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
 	GetInstanceDetails() ([]bookpipeline.InstanceDetails, error)
-	ListObjects(bucket string, prefix string) ([]string, error)
+	ListObjectsWithMeta(bucket string, prefix string) ([]bookpipeline.ObjMeta, error)
 	WIPStorageId() string
 }
 
@@ -76,18 +78,68 @@ func getQueueDetails(conn LsPipeliner, qdetails chan queueDetails) {
 	close(qdetails)
 }
 
+type ObjMetas []bookpipeline.ObjMeta
+
+// used by sort.Sort
+func (o ObjMetas) Len() int {
+	return len(o)
+}
+
+// used by sort.Sort
+func (o ObjMetas) Swap(i, j int) {
+	o[i], o[j] = o[j], o[i]
+}
+
+// used by sort.Sort
+func (o ObjMetas) Less(i, j int) bool {
+	return o[i].Date.Before(o[j].Date)
+}
+
+// sortBookList sorts a list of book names by date.
+// It uses a list of filenames and dates in an ObjMeta slice to
+// determine the date for a book name.
+func sortBookList(list []string, fileinfo []bookpipeline.ObjMeta) ([]string, error) {
+	var listinfo ObjMetas
+
+	for _, name := range list {
+		found := false
+		for _, f := range fileinfo {
+			parts := strings.Split(f.Name, "/")
+			prefix := parts[0]
+			if name == prefix {
+				listinfo = append(listinfo, bookpipeline.ObjMeta{Name: name, Date: f.Date})
+				found = true
+				break
+			}
+		}
+		if !found {
+			return list, errors.New("Failed to find metadata for list")
+		}
+	}
+
+	// sort listinfo by date
+	sort.Sort(listinfo)
+
+	var l []string
+	for _, i := range listinfo {
+		l = append(l, i.Name)
+	}
+	return l, nil
+}
+
 // getBookStatus returns a list of in progress and done books.
 // It determines this by listing all objects, and splitting the
 // prefixes into two lists, those which have a 'graph.png' file,
-// which are classed as done, and those which are not.
+// which are classed as done, and those which are not. These are
+// sorted by date according to file metadata.
 func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err error) {
-	allfiles, err := conn.ListObjects(conn.WIPStorageId(), "")
+	allfiles, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), "")
 	if err != nil {
 		log.Println("Error getting list of objects:", err)
 		return inprogress, done, err
 	}
 	for _, f := range allfiles {
-		parts := strings.Split(f, "/")
+		parts := strings.Split(f.Name, "/")
 		if parts[1] != "graph.png" {
 			continue
 		}
@@ -105,7 +157,7 @@ func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err er
 	}
 
 	for _, f := range allfiles {
-		parts := strings.Split(f, "/")
+		parts := strings.Split(f.Name, "/")
 		prefix := parts[0]
 		found := false
 		for _, i := range done {
@@ -123,6 +175,17 @@ func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err er
 		if !found {
 			inprogress = append(inprogress, prefix)
 		}
+	}
+
+	inprogress, err = sortBookList(inprogress, allfiles)
+	if err != nil {
+		log.Println("Error sorting list of objects:", err)
+		err = nil
+	}
+	done, err = sortBookList(done, allfiles)
+	if err != nil {
+		log.Println("Error sorting list of objects:", err)
+		err = nil
 	}
 
 	return inprogress, done, err
