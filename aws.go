@@ -17,7 +17,7 @@ import (
 )
 
 const PreprocPattern = `_bin[0-9].[0-9].png`
-const heartbeatRetry = 10
+const heartbeatRetry = 20
 
 type Qmsg struct {
 	Id, Handle, Body string
@@ -157,9 +157,6 @@ func (a *AwsConn) QueueHeartbeat(msg Qmsg, qurl string, duration int64) (Qmsg, e
 		if ok && aerr.Code() == "InvalidParameterValue" {
 			// Try heartbeatRetry times to find the message
 			for range [heartbeatRetry]bool{} {
-				// Wait a little in case existing visibilitytimeout needs to expire
-				time.Sleep((time.Duration(duration) / heartbeatRetry) * time.Second)
-
 				msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
 					MaxNumberOfMessages: aws.Int64(10),
 					VisibilityTimeout:   &duration,
@@ -178,6 +175,8 @@ func (a *AwsConn) QueueHeartbeat(msg Qmsg, qurl string, duration int64) (Qmsg, e
 						}, nil
 					}
 				}
+				// Wait a little in case existing visibilitytimeout needs to expire
+				time.Sleep((2 * time.Duration(duration) / heartbeatRetry) * time.Second)
 			}
 			return Qmsg{}, errors.New("Heartbeat error failed to find message to update heartbeat")
 		} else {
