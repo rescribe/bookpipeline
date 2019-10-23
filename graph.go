@@ -79,9 +79,8 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 
 	sort.Slice(graphconf, func(i, j int) bool { return graphconf[i].Pgnum < graphconf[j].Pgnum })
 
-	// Create main xvalues and yvalues, annotations and ticks
+	// Create main xvalues, yvalues ticks
 	var xvalues, yvalues []float64
-	var annotations []chart.Value2
 	var ticks []chart.Tick
 	tickevery := len(graphconf) / maxticks
 	if tickevery < 1 {
@@ -90,14 +89,11 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	for i, c := range graphconf {
 		xvalues = append(xvalues, c.Pgnum)
 		yvalues = append(yvalues, c.Conf)
-		if c.Conf < goodCutoff {
-			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
-		}
 		if i%tickevery == 0 {
 			ticks = append(ticks, chart.Tick{c.Pgnum, fmt.Sprintf("%.0f", c.Pgnum)})
 		}
 	}
-	// make last tick the final page
+	// Make last tick the final page
 	final := graphconf[len(graphconf)-1]
 	ticks[len(ticks)-1] = chart.Tick{final.Pgnum, fmt.Sprintf("%.0f", final.Pgnum)}
 	mainSeries := chart.ContinuousSeries{
@@ -127,7 +123,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		YValues: yvalues,
 	}
 	yvalues = []float64{}
-	for _ = range graphconf {
+	for range graphconf {
 		yvalues = append(yvalues, highconf)
 	}
 	maxSeries := &chart.ContinuousSeries{
@@ -138,6 +134,16 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		XValues: xvalues,
 		YValues: yvalues,
 	}
+
+	// Create annotations
+	var annotations []chart.Value2
+	for _, c := range graphconf {
+		if c.Conf > highconf || c.Conf < lowconf {
+			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
+		}
+	}
+	annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", lowconf), XValue: xvalues[len(xvalues)-1], YValue: lowconf})
+	annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", highconf), XValue: xvalues[len(xvalues)-1], YValue: highconf})
 
 	graph := chart.Chart{
 		Title:      bookname,
