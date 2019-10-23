@@ -17,6 +17,7 @@ const maxticks = 40
 const goodCutoff = 70
 const mediumCutoff = 65
 const badCutoff = 60
+const yticknum = 40
 
 type Conf struct {
 	Path, Code string
@@ -82,6 +83,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	// Create main xvalues, yvalues ticks
 	var xvalues, yvalues []float64
 	var ticks []chart.Tick
+	var yticks []chart.Tick
 	tickevery := len(graphconf) / maxticks
 	if tickevery < 1 {
 		tickevery = 1
@@ -96,6 +98,11 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	// Make last tick the final page
 	final := graphconf[len(graphconf)-1]
 	ticks[len(ticks)-1] = chart.Tick{final.Pgnum, fmt.Sprintf("%.0f", final.Pgnum)}
+	for i := 1; i <= yticknum; i++ {
+		n := float64(i * 100) / yticknum
+		yticks = append(yticks, chart.Tick{n, fmt.Sprintf("%.1f", n)})
+	}
+
 	mainSeries := chart.ContinuousSeries{
 		XValues: xvalues,
 		YValues: yvalues,
@@ -162,6 +169,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 				Min: 0.0,
 				Max: 100.0,
 			},
+			Ticks: yticks,
 		},
 		Series: []chart.Series{
 			mainSeries,
