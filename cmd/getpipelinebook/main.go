@@ -7,11 +7,19 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = "Usage: getpipelinebook [-a] [-v] bookname\n\nDownloads the pipeline results for a book.\n"
+const usage = `Usage: getpipelinebook [-a] [-c] [-v] bookname
+
+Downloads the pipeline results for a book.
+
+By default this downloads the best hOCR version for each page with
+the corresponding binarised image, and the best, conf and graph.png
+analysis files.
+`
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -32,7 +40,8 @@ type Pipeliner interface {
 }
 
 func main() {
-	all := flag.Bool("a", false, "Get all files for book, not just hOCR and analysis files")
+	all := flag.Bool("a", false, "Get all files for book")
+	colour := flag.Bool("c", false, "Also get the original page images")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -98,7 +107,7 @@ func main() {
 	}
 	defer f.Close()
 
-	verboselog.Println("Downloading HOCR files")
+	verboselog.Println("Downloading HOCR and corresponding image files")
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		fn = filepath.Join(bookname, s.Text())
@@ -106,6 +115,32 @@ func main() {
 		err = conn.Download(conn.WIPStorageId(), fn, fn)
 		if err != nil {
 			log.Fatalln("Failed to download file", fn, err)
+		}
+		b := strings.TrimSuffix(s.Text(), ".hocr")
+		fn = filepath.Join(bookname, b + ".png")
+		verboselog.Println("Downloading file", fn)
+		err = conn.Download(conn.WIPStorageId(), fn, fn)
+		if err != nil {
+			log.Fatalln("Failed to download file", fn, err)
+		}
+		if *colour {
+			parts := strings.SplitN(s.Text(), "_bin", 2)
+			if len(parts) < 2 {
+				verboselog.Println("Can't find page number for original page image, skipping", b)
+				continue
+			}
+			num := parts[0]
+			fn = filepath.Join(bookname, num + ".jpg")
+			verboselog.Println("Downloading file", fn)
+			err = conn.Download(conn.WIPStorageId(), fn, fn)
+			if err != nil {
+				fn = filepath.Join(bookname, num + ".png")
+				verboselog.Println("Downloading file", fn)
+				err = conn.Download(conn.WIPStorageId(), fn, fn)
+				if err != nil {
+					log.Fatalln("Failed to download file", fn, err)
+				}
+			}
 		}
 	}
 
