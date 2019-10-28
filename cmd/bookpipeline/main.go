@@ -255,6 +255,10 @@ func heartbeat(conn Pipeliner, t *time.Ticker, msg bookpipeline.Qmsg, queue stri
 	for range t.C {
 		m, err := conn.QueueHeartbeat(currentmsg, queue, HeartbeatTime*2)
 		if err != nil {
+			// TODO: would be better to ensure this error stops any running
+			//       processes, as they will ultimately fail in the case of
+			//       it. could do this by setting a global variable that
+			//       processes check each time they loop.
 			errc <- err
 			t.Stop()
 			return
