@@ -256,6 +256,7 @@ func heartbeat(conn Pipeliner, t *time.Ticker, msg bookpipeline.Qmsg, queue stri
 		m, err := conn.QueueHeartbeat(currentmsg, queue, HeartbeatTime*2)
 		if err != nil {
 			// This is for better debugging of the heartbeat issue
+			conn.GetLogger().Println("Error with heartbeat", err)
 			os.Exit(1)
 			// TODO: would be better to ensure this error stops any running
 			//       processes, as they will ultimately fail in the case of
