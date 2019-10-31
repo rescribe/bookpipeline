@@ -74,12 +74,14 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string) error {
 	p.fpdf.SetTextRenderingMode(gofpdf.TextRenderingModeInvisible)
 
 	for _, l := range h.Lines {
-		coords, err := hocr.BoxCoords(l.Title)
-		if err != nil {
-			continue
+		for _, w := range l.Words {
+			coords, err := hocr.BoxCoords(w.Title)
+			if err != nil {
+				continue
+			}
+			p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
+			p.fpdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), html.UnescapeString(w.Text), "", 0, "T", false, 0, "")
 		}
-		p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
-		p.fpdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), html.UnescapeString(hocr.LineText(l)), "", 0, "T", false, 0, "")
 	}
 	return p.fpdf.Error()
 }
