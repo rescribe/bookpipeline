@@ -28,14 +28,11 @@ type Fpdf struct {
 }
 
 // Setup creates a new PDF with appropriate settings and fonts
-// TODO: find a font that's closer to the average dimensions of the
-//       text we're dealing with
-// TODO: once we have a good font, embed it in the binary as bytes
 func (p *Fpdf) Setup() error {
 	p.fpdf = gofpdf.New("P", "pt", "A4", "")
 	// Even though it's invisible, we need to add a font which can do
 	// UTF-8 so that text renders correctly.
-	p.fpdf.AddUTF8Font("dejavu", "", "DejaVuSansCondensed.ttf")
+	p.fpdf.AddUTF8FontFromBytes("dejavu", "", DejaVuCondensedBytes)
 	p.fpdf.SetFont("dejavu", "", 10)
 	p.fpdf.SetAutoPageBreak(false, float64(0))
 	return p.fpdf.Error()
@@ -65,8 +62,6 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string) error {
 	}
 	b := img.Bounds()
 	p.fpdf.AddPageFormat("P", gofpdf.SizeType{Wd: pxToPt(b.Dx()), Ht: pxToPt(b.Dy())})
-
-	// TODO: check for errors in pdf as going through
 
 	_ = p.fpdf.RegisterImageOptions(imgpath, gofpdf.ImageOptions{})
 	p.fpdf.ImageOptions(imgpath, 0, 0, pxToPt(b.Dx()), pxToPt(b.Dy()), false, gofpdf.ImageOptions{}, 0, "")
