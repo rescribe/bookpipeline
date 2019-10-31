@@ -1,11 +1,17 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"html"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -13,54 +19,92 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
-// see notebook for rationale; experimental
+const pageWidth = 5 // pageWidth in inches
+
+// pxToPt converts a pixel value into a pt value (72 pts per inch)
+// This uses pageWidth to determine the appropriate value
 func pxToPt(i int) float64 {
-	return float64(i) / 5
+	return float64(i) / pageWidth
 }
 
-func lineText(l hocr.OcrLine) string {
-	// TODO: handle cases of OcrLine being where the text is, and OcrChar being where the text is
-	var t string
-	for _, w := range l.Words {
-		if len(t) > 0 {
-			t += " "
-		}
-		t += w.Text
+// setupPdf creates a new PDF with appropriate settings and fonts
+// TODO: this will go in pdf.go in due course
+// TODO: find a font that's closer to the average dimensions of the
+//       text we're dealing with, and put it somewhere sensible
+func setupPdf() *gofpdf.Fpdf {
+	pdf := gofpdf.New("P", "pt", "A4", "")
+	// Even though it's invisible, we need to add a font which can do
+	// UTF-8 so that text renders correctly.
+	pdf.AddUTF8Font("dejavu", "", "DejaVuSansCondensed.ttf")
+	pdf.SetFont("dejavu", "", 10)
+	pdf.SetAutoPageBreak(false, float64(0))
+	return pdf
+}
+
+// addPage adds a page to the pdf with an image and (invisible)
+// text from an hocr file
+func addPage(pdf *gofpdf.Fpdf, imgpath string, hocrpath string) error {
+	file, err := ioutil.ReadFile(hocrpath)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not read file %s: %v", hocrpath, err))
 	}
-	return t
+	// TODO: change hocr.Parse to take a Reader rather than []byte
+	h, err := hocr.Parse(file)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not parse hocr in file %s: %v", hocrpath, err))
+	}
+
+	f, err := os.Open(imgpath)
+	defer f.Close()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not open file %s: %v", imgpath, err))
+	}
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Could not decode image: %v", err))
+	}
+	b := img.Bounds()
+	pdf.AddPageFormat("P", gofpdf.SizeType{Wd: pxToPt(b.Dx()), Ht: pxToPt(b.Dy())})
+
+	// TODO: check for errors in pdf as going through
+
+	_ = pdf.RegisterImageOptions(imgpath, gofpdf.ImageOptions{})
+	pdf.ImageOptions(imgpath, 0, 0, pxToPt(b.Dx()), pxToPt(b.Dy()), false, gofpdf.ImageOptions{}, 0, "")
+
+	pdf.SetTextRenderingMode(gofpdf.TextRenderingModeInvisible)
+
+	for _, l := range h.Lines {
+		coords, err := hocr.BoxCoords(l.Title)
+		if err != nil {
+			continue
+		}
+		pdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
+		pdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), html.UnescapeString(hocr.LineText(l)), "", 0, "T", false, 0, "")
+	}
+	return nil
+}
+
+func savePdf(pdf *gofpdf.Fpdf, p string) error {
+	return pdf.OutputFileAndClose(p)
 }
 
 func walker(pdf *gofpdf.Fpdf) filepath.WalkFunc {
-	return func(path string, info os.FileInfo, err error) error {
+	return func(fpath string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(path, ".hocr") {
+		if !strings.HasSuffix(fpath, ".hocr") {
 			return nil
 		}
-		// TODO: have errors returned include the file path of the error
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
+		// TODO: handle jpg or binarised versions according to a flag
+		imgpath := ""
+		p := strings.SplitN(path.Base(fpath), "_bin", 2)
+		if len(p) > 1 {
+			imgpath = path.Join(path.Dir(fpath), p[0] + ".jpg")
+		} else {
+			imgpath = strings.TrimSuffix(fpath, ".hocr") + ".png"
 		}
-		h, err := hocr.Parse(file)
-		if err != nil {
-			return err
-		}
-		// TODO: get page dimensions from image dimensions
-		pdf.AddPageFormat("P", gofpdf.SizeType{Wd: pxToPt(1414), Ht: pxToPt(2500)})
-		//pdf.SetTextRenderingMode(gofpdf.TextRenderingModeInvisible)
-		// TODO: add page image
-		for _, l := range h.Lines {
-			coords, err := hocr.BoxCoords(l.Title)
-			if err != nil {
-				return err
-			}
-			pdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
-			// TODO: html escape text
-			pdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), hocr.LineText(l), "", 0, "T", false, 0, "")
-		}
-		return nil
+		return addPage(pdf, imgpath, fpath)
 	}
 }
 
@@ -79,24 +123,15 @@ func main() {
 		return
 	}
 
-	// TODO: this will go in pdf.go in due course, potentially with a
-	//       type which covers gofpdf.Fpdf, and an interface, so that
-	//       the backend can be switched out like aws.go
-	pdf := gofpdf.New("P", "pt", "A4", "")
-	// Even though it's invisible, we need to add a font which can do UTF-8 so text is correctly rendered
-	// TODO: find a font that's closer to the average dimensions of the
-	//       text we're dealing with, and put it somewhere sensible
-	pdf.AddUTF8Font("dejavu", "", "DejaVuSansCondensed.ttf")
-	pdf.SetFont("dejavu", "", 10)
-	pdf.SetAutoPageBreak(false, float64(0))
+	pdf := setupPdf()
 
 	err := filepath.Walk(flag.Arg(0), walker(pdf))
 	if err != nil {
 		log.Fatalln("Failed to walk", flag.Arg(0), err)
-        }
+	}
 
-	err = pdf.OutputFileAndClose(flag.Arg(1))
+	err = savePdf(pdf, flag.Arg(1))
 	if err != nil {
 		log.Fatalln("Failed to save", flag.Arg(1), err)
-        }
+	}
 }
