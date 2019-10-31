@@ -26,7 +26,7 @@ func pxToPt(i int) float64 {
 	return float64(i) / pageWidth
 }
 
-func walker(pdf Pdfer) filepath.WalkFunc {
+func walker(pdf Pdfer, colour bool) filepath.WalkFunc {
 	return func(fpath string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
@@ -34,11 +34,14 @@ func walker(pdf Pdfer) filepath.WalkFunc {
 		if !strings.HasSuffix(fpath, ".hocr") {
 			return nil
 		}
-		// TODO: handle jpg or binarised versions according to a flag
 		imgpath := ""
-		p := strings.SplitN(path.Base(fpath), "_bin", 2)
-		if len(p) > 1 {
-			imgpath = path.Join(path.Dir(fpath), p[0] + ".jpg")
+		if colour {
+			p := strings.SplitN(path.Base(fpath), "_bin", 2)
+			if len(p) > 1 {
+				imgpath = path.Join(path.Dir(fpath), p[0] + ".jpg")
+			} else {
+				imgpath = strings.TrimSuffix(fpath, ".hocr") + ".jpg"
+			}
 		} else {
 			imgpath = strings.TrimSuffix(fpath, ".hocr") + ".png"
 		}
@@ -48,10 +51,10 @@ func walker(pdf Pdfer) filepath.WalkFunc {
 
 func main() {
 	// TODO: handle best
-	// TODO: take flags to do colour or binarised
-	// TODO: probably also take flags to resize / change quality in due course
+	// TODO: probably take flags to resize / change quality in due course
+	colour := flag.Bool("c", false, "colour")
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pdfbook hocrdir out.pdf")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pdfbook [-c] hocrdir out.pdf")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -64,7 +67,7 @@ func main() {
 	pdf := new(bookpipeline.Fpdf)
 	pdf.Setup()
 
-	err := filepath.Walk(flag.Arg(0), walker(pdf))
+	err := filepath.Walk(flag.Arg(0), walker(pdf, *colour))
 	if err != nil {
 		log.Fatalln("Failed to walk", flag.Arg(0), err)
 	}
