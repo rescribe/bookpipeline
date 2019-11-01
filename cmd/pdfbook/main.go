@@ -112,7 +112,10 @@ func main() {
 	}
 
 	pdf := new(bookpipeline.Fpdf)
-	pdf.Setup()
+	err = pdf.Setup()
+	if err != nil {
+		log.Fatalln("Failed to set up PDF", err)
+	}
 
 	if os.IsNotExist(err) {
 		err = filepath.Walk(flag.Arg(0), walker(pdf, *colour))

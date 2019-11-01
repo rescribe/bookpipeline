@@ -1,6 +1,8 @@
 package bookpipeline
 
 import (
+	"bytes"
+	"compress/zlib"
 	"errors"
 	"fmt"
 	"html"
@@ -15,6 +17,7 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
+// TODO: maybe set this in Fpdf struct
 const pageWidth = 5 // pageWidth in inches
 
 // pxToPt converts a pixel value into a pt value (72 pts per inch)
@@ -32,7 +35,18 @@ func (p *Fpdf) Setup() error {
 	p.fpdf = gofpdf.New("P", "pt", "A4", "")
 	// Even though it's invisible, we need to add a font which can do
 	// UTF-8 so that text renders correctly.
-	p.fpdf.AddUTF8FontFromBytes("dejavu", "", DejaVuCondensedBytes)
+	br := bytes.NewReader(DejaVuCondensedBytes)
+	r, err := zlib.NewReader(br)
+	if err != nil {
+		return err
+	}
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(r)
+	if err != nil {
+		return err
+	}
+	p.fpdf.AddUTF8FontFromBytes("dejavu", "", buf.Bytes())
+	r.Close()
 	p.fpdf.SetFont("dejavu", "", 10)
 	p.fpdf.SetAutoPageBreak(false, float64(0))
 	return p.fpdf.Error()
@@ -45,7 +59,6 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not read file %s: %v", hocrpath, err))
 	}
-	// TODO: change hocr.Parse to take a Reader rather than []byte
 	h, err := hocr.Parse(file)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not parse hocr in file %s: %v", hocrpath, err))

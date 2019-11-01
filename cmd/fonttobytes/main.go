@@ -1,11 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"compress/zlib"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strings"
 )
 
 func main() {
@@ -20,13 +21,27 @@ func main() {
 		return
 	}
 
-	b, err := ioutil.ReadFile(flag.Arg(0))
+	font, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	s := fmt.Sprintf("%v", b)
-	s1 := strings.Replace(s, "[", "{", -1)
-	s2 := strings.Replace(s1, "]", "}", -1)
-	s3 := strings.Replace(s2, " ", ", ", -1)
-	fmt.Printf("[]byte%s\n", s3)
+
+	// compress with zlib
+	var buf bytes.Buffer
+	w := zlib.NewWriter(&buf)
+	w.Write(font)
+	w.Close()
+
+	// this could be done more simply with %+v, but that takes up
+	// significantly more space due to printing each byte in hex
+	// rather than dec format.
+
+	fmt.Printf("[]byte{")
+	for i, b := range buf.Bytes() {
+		if i > 0 {
+			fmt.Printf(", ")
+		}
+		fmt.Printf("%d", b)
+	}
+	fmt.Printf("}\n")
 }
