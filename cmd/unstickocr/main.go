@@ -100,7 +100,7 @@ func main() {
 			break
 		}
 		log.Println("No message found yet, sleeping for 30 seconds to try again")
-		time.Sleep(30)
+		time.Sleep(30 * time.Minute)
 	}
 
 	if done == true {
