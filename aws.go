@@ -349,3 +349,21 @@ func (a *AwsConn) GetInstanceDetails() ([]InstanceDetails, error) {
 	})
 	return details, err
 }
+
+func (a *AwsConn) StartInstances(n int) error {
+	_, err := a.ec2svc.RequestSpotInstances(&ec2.RequestSpotInstancesInput{
+		InstanceCount: aws.Int64(int64(n)),
+		LaunchSpecification: &ec2.RequestSpotLaunchSpecification{
+			IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+				Arn: aws.String("arn:aws:iam::557852942063:instance-profile/pipeliner"),
+			},
+			ImageId: aws.String("ami-02cd15d68d4ca2865"),
+			InstanceType: aws.String("m5.large"),
+			SecurityGroupIds: []*string{
+				aws.String("sg-0be8a3ab89e7136b9"),
+			},
+		},
+		Type: aws.String("one-time"),
+	})
+	return err
+}
