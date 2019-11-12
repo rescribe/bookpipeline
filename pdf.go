@@ -12,8 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	//"rescribe.xyz/gofpdf@addtextrenderingmode"
-	"rescribe.xyz/gofpdf"
+	"github.com/jung-kurt/gofpdf"
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
@@ -79,7 +78,7 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string) error {
 	_ = p.fpdf.RegisterImageOptions(imgpath, gofpdf.ImageOptions{})
 	p.fpdf.ImageOptions(imgpath, 0, 0, pxToPt(b.Dx()), pxToPt(b.Dy()), false, gofpdf.ImageOptions{}, 0, "")
 
-	p.fpdf.SetTextRenderingMode(gofpdf.TextRenderingModeInvisible)
+	p.fpdf.SetTextRenderingMode(3)
 
 	for _, l := range h.Lines {
 		for _, w := range l.Words {
