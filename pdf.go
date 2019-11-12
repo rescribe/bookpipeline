@@ -32,20 +32,23 @@ type Fpdf struct {
 // Setup creates a new PDF with appropriate settings and fonts
 func (p *Fpdf) Setup() error {
 	p.fpdf = gofpdf.New("P", "pt", "A4", "")
+
 	// Even though it's invisible, we need to add a font which can do
 	// UTF-8 so that text renders correctly.
-	br := bytes.NewReader(DejaVuCondensedBytes)
-	r, err := zlib.NewReader(br)
+	// We embed the font directly in the binary, compressed with zlib
+	c := bytes.NewBuffer(dejavucondensed)
+	r, err := zlib.NewReader(c)
+	defer r.Close()
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Could not open compressed font", err))
 	}
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(r)
+	var b bytes.Buffer
+	_, err = b.ReadFrom(r)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Could not read compressed font", err))
 	}
-	p.fpdf.AddUTF8FontFromBytes("dejavu", "", buf.Bytes())
-	r.Close()
+	p.fpdf.AddUTF8FontFromBytes("dejavu", "", b.Bytes())
+
 	p.fpdf.SetFont("dejavu", "", 10)
 	p.fpdf.SetAutoPageBreak(false, float64(0))
 	return p.fpdf.Error()
