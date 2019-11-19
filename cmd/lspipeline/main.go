@@ -28,6 +28,7 @@ type LsPipeliner interface {
 	PreQueueId() string
 	WipeQueueId() string
 	OCRQueueId() string
+	OCRPageQueueId() string
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
 	GetInstanceDetails() ([]bookpipeline.InstanceDetails, error)
@@ -62,6 +63,7 @@ func getQueueDetails(conn LsPipeliner, qdetails chan queueDetails) {
 		{"preprocess", conn.PreQueueId()},
 		{"wipeonly", conn.WipeQueueId()},
 		{"ocr", conn.OCRQueueId()},
+		{"ocrpage", conn.OCRPageQueueId()},
 		{"analyse", conn.AnalyseQueueId()},
 	}
 	for _, q := range queues {

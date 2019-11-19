@@ -44,6 +44,7 @@ type AwsConn struct {
 	downloader                              *s3manager.Downloader
 	uploader                                *s3manager.Uploader
 	wipequrl, prequrl, ocrqurl, analysequrl string
+	ocrpgqurl                               string
 	wipstorageid                            string
 }
 
@@ -104,6 +105,15 @@ func (a *AwsConn) Init() error {
 		return errors.New(fmt.Sprintf("Error getting analyse queue URL: %s", err))
 	}
 	a.analysequrl = *result.QueueUrl
+
+	a.Logger.Println("Getting OCR Page queue URL")
+	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: aws.String("rescribeocrpage"),
+	})
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error getting OCR Page queue URL: %s", err))
+	}
+	a.ocrpgqurl = *result.QueueUrl
 
 	a.wipstorageid = "rescribeinprogress"
 
@@ -222,6 +232,10 @@ func (a *AwsConn) WipeQueueId() string {
 
 func (a *AwsConn) OCRQueueId() string {
 	return a.ocrqurl
+}
+
+func (a *AwsConn) OCRPageQueueId() string {
+	return a.ocrpgqurl
 }
 
 func (a *AwsConn) AnalyseQueueId() string {
