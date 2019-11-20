@@ -7,17 +7,19 @@ import (
 	"fmt"
 	"html"
 	"image"
-	_ "image/jpeg"
-	_ "image/png"
+	"image/jpeg"
+	"image/png"
 	"io/ioutil"
 	"os"
 
 	"github.com/jung-kurt/gofpdf"
+	"golang.org/x/image/draw"
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
 // TODO: maybe set this in Fpdf struct
 const pageWidth = 5 // pageWidth in inches
+const scaleSmaller = 3 // amount the width and height are divided by
 
 // pxToPt converts a pixel value into a pt value (72 pts per inch)
 // This uses pageWidth to determine the appropriate value
@@ -56,7 +58,7 @@ func (p *Fpdf) Setup() error {
 
 // AddPage adds a page to the pdf with an image and (invisible)
 // text from an hocr file
-func (p *Fpdf) AddPage(imgpath, hocrpath string) error {
+func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 	file, err := ioutil.ReadFile(hocrpath)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not read file %s: %v", hocrpath, err))
@@ -66,19 +68,36 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string) error {
 		return errors.New(fmt.Sprintf("Could not parse hocr in file %s: %v", hocrpath, err))
 	}
 
-	f, err := os.Open(imgpath)
-	defer f.Close()
+	imgf, err := os.Open(imgpath)
+	defer imgf.Close()
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not open file %s: %v", imgpath, err))
 	}
-	img, _, err := image.Decode(f)
+	img, imgtype, err := image.Decode(imgf)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not decode image: %v", err))
 	}
 	b := img.Bounds()
+	if smaller {
+		r := image.Rect(0, 0, b.Max.X/scaleSmaller, b.Max.Y/scaleSmaller)
+		smimg := image.NewRGBA(r)
+		draw.ApproxBiLinear.Scale(smimg, r, img, b, draw.Over, nil)
+		img = smimg
+	}
+
+	var buf bytes.Buffer
+	if imgtype == "jpeg" {
+		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: jpeg.DefaultQuality})
+	} else {
+		err = png.Encode(&buf, img)
+	}
+	if err != nil {
+		return err
+	}
+
 	p.fpdf.AddPageFormat("P", gofpdf.SizeType{Wd: pxToPt(b.Dx()), Ht: pxToPt(b.Dy())})
 
-	_ = p.fpdf.RegisterImageOptions(imgpath, gofpdf.ImageOptions{})
+	_ = p.fpdf.RegisterImageOptionsReader(imgpath, gofpdf.ImageOptions{ImageType: imgtype}, &buf)
 	p.fpdf.ImageOptions(imgpath, 0, 0, pxToPt(b.Dx()), pxToPt(b.Dy()), false, gofpdf.ImageOptions{}, 0, "")
 
 	p.fpdf.SetTextRenderingMode(3)

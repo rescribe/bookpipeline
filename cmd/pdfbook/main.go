@@ -16,7 +16,7 @@ import (
 
 type Pdfer interface {
 	Setup() error
-	AddPage(imgpath, hocrpath string) error
+	AddPage(imgpath, hocrpath string, smaller bool) error
 	Save(path string) error
 }
 
@@ -49,7 +49,7 @@ func imgPath(hocrpath string, colour bool) string {
 }
 
 // addBest adds the pages in dir/best to a PDF
-func addBest(dir string, pdf Pdfer, colour bool) error {
+func addBest(dir string, pdf Pdfer, colour, smaller bool) error {
 	f, err := os.Open(path.Join(dir, "best"))
 	if err != nil {
 		log.Fatalln("Failed to open best file", err)
@@ -70,7 +70,7 @@ func addBest(dir string, pdf Pdfer, colour bool) error {
 	for _, f := range files {
 		hocrpath := path.Join(dir, f)
 		img := imgPath(hocrpath, colour)
-		err := pdf.AddPage(img, hocrpath)
+		err := pdf.AddPage(img, hocrpath, smaller)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func addBest(dir string, pdf Pdfer, colour bool) error {
 
 // walker walks each hocr file in a directory and adds a page to
 // the pdf for each one.
-func walker(pdf Pdfer, colour bool) filepath.WalkFunc {
+func walker(pdf Pdfer, colour, smaller bool) filepath.WalkFunc {
 	return func(fpath string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
@@ -88,15 +88,15 @@ func walker(pdf Pdfer, colour bool) filepath.WalkFunc {
 		if path.Ext(fpath) != ".hocr" {
 			return nil
 		}
-		return pdf.AddPage(imgPath(fpath, colour), fpath)
+		return pdf.AddPage(imgPath(fpath, colour), fpath, smaller)
 	}
 }
 
 func main() {
-	// TODO: probably take flags to resize / change quality in due course
 	colour := flag.Bool("c", false, "colour")
+	smaller := flag.Bool("s", false, "smaller")
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pdfbook [-c] hocrdir out.pdf")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pdfbook [-c] [-s] hocrdir out.pdf")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -106,24 +106,24 @@ func main() {
 		return
 	}
 
-	_, err := os.Stat(path.Join(flag.Arg(0), "best"))
-	if err != nil && !os.IsNotExist(err) {
-		log.Fatalln("Failed to stat best", err)
-	}
-
 	pdf := new(bookpipeline.Fpdf)
-	err = pdf.Setup()
+	err := pdf.Setup()
 	if err != nil {
 		log.Fatalln("Failed to set up PDF", err)
 	}
 
+	_, err = os.Stat(path.Join(flag.Arg(0), "best"))
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatalln("Failed to stat best", err)
+	}
+
 	if os.IsNotExist(err) {
-		err = filepath.Walk(flag.Arg(0), walker(pdf, *colour))
+		err = filepath.Walk(flag.Arg(0), walker(pdf, *colour, *smaller))
 		if err != nil {
 			log.Fatalln("Failed to walk", flag.Arg(0), err)
 		}
 	} else {
-		err = addBest(flag.Arg(0), pdf, *colour)
+		err = addBest(flag.Arg(0), pdf, *colour, *smaller)
 		if err != nil {
 			log.Fatalln("Failed to add best pages", err)
 		}
