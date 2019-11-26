@@ -14,6 +14,16 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
+const usage = `Usage: pdfbook [-c] [-s] dir out.pdf
+
+Creates a searchable PDF from a directory of hOCR and image files.
+
+If a 'best' file exists in the directory, each hOCR listed in it is
+used to provide the searchable text for each page. Otherwise pdfbook
+just looks for a .hocr with the same file base as the image for the
+searchable text.
+`
+
 type Pdfer interface {
 	Setup() error
 	AddPage(imgpath, hocrpath string, smaller bool) error
@@ -99,7 +109,7 @@ func main() {
 	colour := flag.Bool("c", false, "colour")
 	smaller := flag.Bool("s", false, "smaller")
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pdfbook [-c] [-s] hocrdir out.pdf")
+		fmt.Fprintln(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
