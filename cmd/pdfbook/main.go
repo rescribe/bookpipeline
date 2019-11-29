@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -82,7 +83,7 @@ func addBest(dir string, pdf Pdfer, colour, smaller bool) error {
 		img := imgPath(hocrpath, colour)
 		err := pdf.AddPage(img, hocrpath, smaller)
 		if err != nil {
-			return err
+			return errors.New(fmt.Sprintf("Failed to add page %s: %v", f, err))
 		}
 	}
 	return nil
