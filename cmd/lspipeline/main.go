@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os/exec"
 	"sort"
-	"strings"
 
 	"rescribe.xyz/bookpipeline"
 )
@@ -33,6 +31,7 @@ type LsPipeliner interface {
 	GetQueueDetails(url string) (string, string, error)
 	GetInstanceDetails() ([]bookpipeline.InstanceDetails, error)
 	ListObjectsWithMeta(bucket string, prefix string) ([]bookpipeline.ObjMeta, error)
+	ListObjectPrefixes(bucket string) ([]string, error)
 	WIPStorageId() string
 }
 
@@ -97,102 +96,50 @@ func (o ObjMetas) Less(i, j int) bool {
 	return o[i].Date.Before(o[j].Date)
 }
 
-// sortBookList sorts a list of book names by date.
-// It uses a list of filenames and dates in an ObjMeta slice to
-// determine the date for a book name.
-func sortBookList(list []string, fileinfo []bookpipeline.ObjMeta) ([]string, error) {
-	var listinfo ObjMetas
-
-	for _, name := range list {
-		found := false
-		for _, f := range fileinfo {
-			parts := strings.Split(f.Name, "/")
-			prefix := parts[0]
-			if name == prefix {
-				listinfo = append(listinfo, bookpipeline.ObjMeta{Name: name, Date: f.Date})
-				found = true
-				break
-			}
-		}
-		if !found {
-			return list, errors.New("Failed to find metadata for list")
-		}
-	}
-
-	// sort listinfo by date
-	sort.Sort(listinfo)
-
-	var l []string
-	for _, i := range listinfo {
-		l = append(l, i.Name)
-	}
-	return l, nil
-}
-
 // getBookStatus returns a list of in progress and done books.
-// It determines this by listing all objects, and splitting the
-// prefixes into two lists, those which have a 'graph.png' file,
-// which are classed as done, and those which are not. These are
-// sorted by date according to file metadata.
+// It determines this by finding all prefixes, and splitting them
+// into two lists, those which have a 'graph.png' file (the done
+// list), and those which do not (the inprogress list). They are
+// sorted according to the date of the graph.png file, or the date
+// of a random file with the prefix if no graph.png was found.
 func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err error) {
-	allfiles, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), "")
+	prefixes, err := conn.ListObjectPrefixes(conn.WIPStorageId())
+	var inprogressmeta, donemeta ObjMetas
 	if err != nil {
-		log.Println("Error getting list of objects:", err)
-		return inprogress, done, err
+		log.Println("Error getting object prefixes:", err)
+		return
 	}
-	for _, f := range allfiles {
-		parts := strings.Split(f.Name, "/")
-		if parts[1] != "graph.png" {
+	// Search for graph.png to determine done books (and save the date of it to sort with)
+	for _, p := range prefixes {
+		objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), p + "graph.png")
+		if err != nil || len(objs) == 0 {
+			inprogressmeta = append(inprogressmeta, bookpipeline.ObjMeta{Name: p})
+		} else {
+			donemeta = append(donemeta, bookpipeline.ObjMeta{Name: p, Date: objs[0].Date})
+		}
+	}
+	// Get a random file from the inprogress list to get a date to sort by
+	for _, i := range inprogressmeta {
+		objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), i.Name)
+		if err != nil || len(objs) == 0 {
 			continue
 		}
-		prefix := parts[0]
-		found := false
-		for _, i := range done {
-			if i == prefix {
-				found = true
-				continue
-			}
-		}
-		if !found {
-			done = append(done, prefix)
-		}
+		i.Date = objs[0].Date
+	}
+	sort.Sort(donemeta)
+	for _, i := range donemeta {
+		done = append(done, i.Name)
+	}
+	sort.Sort(inprogressmeta)
+	for _, i := range inprogressmeta {
+		inprogress = append(inprogress, i.Name)
 	}
 
-	for _, f := range allfiles {
-		parts := strings.Split(f.Name, "/")
-		prefix := parts[0]
-		found := false
-		for _, i := range done {
-			if i == prefix {
-				found = true
-				continue
-			}
-		}
-		for _, i := range inprogress {
-			if i == prefix {
-				found = true
-				continue
-			}
-		}
-		if !found {
-			inprogress = append(inprogress, prefix)
-		}
-	}
-
-	inprogress, err = sortBookList(inprogress, allfiles)
-	if err != nil {
-		log.Println("Error sorting list of objects:", err)
-		err = nil
-	}
-	done, err = sortBookList(done, allfiles)
-	if err != nil {
-		log.Println("Error sorting list of objects:", err)
-		err = nil
-	}
-
-	return inprogress, done, err
+	return
 }
 
+// getBookStatusChan runs getBookStatus and sends its results to
+// channels for the done and receive arrays.
 func getBookStatusChan(conn LsPipeliner, inprogressc chan string, donec chan string) {
 	inprogress, done, err := getBookStatus(conn)
 	if err != nil {

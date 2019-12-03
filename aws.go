@@ -274,6 +274,21 @@ func (a *AwsConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta, 
 	return objs, err
 }
 
+func (a *AwsConn) ListObjectPrefixes(bucket string) ([]string, error) {
+	var prefixes []string
+	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Delimiter: aws.String("/"),
+		MaxKeys: aws.Int64(1),
+	}, func(page *s3.ListObjectsV2Output, last bool) bool {
+		for _, r := range page.CommonPrefixes {
+			prefixes = append(prefixes, *r.Prefix)
+		}
+		return true
+	})
+	return prefixes, err
+}
+
 func (a *AwsConn) AddToQueue(url string, msg string) error {
 	_, err := a.sqssvc.SendMessage(&sqs.SendMessageInput{
 		MessageBody: &msg,
