@@ -35,7 +35,6 @@ one is found this general process is followed:
 `
 
 const PauseBetweenChecks = 3 * time.Minute
-const PauseBetweenOCRPageChecks = 1 * time.Second
 const HeartbeatTime = 60
 
 // null writer to enable non-verbose logging to be discarded
@@ -611,7 +610,7 @@ func main() {
 			}
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), HeartbeatTime*2)
-			checkOCRPageQueue = time.After(PauseBetweenOCRPageChecks)
+			checkOCRPageQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				log.Println("Error checking OCR Page queue", err)
 				continue
@@ -619,6 +618,9 @@ func main() {
 			if msg.Handle == "" {
 				continue
 			}
+			// Have OCRPageQueue checked immediately after completion, as chances are high that
+			// there will be more pages that should be done without delay
+			checkOCRPageQueue = time.After(0)
 			verboselog.Println("Message received on OCR Page queue, processing", msg.Body)
 			err = ocrPage(msg, conn, ocr(*training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
 			if err != nil {
