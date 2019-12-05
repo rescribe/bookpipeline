@@ -264,11 +264,10 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 	sort.Strings(pgs)
 
 	logger.Println("Downloading binarised and original images to create PDFs")
-	tmpdir := filepath.Join(os.TempDir(), savedir)
-	err = os.MkdirAll(tmpdir, 0755)
+	bookname, err := filepath.Rel(os.TempDir(), savedir)
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Failed to create directory %s: %s", tmpdir, err))
+		errc <- errors.New(fmt.Sprintf("Failed to do filepath.Rel of %s to %s: %s", os.TempDir(), savedir, err))
 		return
 	}
 	colourpdf := new(bookpipeline.Fpdf)
@@ -296,29 +295,35 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		} else {
 			imgfns = append(imgfns, nosuffix + ".jpg")
 		}
-		for _, i := range imgfns {
+		for n, i := range imgfns {
 			logger.Println("Downloading", i)
-			err := conn.Download(conn.WIPStorageId(), filepath.Join(savedir, i), filepath.Join(tmpdir, i))
+			err := conn.Download(conn.WIPStorageId(), filepath.Join(bookname, i), filepath.Join(savedir, i))
 			if err != nil {
-				close(up)
-				errc <- errors.New(fmt.Sprintf("Failed to download book page %s: %s", i, err))
-				return
+				imgfns[n] = strings.Replace(i, ".jpg", ".png", 1)
+				i = imgfns[n]
+				logger.Println("Download failed; trying", i)
+				err := conn.Download(conn.WIPStorageId(), filepath.Join(bookname, i), filepath.Join(savedir, i))
+				if err != nil {
+					close(up)
+					errc <- errors.New(fmt.Sprintf("Failed to download book page %s: %s", filepath.Join(bookname, i), err))
+					return
+				}
 			}
 		}
-		err = colourpdf.AddPage(imgfns[1], pg, true)
+		err = colourpdf.AddPage(filepath.Join(savedir, imgfns[1]), pg, true)
 		if err != nil {
 			close(up)
 			errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", imgfns[1], err))
 			return
 		}
-		err = binarisedpdf.AddPage(imgfns[0], pg, true)
+		err = binarisedpdf.AddPage(filepath.Join(savedir, imgfns[0]), pg, true)
 		if err != nil {
 			close(up)
 			errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", imgfns[0], err))
 			return
 		}
 	}
-	fn = filepath.Join(tmpdir, savedir + ".colour.pdf")
+	fn = filepath.Join(savedir, bookname + ".colour.pdf")
 	err = colourpdf.Save(fn)
 	if err != nil {
 		close(up)
@@ -326,7 +331,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		return
 	}
 	up <- fn
-	fn = filepath.Join(tmpdir, savedir + ".binarised.pdf")
+	fn = filepath.Join(savedir, bookname + ".binarised.pdf")
 	err = binarisedpdf.Save(fn)
 	if err != nil {
 		close(up)
