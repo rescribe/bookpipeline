@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sort"
 	"time"
 
 	"rescribe.xyz/bookpipeline"
@@ -182,7 +183,8 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 	}
 }
 
-func analyse(toanalyse chan string, up chan string, errc chan error, logger *log.Logger) {
+func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Logger) {
+	return func(toanalyse chan string, up chan string, errc chan error, logger *log.Logger) {
 	confs := make(map[string][]*bookpipeline.Conf)
 	bestconfs := make(map[string]*bookpipeline.Conf)
 	savedir := ""
@@ -211,7 +213,6 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 		c.Code = base[codestart:]
 		c.Conf = avg
 		confs[name] = append(confs[name], &c)
-
 	}
 
 	fn := filepath.Join(savedir, "conf")
@@ -256,6 +257,84 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	}
 	up <- fn
 
+	var pgs []string
+	for _, conf := range bestconfs {
+		pgs = append(pgs, conf.Path)
+	}
+	sort.Strings(pgs)
+
+	logger.Println("Downloading binarised and original images to create PDFs")
+	tmpdir := filepath.Join(os.TempDir(), savedir)
+	err = os.MkdirAll(tmpdir, 0755)
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Failed to create directory %s: %s", tmpdir, err))
+		return
+	}
+	colourpdf := new(bookpipeline.Fpdf)
+	err = colourpdf.Setup()
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Failed to set up PDF: %s", err))
+		return
+	}
+	binarisedpdf := new(bookpipeline.Fpdf)
+	err = binarisedpdf.Setup()
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Failed to set up PDF: %s", err))
+		return
+	}
+	for _, pg := range pgs {
+		var imgfns []string
+		base := filepath.Base(pg)
+		nosuffix := strings.TrimSuffix(base, ".hocr")
+		imgfns = append(imgfns, nosuffix + ".png")
+		p := strings.SplitN(base, "_bin", 2)
+		if len(p) > 1 {
+			imgfns = append(imgfns, p[0] + ".jpg")
+		} else {
+			imgfns = append(imgfns, nosuffix + ".jpg")
+		}
+		for _, i := range imgfns {
+			logger.Println("Downloading", i)
+			err := conn.Download(conn.WIPStorageId(), filepath.Join(savedir, i), filepath.Join(tmpdir, i))
+			if err != nil {
+				close(up)
+				errc <- errors.New(fmt.Sprintf("Failed to download book page %s: %s", i, err))
+				return
+			}
+		}
+		err = colourpdf.AddPage(imgfns[1], pg, true)
+		if err != nil {
+			close(up)
+			errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", imgfns[1], err))
+			return
+		}
+		err = binarisedpdf.AddPage(imgfns[0], pg, true)
+		if err != nil {
+			close(up)
+			errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", imgfns[0], err))
+			return
+		}
+	}
+	fn = filepath.Join(tmpdir, savedir + ".colour.pdf")
+	err = colourpdf.Save(fn)
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Failed to save colour pdf: %s", err))
+		return
+	}
+	up <- fn
+	fn = filepath.Join(tmpdir, savedir + ".binarised.pdf")
+	err = binarisedpdf.Save(fn)
+	if err != nil {
+		close(up)
+		errc <- errors.New(fmt.Sprintf("Failed to save binarised pdf: %s", err))
+		return
+	}
+	up <- fn
+
 	logger.Println("Creating graph")
 	fn = filepath.Join(savedir, "graph.png")
 	f, err = os.Create(fn)
@@ -274,6 +353,7 @@ func analyse(toanalyse chan string, up chan string, errc chan error, logger *log
 	up <- fn
 
 	close(up)
+	}
 }
 
 func heartbeat(conn Pipeliner, t *time.Ticker, msg bookpipeline.Qmsg, queue string, msgc chan bookpipeline.Qmsg, errc chan error) {
@@ -654,7 +734,7 @@ func main() {
 				continue
 			}
 			verboselog.Println("Message received on analyse queue, processing", msg.Body)
-			err = processBook(msg, conn, analyse, ocredPattern, conn.AnalyseQueueId(), "")
+			err = processBook(msg, conn, analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
 			if err != nil {
 				log.Println("Error during analysis", err)
 			}
