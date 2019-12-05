@@ -317,6 +317,9 @@ func (a *AwsConn) Download(bucket string, key string, path string) error {
 			Bucket: aws.String(bucket),
 			Key:    &key,
 		})
+	if err != nil {
+		_ = os.Remove(path)
+	}
 	return err
 }
 
