@@ -18,6 +18,8 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
+// TODO: stop using filepath.Join for keys; just use '/' delimeter
+
 const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-nop] [-na] [-t training]
 
 Watches the preprocess, ocr and analyse queues for book names. When
@@ -284,61 +286,74 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		errc <- errors.New(fmt.Sprintf("Failed to set up PDF: %s", err))
 		return
 	}
+	binhascontent, colourhascontent := false, false
 	for _, pg := range pgs {
-		var imgfns []string
+		var colourfn, binfn string
 		base := filepath.Base(pg)
 		nosuffix := strings.TrimSuffix(base, ".hocr")
-		imgfns = append(imgfns, nosuffix + ".png")
 		p := strings.SplitN(base, "_bin", 2)
+
+		binfn = nosuffix + ".png"
 		if len(p) > 1 {
-			imgfns = append(imgfns, p[0] + ".jpg")
+			colourfn = p[0] + ".jpg"
 		} else {
-			imgfns = append(imgfns, nosuffix + ".jpg")
+			colourfn = nosuffix + ".jpg"
 		}
-		for n, i := range imgfns {
-			logger.Println("Downloading", i)
-			err := conn.Download(conn.WIPStorageId(), filepath.Join(bookname, i), filepath.Join(savedir, i))
+
+		logger.Println("Downloading binarised page to add to PDF", binfn)
+		err := conn.Download(conn.WIPStorageId(), filepath.Join(bookname, binfn), filepath.Join(savedir, binfn))
+		if err != nil {
+			logger.Println("Download failed; skipping page", binfn)
+		} else {
+			err = binarisedpdf.AddPage(filepath.Join(savedir, binfn), pg, true)
 			if err != nil {
-				imgfns[n] = strings.Replace(i, ".jpg", ".png", 1)
-				i = imgfns[n]
-				logger.Println("Download failed; trying", i)
-				err := conn.Download(conn.WIPStorageId(), filepath.Join(bookname, i), filepath.Join(savedir, i))
-				if err != nil {
-					close(up)
-					errc <- errors.New(fmt.Sprintf("Failed to download book page %s: %s", filepath.Join(bookname, i), err))
-					return
-				}
+				close(up)
+				errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", binfn, err))
+				return
+			}
+			binhascontent = true
+		}
+
+		logger.Println("Downloading colour page to add to PDF", colourfn)
+		err = conn.Download(conn.WIPStorageId(), filepath.Join(bookname, colourfn), filepath.Join(savedir, colourfn))
+		if err != nil {
+			colourfn = strings.Replace(colourfn, ".jpg", ".png", 1)
+			logger.Println("Download failed; trying", colourfn)
+			err = conn.Download(conn.WIPStorageId(), filepath.Join(bookname, colourfn), filepath.Join(savedir, colourfn))
+			if err != nil {
+				logger.Println("Download failed; skipping page", colourfn)
 			}
 		}
-		err = colourpdf.AddPage(filepath.Join(savedir, imgfns[1]), pg, true)
-		if err != nil {
-			close(up)
-			errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", imgfns[1], err))
-			return
-		}
-		err = binarisedpdf.AddPage(filepath.Join(savedir, imgfns[0]), pg, true)
-		if err != nil {
-			close(up)
-			errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", imgfns[0], err))
-			return
+		if err == nil {
+			err = binarisedpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
+			if err != nil {
+				close(up)
+				errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", colourfn, err))
+				return
+			}
+			colourhascontent = true
 		}
 	}
-	fn = filepath.Join(savedir, bookname + ".colour.pdf")
-	err = colourpdf.Save(fn)
-	if err != nil {
-		close(up)
-		errc <- errors.New(fmt.Sprintf("Failed to save colour pdf: %s", err))
-		return
+	if colourhascontent {
+		fn = filepath.Join(savedir, bookname + ".colour.pdf")
+		err = colourpdf.Save(fn)
+		if err != nil {
+			close(up)
+			errc <- errors.New(fmt.Sprintf("Failed to save colour pdf: %s", err))
+			return
+		}
+		up <- fn
 	}
-	up <- fn
-	fn = filepath.Join(savedir, bookname + ".binarised.pdf")
-	err = binarisedpdf.Save(fn)
-	if err != nil {
-		close(up)
-		errc <- errors.New(fmt.Sprintf("Failed to save binarised pdf: %s", err))
-		return
+	if binhascontent {
+		fn = filepath.Join(savedir, bookname + ".binarised.pdf")
+		err = binarisedpdf.Save(fn)
+		if err != nil {
+			close(up)
+			errc <- errors.New(fmt.Sprintf("Failed to save binarised pdf: %s", err))
+			return
+		}
+		up <- fn
 	}
-	up <- fn
 
 	logger.Println("Creating graph")
 	fn = filepath.Join(savedir, "graph.png")
