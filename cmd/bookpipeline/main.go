@@ -325,7 +325,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			}
 		}
 		if err == nil {
-			err = binarisedpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
+			err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
 			if err != nil {
 				close(up)
 				errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", colourfn, err))
