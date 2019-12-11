@@ -1,36 +1,34 @@
 package main
 
-// TODO: use the bookpipeline package for aws stuff
 // TODO: set up iam role and policy needed for ec2 instances to access this stuff;
 //       see arn:aws:iam::557852942063:policy/pipelinestorageandqueue
 //       and arn:aws:iam::557852942063:role/pipeliner
 // TODO: set up launch template for ec2 instances
-// NOTE: potentially use json templates to define things, ala aws cli
 
 import (
 	"log"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"rescribe.xyz/bookpipeline"
 )
+
+type MkPipeliner interface {
+	MinimalInit() error
+	CreateBucket(string) error
+	CreateQueue(string) error
+}
 
 func main() {
 	if len(os.Args) != 1 {
-		log.Fatal("Usage: mkpipeline\n\nSets up necessary S3 buckets and SQS queues for our AWS pipeline\n")
+		log.Fatal("Usage: mkpipeline\n\nSets up necessary buckets and queues for our cloud pipeline\n")
 	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("eu-west-2"),
-	})
+	var conn MkPipeliner
+	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: log.New(os.Stdout, "", 0)}
+	err := conn.MinimalInit()
 	if err != nil {
-		log.Fatalf("Error: failed to set up aws session: %v\n", err)
+		log.Fatalln("Failed to set up cloud connection:", err)
 	}
-	s3svc := s3.New(sess)
-	sqssvc := sqs.New(sess)
 
 	prefix := "rescribe"
 	buckets := []string{"inprogress", "done"}
@@ -39,41 +37,18 @@ func main() {
 	for _, bucket := range buckets {
 		bname := prefix + bucket
 		log.Printf("Creating bucket %s\n", bname)
-		_, err = s3svc.CreateBucket(&s3.CreateBucketInput{
-			Bucket: aws.String(bname),
-		})
+		err = conn.CreateBucket(bname)
 		if err != nil {
-			aerr, ok := err.(awserr.Error)
-			if ok && (aerr.Code() == s3.ErrCodeBucketAlreadyExists || aerr.Code() == s3.ErrCodeBucketAlreadyOwnedByYou) {
-				log.Printf("Bucket %s already exists\n", bname)
-			} else {
-				log.Fatalf("Error creating bucket %s: %v\n", bname, err)
-			}
+			log.Fatalln(err)
 		}
 	}
 
 	for _, queue := range queues {
 		qname := prefix + queue
 		log.Printf("Creating queue %s\n", qname)
-		_, err = sqssvc.CreateQueue(&sqs.CreateQueueInput{
-			QueueName: aws.String(qname),
-			Attributes: map[string]*string{
-				"VisibilityTimeout":             aws.String("120"),     // 2 minutes
-				"MessageRetentionPeriod":        aws.String("1209600"), // 14 days; max allowed by sqs
-				"ReceiveMessageWaitTimeSeconds": aws.String("20"),
-			},
-		})
+		err = conn.CreateQueue(qname)
 		if err != nil {
-			aerr, ok := err.(awserr.Error)
-			// Note the QueueAlreadyExists code is only emitted if an existing queue
-			// has different attributes than the one that was being created. SQS just
-			// quietly ignores the CreateQueue request if it is identical to an
-			// existing queue.
-			if ok && aerr.Code() == sqs.ErrCodeQueueNameExists {
-				log.Fatalf("Error: Queue %s already exists but has different attributes\n", qname)
-			} else {
-				log.Fatalf("Error creating queue %s: %v\n", qname, err)
-			}
+			log.Fatalln(err)
 		}
 	}
 }

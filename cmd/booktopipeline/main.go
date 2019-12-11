@@ -92,8 +92,6 @@ func main() {
 		qid = conn.PreQueueId()
 	}
 
-	// concurrent walking upload based on example at
-	// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/sdk-utilities.html
 	verboselog.Println("Walking", bookdir)
 	walker := make(fileWalk)
 	go func() {
