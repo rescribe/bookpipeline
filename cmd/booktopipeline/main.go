@@ -10,7 +10,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: booktopipeline [-prebinarised] [-v] bookdir [bookname]
+const usage = `Usage: booktopipeline [-t training] [-prebinarised] [-v] bookdir [bookname]
 
 Uploads the book in bookdir to the S3 'inprogress' bucket and adds it
 to the 'preprocess' SQS queue, or the 'wipeonly' queue if the
@@ -52,6 +52,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 func main() {
 	verbose := flag.Bool("v", false, "Verbose")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
+	training := flag.String("t", "", "Training file to use")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -111,6 +112,9 @@ func main() {
 		}
 	}
 
+	if *training != "" {
+		bookname = bookname + " " + *training
+	}
 	err = conn.AddToQueue(qid, bookname)
 	if err != nil {
 		log.Fatalln("Error adding book to queue:", err)

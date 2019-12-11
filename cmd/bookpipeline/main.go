@@ -103,7 +103,7 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 	done <- true
 }
 
-func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, bookname string, errc chan error, logger *log.Logger) {
+func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, bookname string, training string, errc chan error, logger *log.Logger) {
 	for path := range c {
 		name := filepath.Base(path)
 		key := filepath.Join(bookname, name)
@@ -115,8 +115,8 @@ func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, b
 			errc <- err
 			return
 		}
-		conn.GetLogger().Println("Adding", key, "to queue", toQueue)
-		err = conn.AddToQueue(toQueue, key)
+		conn.GetLogger().Println("Adding", key, training, "to queue", toQueue)
+		err = conn.AddToQueue(toQueue, key + " " + training)
 		if err != nil {
 			for range c {
 			} // consume the rest of the receiving channel so it isn't blocked
@@ -453,7 +453,17 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 	done := make(chan bool)
 	errc := make(chan error)
 
-	bookname := filepath.Dir(msg.Body)
+	msgparts := strings.Split(msg.Body, " ")
+	bookparts := strings.Split(msgparts[0], "/")
+	var bookname string
+	if len(bookparts) > 1 {
+		bookname = filepath.Dir(msgparts[0])
+	} else {
+		bookname = msgparts[0]
+	}
+	if len(msgparts) > 1 {
+		process = ocr(msgparts[1])
+	}
 
 	d := filepath.Join(os.TempDir(), bookname)
 	err := os.MkdirAll(d, 0755)
@@ -469,7 +479,7 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 	go process(processc, upc, errc, conn.GetLogger())
 	go up(upc, done, conn, bookname, errc, conn.GetLogger())
 
-	dl <- msg.Body
+	dl <- msgparts[0]
 	close(dl)
 
 	// wait for either the done or errc channel to be sent to
@@ -527,7 +537,18 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	done := make(chan bool)
 	errc := make(chan error)
 
-	bookname := msg.Body
+	msgparts := strings.Split(msg.Body, " ")
+	bookparts := strings.Split(msgparts[0], "/")
+	var bookname string
+	if len(bookparts) > 1 {
+		bookname = filepath.Dir(msgparts[0])
+	} else {
+		bookname = msgparts[0]
+	}
+	var training string
+	if len(msgparts) > 1 {
+		training = msgparts[1]
+	}
 
 	d := filepath.Join(os.TempDir(), bookname)
 	err := os.MkdirAll(d, 0755)
@@ -542,7 +563,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	go download(dl, processc, conn, d, errc, conn.GetLogger())
 	go process(processc, upc, errc, conn.GetLogger())
 	if toQueue == conn.OCRPageQueueId() {
-		go upAndQueue(upc, done, toQueue, conn, bookname, errc, conn.GetLogger())
+		go upAndQueue(upc, done, toQueue, conn, bookname, training, errc, conn.GetLogger())
 	} else {
 		go up(upc, done, conn, bookname, errc, conn.GetLogger())
 	}
@@ -577,7 +598,6 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	}
 
 	if toQueue != "" && toQueue != conn.OCRPageQueueId() {
-		go upAndQueue(upc, done, toQueue, conn, bookname, errc, conn.GetLogger())
 		conn.GetLogger().Println("Sending", bookname, "to queue", toQueue)
 		err = conn.AddToQueue(toQueue, bookname)
 		if err != nil {
