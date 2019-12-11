@@ -15,9 +15,9 @@ const usage = `Usage: getpipelinebook [-a] [-c] [-v] bookname
 
 Downloads the pipeline results for a book.
 
-By default this downloads the best hOCR version for each page with
-the corresponding binarised image, and the best, conf and graph.png
-analysis files.
+By default this downloads the best hOCR version for each page, the
+binarised and (if available) colour PDF, and the best, conf and
+graph.png analysis files.
 `
 
 // null writer to enable non-verbose logging to be discarded

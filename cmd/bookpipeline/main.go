@@ -454,13 +454,7 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 	errc := make(chan error)
 
 	msgparts := strings.Split(msg.Body, " ")
-	bookparts := strings.Split(msgparts[0], "/")
-	var bookname string
-	if len(bookparts) > 1 {
-		bookname = filepath.Dir(msgparts[0])
-	} else {
-		bookname = msgparts[0]
-	}
+	bookname := filepath.Dir(msgparts[0])
 	if len(msgparts) > 1 {
 		process = ocr(msgparts[1])
 	}
@@ -538,13 +532,8 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	errc := make(chan error)
 
 	msgparts := strings.Split(msg.Body, " ")
-	bookparts := strings.Split(msgparts[0], "/")
-	var bookname string
-	if len(bookparts) > 1 {
-		bookname = filepath.Dir(msgparts[0])
-	} else {
-		bookname = msgparts[0]
-	}
+	bookname := msgparts[0]
+
 	var training string
 	if len(msgparts) > 1 {
 		training = msgparts[1]
