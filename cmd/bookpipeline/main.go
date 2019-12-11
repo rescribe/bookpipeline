@@ -626,7 +626,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
-	training := flag.String("t", "rescribealphav5", "tesseract training file to use")
+	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
 	nopreproc := flag.Bool("np", false, "disable preprocessing")
 	nowipe := flag.Bool("nw", false, "disable wipeonly")
 	noocr := flag.Bool("no", false, "disable ocr")

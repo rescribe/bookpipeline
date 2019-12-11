@@ -52,7 +52,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 func main() {
 	verbose := flag.Bool("v", false, "Verbose")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
-	training := flag.String("t", "", "Training file to use")
+	training := flag.String("t", "", "Training to use (training filename without the .traineddata part)")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
