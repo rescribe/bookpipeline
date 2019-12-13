@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -171,12 +172,15 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 			logger.Println("OCRing", path)
 			name := strings.Replace(path, ".png", "", 1)
 			cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
 			err := cmd.Run()
 			if err != nil {
 				for range toocr {
 				} // consume the rest of the receiving channel so it isn't blocked
 				close(up)
-				errc <- errors.New(fmt.Sprintf("Error ocring %s: %s", path, err))
+				errc <- errors.New(fmt.Sprintf("Error ocring %s: %s\nStdout: %s\nStderr: %s\n", path, err, stdout.String(), stderr.String()))
 				return
 			}
 			up <- name + ".hocr"
