@@ -180,7 +180,7 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 				for range toocr {
 				} // consume the rest of the receiving channel so it isn't blocked
 				close(up)
-				errc <- errors.New(fmt.Sprintf("Error ocring %s: %s\nStdout: %s\nStderr: %s\n", path, err, stdout.String(), stderr.String()))
+				errc <- errors.New(fmt.Sprintf("Error ocring %s with training %s: %s\nStdout: %s\nStderr: %s\n", path, training, err, stdout.String(), stderr.String()))
 				return
 			}
 			up <- name + ".hocr"
