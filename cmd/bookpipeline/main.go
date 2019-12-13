@@ -459,7 +459,7 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 
 	msgparts := strings.Split(msg.Body, " ")
 	bookname := filepath.Dir(msgparts[0])
-	if len(msgparts) > 1 {
+	if len(msgparts) > 1 && msgparts[1] != "" {
 		process = ocr(msgparts[1])
 	}
 
