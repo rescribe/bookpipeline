@@ -443,7 +443,7 @@ func (a *AwsConn) StartInstances(n int) error {
 			IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
 				Arn: aws.String("arn:aws:iam::557852942063:instance-profile/pipeliner"),
 			},
-			ImageId: aws.String("ami-02cd15d68d4ca2865"),
+			ImageId: aws.String("ami-073f4bb47dbcfd2db"),
 			InstanceType: aws.String("m5.large"),
 			SecurityGroupIds: []*string{
 				aws.String("sg-0be8a3ab89e7136b9"),
