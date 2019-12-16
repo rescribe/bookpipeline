@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 	"sort"
+	"strings"
 
 	"rescribe.xyz/bookpipeline"
 )
@@ -128,11 +129,11 @@ func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err er
 	}
 	sort.Sort(donemeta)
 	for _, i := range donemeta {
-		done = append(done, i.Name)
+		done = append(done, strings.TrimSuffix(i.Name, "/"))
 	}
 	sort.Sort(inprogressmeta)
 	for _, i := range inprogressmeta {
-		inprogress = append(inprogress, i.Name)
+		inprogress = append(inprogress, strings.TrimSuffix(i.Name, "/"))
 	}
 
 	return

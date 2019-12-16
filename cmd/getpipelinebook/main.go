@@ -11,7 +11,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: getpipelinebook [-a] [-c] [-v] bookname
+const usage = `Usage: getpipelinebook [-a] [-v] bookname
 
 Downloads the pipeline results for a book.
 
