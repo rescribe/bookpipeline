@@ -121,13 +121,13 @@ func main() {
 	verboselog.Println("Downloading file", fn)
 	err = conn.Download(conn.WIPStorageId(), fn, fn)
 	if err != nil {
-		log.Println("Failed to download %s: %s", fn, err)
+		log.Printf("Failed to download %s: %s\n", fn, err)
 	}
 	fn = filepath.Join(bookname, bookname + ".binarised.pdf")
 	verboselog.Println("Downloading file", fn)
 	err = conn.Download(conn.WIPStorageId(), fn, fn)
 	if err != nil {
-		log.Println("Failed to download %s: %s", fn, err)
+		log.Printf("Failed to download %s: %s\n", fn, err)
 	}
 
 	analyses := []string{"conf", "graph.png"}
