@@ -7,11 +7,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: getpipelinebook [-a] [-pdf] [-v] bookname
+const usage = `Usage: getpipelinebook [-a] [-pdf] [-png] [-v] bookname
 
 Downloads the pipeline results for a book.
 
@@ -52,6 +53,7 @@ func getpdfs(conn Pipeliner, l *log.Logger, bookname string) {
 func main() {
 	all := flag.Bool("a", false, "Get all files for book")
 	pdf := flag.Bool("pdf", false, "Only download PDFs")
+	png := flag.Bool("png", false, "Only download best binarised png files")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -121,6 +123,21 @@ func main() {
 		log.Fatalln("Failed to open best file", err)
 	}
 	defer f.Close()
+
+	if *png {
+		verboselog.Println("Downloading png files")
+		s := bufio.NewScanner(f)
+		for s.Scan() {
+			txtfn := filepath.Join(bookname, s.Text())
+			fn = strings.Replace(txtfn, ".hocr", ".png", 1)
+			verboselog.Println("Downloading file", fn)
+			err = conn.Download(conn.WIPStorageId(), fn, fn)
+			if err != nil {
+				log.Fatalln("Failed to download file", fn, err)
+			}
+		}
+		return
+	}
 
 	verboselog.Println("Downloading HOCR files")
 	s := bufio.NewScanner(f)
