@@ -11,7 +11,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: getpipelinebook [-a] [-v] bookname
+const usage = `Usage: getpipelinebook [-a] [-pdf] [-v] bookname
 
 Downloads the pipeline results for a book.
 
@@ -38,8 +38,20 @@ type Pipeliner interface {
 	WIPStorageId() string
 }
 
+func getpdfs(conn Pipeliner, l *log.Logger, bookname string) {
+	for _, suffix := range []string { ".colour.pdf", ".binarised.pdf" } {
+		fn := filepath.Join(bookname, bookname + suffix)
+		l.Println("Downloading PDF", fn)
+		err := conn.Download(conn.WIPStorageId(), fn, fn)
+		if err != nil {
+			log.Printf("Failed to download %s: %s\n", fn, err)
+		}
+	}
+}
+
 func main() {
 	all := flag.Bool("a", false, "Get all files for book")
+	pdf := flag.Bool("pdf", false, "Only download PDFs")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -93,6 +105,11 @@ func main() {
 		return
 	}
 
+	if *pdf {
+		getpdfs(conn, verboselog, bookname)
+		return
+	}
+
 	verboselog.Println("Downloading best file")
 	fn := filepath.Join(bookname, "best")
 	err = conn.Download(conn.WIPStorageId(), fn, fn)
@@ -117,22 +134,10 @@ func main() {
 	}
 
 	verboselog.Println("Downloading PDF files")
-	fn = filepath.Join(bookname, bookname + ".colour.pdf")
-	verboselog.Println("Downloading file", fn)
-	err = conn.Download(conn.WIPStorageId(), fn, fn)
-	if err != nil {
-		log.Printf("Failed to download %s: %s\n", fn, err)
-	}
-	fn = filepath.Join(bookname, bookname + ".binarised.pdf")
-	verboselog.Println("Downloading file", fn)
-	err = conn.Download(conn.WIPStorageId(), fn, fn)
-	if err != nil {
-		log.Printf("Failed to download %s: %s\n", fn, err)
-	}
+	getpdfs(conn, verboselog, bookname)
 
-	analyses := []string{"conf", "graph.png"}
 	verboselog.Println("Downloading analysis files")
-	for _, a := range analyses {
+	for _, a := range []string{"conf", "graph.png"} {
 		fn = filepath.Join(bookname, a)
 		verboselog.Println("Downloading file", fn)
 		err = conn.Download(conn.WIPStorageId(), fn, fn)
