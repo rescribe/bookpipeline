@@ -43,6 +43,10 @@ func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousS
 }
 
 func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
+	return GraphOpts(confs, bookname, "Page number", true, w)
+}
+
+func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines bool, w io.Writer) error {
 	if len(confs) == 0 {
 		return errors.New("No valid confidences")
 	}
@@ -98,12 +102,16 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	// Make last tick the final page
 	final := graphconf[len(graphconf)-1]
 	ticks[len(ticks)-1] = chart.Tick{final.Pgnum, fmt.Sprintf("%.0f", final.Pgnum)}
-	for i := 1; i <= yticknum; i++ {
+	for i := 0; i <= yticknum; i++ {
 		n := float64(i * 100) / yticknum
 		yticks = append(yticks, chart.Tick{n, fmt.Sprintf("%.1f", n)})
 	}
 
 	mainSeries := chart.ContinuousSeries{
+		Style: chart.Style{
+			StrokeColor:     chart.ColorBlue,
+			FillColor:       chart.ColorAlternateBlue,
+		},
 		XValues: xvalues,
 		YValues: yvalues,
 	}
@@ -145,7 +153,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	// Create annotations
 	var annotations []chart.Value2
 	for _, c := range graphconf {
-		if c.Conf > highconf || c.Conf < lowconf {
+		if !guidelines || (c.Conf > highconf || c.Conf < lowconf) {
 			annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", c.Pgnum), XValue: c.Pgnum, YValue: c.Conf})
 		}
 	}
@@ -157,7 +165,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		Width:      3840,
 		Height:     2160,
 		XAxis: chart.XAxis{
-			Name:      "Page number",
+			Name:      xaxis,
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 			},
@@ -173,15 +181,21 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 		},
 		Series: []chart.Series{
 			mainSeries,
+			chart.AnnotationSeries{
+				Annotations: annotations,
+			},
+		},
+	}
+	if guidelines {
+		for _, s := range []chart.Series{
 			minSeries,
 			maxSeries,
 			goodCutoffSeries,
 			mediumCutoffSeries,
 			badCutoffSeries,
-			chart.AnnotationSeries{
-				Annotations: annotations,
-			},
-		},
+		} {
+			graph.Series = append(graph.Series, s)
+		}
 	}
 	return graph.Render(chart.PNG, w)
 }
