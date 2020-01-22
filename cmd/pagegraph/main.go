@@ -12,8 +12,9 @@ import (
 )
 
 func main() {
+	lines := flag.Bool("l", false, "use line confidence instead of word confidence")
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pagegraph file.hocr graph.png")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pagegraph [-l] file.hocr graph.png")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -23,18 +24,35 @@ func main() {
 		return
 	}
 
-	linedetails, err := hocr.GetLineDetails(flag.Arg(0))
-	if err != nil {
-		log.Fatal(err)
-	}
 	var confs []*bookpipeline.Conf
-	for n, wc := range linedetails {
-		c := bookpipeline.Conf{
-			Conf: wc.Avgconf * 100,
-			//Path: "fakepath",
-			Path: fmt.Sprintf("line_%d", n),
+	var xlabel string
+	if *lines {
+		linedetails, err := hocr.GetLineDetails(flag.Arg(0))
+		if err != nil {
+			log.Fatal(err)
 		}
-		confs = append(confs, &c)
+		for n, l := range linedetails {
+			c := bookpipeline.Conf{
+				Conf: l.Avgconf * 100,
+				Path: fmt.Sprintf("%d_line", n),
+			}
+			confs = append(confs, &c)
+		}
+		xlabel = "Line number"
+	} else {
+		wordconfs, err := hocr.GetWordConfs(flag.Arg(0))
+		if err != nil {
+			log.Fatal(err)
+		}
+		for n, wc := range wordconfs {
+			c := bookpipeline.Conf{
+				Conf: wc,
+				Path: fmt.Sprintf("%d_word", n),
+			}
+			fmt.Printf("conf for word %d: %f\n", n, wc)
+			confs = append(confs, &c)
+		}
+		xlabel = "Word number"
 	}
 
 	// Structure to fit what bookpipeline.Graph needs
@@ -42,6 +60,7 @@ func main() {
 	cconfs := make(map[string]*bookpipeline.Conf)
 	for _, c := range confs {
 		cconfs[c.Path] = c
+		fmt.Printf("conf for word %s: %f\n", c.Path, c.Conf)
 	}
 
 	fn := flag.Arg(1)
@@ -50,7 +69,7 @@ func main() {
 		log.Fatalln("Error creating file", fn, err)
 	}
 	defer f.Close()
-	err = bookpipeline.GraphOpts(cconfs, filepath.Base(flag.Arg(0)), "Line number", false, f)
+	err = bookpipeline.GraphOpts(cconfs, filepath.Base(flag.Arg(0)), xlabel, false, f)
 	if err != nil {
 		log.Fatalln("Error creating graph", err)
 	}
