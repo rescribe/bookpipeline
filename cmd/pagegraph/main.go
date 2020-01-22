@@ -49,7 +49,6 @@ func main() {
 				Conf: wc,
 				Path: fmt.Sprintf("%d_word", n),
 			}
-			fmt.Printf("conf for word %d: %f\n", n, wc)
 			confs = append(confs, &c)
 		}
 		xlabel = "Word number"
@@ -60,7 +59,6 @@ func main() {
 	cconfs := make(map[string]*bookpipeline.Conf)
 	for _, c := range confs {
 		cconfs[c.Path] = c
-		fmt.Printf("conf for word %s: %f\n", c.Path, c.Conf)
 	}
 
 	fn := flag.Arg(1)
