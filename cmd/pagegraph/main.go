@@ -6,35 +6,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"rescribe.xyz/bookpipeline"
 	"rescribe.xyz/utils/pkg/hocr"
 )
-
-func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {
-	return func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(path, ".hocr") {
-			return nil
-		}
-		avg, err := hocr.GetAvgConf(path)
-		if err != nil {
-			if err.Error() == "No words found" {
-				return nil
-			}
-			return err
-		}
-		c := bookpipeline.Conf{
-			Conf: avg,
-			Path: path,
-		}
-		*confs = append(*confs, &c)
-		return nil
-	}
-}
 
 func main() {
 	flag.Usage = func() {
