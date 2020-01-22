@@ -23,16 +23,16 @@ func main() {
 		return
 	}
 
-	wordconfs, err := hocr.GetWordConfs(flag.Arg(0))
+	linedetails, err := hocr.GetLineDetails(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
 	var confs []*bookpipeline.Conf
-	for n, wc := range wordconfs {
+	for n, wc := range linedetails {
 		c := bookpipeline.Conf{
-			Conf: wc,
+			Conf: wc.Avgconf * 100,
 			//Path: "fakepath",
-			Path: fmt.Sprintf("word_%d", n),
+			Path: fmt.Sprintf("line_%d", n),
 		}
 		confs = append(confs, &c)
 	}
@@ -50,7 +50,7 @@ func main() {
 		log.Fatalln("Error creating file", fn, err)
 	}
 	defer f.Close()
-	err = bookpipeline.GraphOpts(cconfs, filepath.Base(flag.Arg(0)), "Word number", false, f)
+	err = bookpipeline.GraphOpts(cconfs, filepath.Base(flag.Arg(0)), "Line number", false, f)
 	if err != nil {
 		log.Fatalln("Error creating graph", err)
 	}
