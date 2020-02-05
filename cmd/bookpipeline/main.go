@@ -416,15 +416,11 @@ func allOCRed(bookname string, conn Pipeliner) bool {
 		return false
 	}
 
-	// Full wipePattern can match things like 0000.png which getgbook
-	// can emit but aren't ocr-able
-	//wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
-	wipePattern := regexp.MustCompile(`[0-9]{6}(.bin)?.png$`)
 	preprocessedPattern := regexp.MustCompile(`_bin[0-9].[0-9].png$`)
 
 	atleastone := false
 	for _, png := range objs {
-		if wipePattern.MatchString(png) || preprocessedPattern.MatchString(png) {
+		if preprocessedPattern.MatchString(png) {
 			atleastone = true
 			found := false
 			b := strings.TrimSuffix(filepath.Base(png), ".png")
