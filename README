@@ -1,0 +1,48 @@
+# rescribe.xyz/bookpipeline package
+
+This package contains various tools and functions for the OCR of
+books, with a focus on distributed OCR using short-lived virtual
+servers.
+
+This is a Go package, and can be installed in the standard go way,
+by running `go get rescribe.xyz/bookpipeline/...`
+
+## Commands
+
+The commands in the cmd/ directory are at the heart of this
+package. For more details on their usage, use `go doc` or read
+doc.go in the package repository. The key commands are:
+
+  - bookpipeline    : processes items from queues, doing preprocessing,
+                      ocr and postprocessing, and moving items on to
+                      the next queue step on completion. this is the
+                      core command of the package.
+  - booktopipeline  : uploads a book to the pipeline and adds it to the
+                      appropriate queue.
+  - getpipelinebook : downloads the pipeline results for a book.
+  - lspipeline      : prints useful information about the status of the
+                      pipeline.
+  - mkpipeline      : sets up storage buckets and queues for use by the
+                      pipeline.
+  - spotme          : starts up a short-lived virtual server running
+                      bookpipeline.
+
+There are also some commands which are more useful in a standalone
+setting:
+
+  - confgraph : creates a graph showing average word confidence of
+                each page of hOCR in a directory
+  - pagegraph : creates a graph showing average confidence of each
+                word in a page of hOCR
+  - pdfbook   : creates a searchable PDF from a directory of hOCR
+                and image files
+
+## Contributions
+
+Any and all comments, bug reports, patches or pull requests would
+be very welcomely received. Please email them to <nick@rescribe.xyz>.
+
+## License
+
+This package is licensed under the GPLv3. See the LICENSE file for
+more details.
