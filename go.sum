@@ -44,3 +44,5 @@ rescribe.xyz/preproc v0.1.0 h1:MlXIZrHUEts9SPJLvbaXrvcki4sz0xvtKlRqzEJjOdw=
 rescribe.xyz/preproc v0.1.0/go.mod h1:cbfKBiciUzmEbPR51aFY9c+wtuUKseTiVXqNbY2xj6w=
 rescribe.xyz/utils v0.0.0-20200211110912-01d5636bbb33 h1:diaeGL9a/Avb54t7maTj/A+toUGst+2nRdQ4UnOa0HU=
 rescribe.xyz/utils v0.0.0-20200211110912-01d5636bbb33/go.mod h1:4L2vClYUFklsXggN0CUyP/alcgzLNRT0dMpMfEiVbX8=
+rescribe.xyz/utils v0.1.0 h1:+NeNnjU2xHdJ4ZEAfPr/aMW+6uXAF+We/scM+ybDfBw=
+rescribe.xyz/utils v0.1.0/go.mod h1:4L2vClYUFklsXggN0CUyP/alcgzLNRT0dMpMfEiVbX8=

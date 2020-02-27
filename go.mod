@@ -8,5 +8,5 @@ require (
 	github.com/wcharczuk/go-chart v2.0.1+incompatible
 	golang.org/x/image v0.0.0-20200119044424-58c23975cae1
 	rescribe.xyz/preproc v0.1.0
-	rescribe.xyz/utils v0.0.0-20200211110912-01d5636bbb33
+	rescribe.xyz/utils v0.1.0
 )
