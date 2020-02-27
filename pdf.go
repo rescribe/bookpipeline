@@ -46,12 +46,12 @@ func (p *Fpdf) Setup() error {
 	r, err := zlib.NewReader(c)
 	defer r.Close()
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not open compressed font", err))
+		return errors.New(fmt.Sprintf("Could not open compressed font: %v", err))
 	}
 	var b bytes.Buffer
 	_, err = b.ReadFrom(r)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not read compressed font", err))
+		return errors.New(fmt.Sprintf("Could not read compressed font: %v", err))
 	}
 	p.fpdf.AddUTF8FontFromBytes("dejavu", "", b.Bytes())
 
