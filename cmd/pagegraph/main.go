@@ -11,10 +11,16 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
+const usage = `Usage: pagegraph [-l] file.hocr graph.png
+
+pagegraph creates a graph showing average confidence of each
+word in a page of hOCR.
+`
+
 func main() {
 	lines := flag.Bool("l", false, "use line confidence instead of word confidence")
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: pagegraph [-l] file.hocr graph.png")
+		fmt.Fprintln(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
 	}
 	flag.Parse()

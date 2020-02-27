@@ -12,6 +12,12 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
+const usage = `Usage: confgraph hocrdir graph.png
+
+confgraph creates a graph showing average word confidence of each
+page of hOCR in a directory.
+`
+
 func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
@@ -38,7 +44,7 @@ func walker(confs *[]*bookpipeline.Conf) filepath.WalkFunc {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: confgraph hocrdir graph.png")
+		fmt.Fprintln(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
