@@ -25,6 +25,8 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/wcharczuk/go-chart v2.0.1+incompatible h1:0pz39ZAycJFF7ju/1mepnk26RLVLBCWz1STcD3doU0A=
 github.com/wcharczuk/go-chart v2.0.1+incompatible/go.mod h1:PF5tmL4EIx/7Wf+hEkpCqYi5He4u90sw+0+6FhrryuE=
+github.com/wcharczuk/go-chart v2.0.2-0.20191206192251-962b9abdec2b+incompatible h1:ahpaSRefPekV3gcXot2AOgngIV8WYqzvDyFe3i7W24w=
+github.com/wcharczuk/go-chart v2.0.2-0.20191206192251-962b9abdec2b+incompatible/go.mod h1:PF5tmL4EIx/7Wf+hEkpCqYi5He4u90sw+0+6FhrryuE=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/image v0.0.0-20200119044424-58c23975cae1 h1:5h3ngYt7+vXCDZCup/HkCQgW5XwmSvR/nA2JmJ0RErg=
@@ -46,3 +48,5 @@ rescribe.xyz/utils v0.0.0-20200211110912-01d5636bbb33 h1:diaeGL9a/Avb54t7maTj/A+
 rescribe.xyz/utils v0.0.0-20200211110912-01d5636bbb33/go.mod h1:4L2vClYUFklsXggN0CUyP/alcgzLNRT0dMpMfEiVbX8=
 rescribe.xyz/utils v0.1.0 h1:+NeNnjU2xHdJ4ZEAfPr/aMW+6uXAF+We/scM+ybDfBw=
 rescribe.xyz/utils v0.1.0/go.mod h1:4L2vClYUFklsXggN0CUyP/alcgzLNRT0dMpMfEiVbX8=
+rescribe.xyz/utils v0.1.1 h1:kObzWR5zqnwTLDc2toD1CMUsq2uCNY+MmkB0t4XMmj0=
+rescribe.xyz/utils v0.1.1/go.mod h1:4L2vClYUFklsXggN0CUyP/alcgzLNRT0dMpMfEiVbX8=
