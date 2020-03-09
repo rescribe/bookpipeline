@@ -15,7 +15,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: lspipeline [-i key] [-n num]
+const usage = `Usage: lspipeline [-i key] [-n num] [-nobooks]
 
 Lists useful things related to the pipeline.
 
@@ -194,6 +194,7 @@ func getRecentSSHLogsChan(ips []string, id string, lognum int, logs chan string)
 func main() {
 	keyfile := flag.String("i", "", "private key file for SSH")
 	lognum := flag.Int("n", 5, "number of lines to include in SSH logs")
+	nobooks := flag.Bool("nobooks", false, "disable listing books completed and not completed (which takes some time)")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -219,7 +220,9 @@ func main() {
 
 	go getInstances(conn, instances)
 	go getQueueDetails(conn, queues)
-	go getBookStatusChan(conn, inprogress, done)
+	if !*nobooks {
+		go getBookStatusChan(conn, inprogress, done)
+	}
 
 	var ips []string
 
@@ -248,20 +251,22 @@ func main() {
 		fmt.Printf("%s: %s available, %s in progress\n", i.name, i.numAvailable, i.numInProgress)
 	}
 
-	fmt.Println("\n# Books not completed")
-	for i := range inprogress {
-		fmt.Println(i)
-	}
-
-	fmt.Println("\n# Books done")
-	for i := range done {
-		fmt.Println(i)
-	}
-
 	if len(ips) > 0 {
 		fmt.Println("\n# Recent logs")
 		for i := range logs {
 			fmt.Printf("\n%s", i)
+		}
+	}
+
+	if !*nobooks {
+		fmt.Println("\n# Books not completed")
+		for i := range inprogress {
+			fmt.Println(i)
+		}
+
+		fmt.Println("\n# Books done")
+		for i := range done {
+			fmt.Println(i)
 		}
 	}
 }
