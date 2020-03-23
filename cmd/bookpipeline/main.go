@@ -373,7 +373,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 	}
 	defer f.Close()
 	err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
-	if err != nil {
+	if err != nil && err.Error() != "Not enough valid confidences" {
 		close(up)
 		errc <- errors.New(fmt.Sprintf("Error rendering graph: %s", err))
 		return

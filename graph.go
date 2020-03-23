@@ -51,8 +51,8 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 }
 
 func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines bool, w io.Writer) error {
-	if len(confs) == 0 {
-		return errors.New("No valid confidences")
+	if len(confs) < 2 {
+		return errors.New("Not enough valid confidences")
 	}
 
 	// Organise confs to sort them by page
