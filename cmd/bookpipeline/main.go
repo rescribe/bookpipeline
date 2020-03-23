@@ -6,7 +6,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -184,7 +183,7 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 				for range toocr {
 				} // consume the rest of the receiving channel so it isn't blocked
 				close(up)
-				errc <- errors.New(fmt.Sprintf("Error ocring %s with training %s: %s\nStdout: %s\nStderr: %s\n", path, training, err, stdout.String(), stderr.String()))
+				errc <- fmt.Errorf("Error ocring %s with training %s: %s\nStdout: %s\nStderr: %s\n", path, training, err, stdout.String(), stderr.String())
 				return
 			}
 			up <- name + ".hocr"
@@ -212,7 +211,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			for range toanalyse {
 			} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
-			errc <- errors.New(fmt.Sprintf("Error retreiving confidence for %s: %s", path, err))
+			errc <- fmt.Errorf("Error retreiving confidence for %s: %s", path, err)
 			return
 		}
 		base := filepath.Base(path)
@@ -230,7 +229,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 	f, err := os.Create(fn)
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Error creating file %s: %s", fn, err))
+		errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 		return
 	}
 	defer f.Close()
@@ -246,7 +245,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.Path, c.Conf)
 			if err != nil {
 				close(up)
-				errc <- errors.New(fmt.Sprintf("Error writing confidences file: %s", err))
+				errc <- fmt.Errorf("Error writing confidences file: %s", err)
 				return
 			}
 		}
@@ -258,7 +257,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 	f, err = os.Create(fn)
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Error creating file %s: %s", fn, err))
+		errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 		return
 	}
 	defer f.Close()
@@ -277,21 +276,21 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 	bookname, err := filepath.Rel(os.TempDir(), savedir)
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Failed to do filepath.Rel of %s to %s: %s", os.TempDir(), savedir, err))
+		errc <- fmt.Errorf("Failed to do filepath.Rel of %s to %s: %s", os.TempDir(), savedir, err)
 		return
 	}
 	colourpdf := new(bookpipeline.Fpdf)
 	err = colourpdf.Setup()
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Failed to set up PDF: %s", err))
+		errc <- fmt.Errorf("Failed to set up PDF: %s", err)
 		return
 	}
 	binarisedpdf := new(bookpipeline.Fpdf)
 	err = binarisedpdf.Setup()
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Failed to set up PDF: %s", err))
+		errc <- fmt.Errorf("Failed to set up PDF: %s", err)
 		return
 	}
 	binhascontent, colourhascontent := false, false
@@ -316,7 +315,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			err = binarisedpdf.AddPage(filepath.Join(savedir, binfn), pg, true)
 			if err != nil {
 				close(up)
-				errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", binfn, err))
+				errc <- fmt.Errorf("Failed to add page %s to PDF: %s", binfn, err)
 				return
 			}
 			binhascontent = true
@@ -336,7 +335,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
 			if err != nil {
 				close(up)
-				errc <- errors.New(fmt.Sprintf("Failed to add page %s to PDF: %s", colourfn, err))
+				errc <- fmt.Errorf("Failed to add page %s to PDF: %s", colourfn, err)
 				return
 			}
 			colourhascontent = true
@@ -347,7 +346,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		err = colourpdf.Save(fn)
 		if err != nil {
 			close(up)
-			errc <- errors.New(fmt.Sprintf("Failed to save colour pdf: %s", err))
+			errc <- fmt.Errorf("Failed to save colour pdf: %s", err)
 			return
 		}
 		up <- fn
@@ -357,7 +356,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		err = binarisedpdf.Save(fn)
 		if err != nil {
 			close(up)
-			errc <- errors.New(fmt.Sprintf("Failed to save binarised pdf: %s", err))
+			errc <- fmt.Errorf("Failed to save binarised pdf: %s", err)
 			return
 		}
 		up <- fn
@@ -368,14 +367,14 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 	f, err = os.Create(fn)
 	if err != nil {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Error creating file %s: %s", fn, err))
+		errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 		return
 	}
 	defer f.Close()
 	err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
 	if err != nil && err.Error() != "Not enough valid confidences" {
 		close(up)
-		errc <- errors.New(fmt.Sprintf("Error rendering graph: %s", err))
+		errc <- fmt.Errorf("Error rendering graph: %s", err)
 		return
 	}
 	up <- fn
@@ -466,7 +465,7 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 	d := filepath.Join(os.TempDir(), bookname)
 	err := os.MkdirAll(d, 0755)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to create directory %s: %s", d, err))
+		return fmt.Errorf("Failed to create directory %s: %s", d, err)
 	}
 
 	t := time.NewTicker(HeartbeatTime * time.Second)
@@ -495,7 +494,7 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 		if err != nil {
 			t.Stop()
 			_ = os.RemoveAll(d)
-			return errors.New(fmt.Sprintf("Error adding to queue %s: %s", bookname, err))
+			return fmt.Errorf("Error adding to queue %s: %s", bookname, err)
 		}
 	}
 
@@ -516,12 +515,12 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 	err = conn.DelFromQueue(fromQueue, msg.Handle)
 	if err != nil {
 		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Error deleting message from queue: %s", err))
+		return fmt.Errorf("Error deleting message from queue: %s", err)
 	}
 
 	err = os.RemoveAll(d)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to remove directory %s: %s", d, err))
+		return fmt.Errorf("Failed to remove directory %s: %s", d, err)
 	}
 
 	return nil
@@ -546,7 +545,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	d := filepath.Join(os.TempDir(), bookname)
 	err := os.MkdirAll(d, 0755)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to create directory %s: %s", d, err))
+		return fmt.Errorf("Failed to create directory %s: %s", d, err)
 	}
 
 	t := time.NewTicker(HeartbeatTime * time.Second)
@@ -566,7 +565,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	if err != nil {
 		t.Stop()
 		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Failed to get list of files for book %s: %s", bookname, err))
+		return fmt.Errorf("Failed to get list of files for book %s: %s", bookname, err)
 	}
 	var todl []string
 	for _, n := range objs {
@@ -596,7 +595,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 		if err != nil {
 			t.Stop()
 			_ = os.RemoveAll(d)
-			return errors.New(fmt.Sprintf("Error adding to queue %s: %s", bookname, err))
+			return fmt.Errorf("Error adding to queue %s: %s", bookname, err)
 		}
 	}
 
@@ -617,12 +616,12 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	err = conn.DelFromQueue(fromQueue, msg.Handle)
 	if err != nil {
 		_ = os.RemoveAll(d)
-		return errors.New(fmt.Sprintf("Error deleting message from queue: %s", err))
+		return fmt.Errorf("Error deleting message from queue: %s", err)
 	}
 
 	err = os.RemoveAll(d)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to remove directory %s: %s", d, err))
+		return fmt.Errorf("Failed to remove directory %s: %s", d, err)
 	}
 
 	return nil
