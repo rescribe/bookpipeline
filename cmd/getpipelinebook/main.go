@@ -57,6 +57,8 @@ func getpdfs(conn Pipeliner, l *log.Logger, bookname string) {
 func main() {
 	all := flag.Bool("a", false, "Get all files for book")
 	graph := flag.Bool("graph", false, "Only download graphs (can be used alongside -pdf)")
+	binarisedpdf := flag.Bool("binarisedpdf", false, "Only download binarised PDF (can be used alongside -graph)")
+	colourpdf := flag.Bool("colourpdf", false, "Only download colour PDF (can be used alongside -graph)")
 	pdf := flag.Bool("pdf", false, "Only download PDFs (can be used alongside -graph)")
 	png := flag.Bool("png", false, "Only download best binarised png files")
 	verbose := flag.Bool("v", false, "Verbose")
@@ -112,8 +114,22 @@ func main() {
 		return
 	}
 
-	if *pdf {
-		getpdfs(conn, verboselog, bookname)
+	if *binarisedpdf {
+		fn := filepath.Join(bookname, bookname + ".binarised.pdf")
+		verboselog.Println("Downloading file", fn)
+		err = conn.Download(conn.WIPStorageId(), fn, fn)
+		if err != nil {
+			log.Fatalln("Failed to download file", fn, err)
+		}
+	}
+
+	if *colourpdf {
+		fn := filepath.Join(bookname, bookname + ".colour.pdf")
+		verboselog.Println("Downloading file", fn)
+		err = conn.Download(conn.WIPStorageId(), fn, fn)
+		if err != nil {
+			log.Fatalln("Failed to download file", fn, err)
+		}
 	}
 
 	if *graph {
@@ -125,7 +141,11 @@ func main() {
 		}
 	}
 
-	if *pdf || *graph {
+	if *pdf {
+		getpdfs(conn, verboselog, bookname)
+	}
+
+	if *binarisedpdf || *colourpdf || *graph || *pdf {
 		return
 	}
 
