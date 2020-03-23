@@ -16,7 +16,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: getpipelinebook [-a] [-pdf] [-png] [-v] bookname
+const usage = `Usage: getpipelinebook [-a] [-graph] [-pdf] [-png] [-v] bookname
 
 Downloads the pipeline results for a book.
 
@@ -56,7 +56,8 @@ func getpdfs(conn Pipeliner, l *log.Logger, bookname string) {
 
 func main() {
 	all := flag.Bool("a", false, "Get all files for book")
-	pdf := flag.Bool("pdf", false, "Only download PDFs")
+	graph := flag.Bool("graph", false, "Only download graphs (can be used alongside -pdf)")
+	pdf := flag.Bool("pdf", false, "Only download PDFs (can be used alongside -graph)")
 	png := flag.Bool("png", false, "Only download best binarised png files")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Usage = func() {
@@ -113,6 +114,18 @@ func main() {
 
 	if *pdf {
 		getpdfs(conn, verboselog, bookname)
+	}
+
+	if *graph {
+		fn := filepath.Join(bookname, "graph.png")
+		verboselog.Println("Downloading file", fn)
+		err = conn.Download(conn.WIPStorageId(), fn, fn)
+		if err != nil {
+			log.Fatalln("Failed to download file", fn, err)
+		}
+	}
+
+	if *pdf || *graph {
 		return
 	}
 
