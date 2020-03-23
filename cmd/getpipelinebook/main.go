@@ -33,7 +33,7 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 }
 
 type Pipeliner interface {
-	Init() error
+	MinimalInit() error
 	ListObjects(bucket string, prefix string) ([]string, error)
 	Download(bucket string, key string, fn string) error
 	Upload(bucket string, key string, path string) error
@@ -85,7 +85,7 @@ func main() {
 	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
 
 	verboselog.Println("Setting up AWS session")
-	err := conn.Init()
+	err := conn.MinimalInit()
 	if err != nil {
 		log.Fatalln("Error setting up cloud connection:", err)
 	}
