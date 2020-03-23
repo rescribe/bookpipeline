@@ -457,3 +457,9 @@ func (a *AwsConn) StartInstances(n int) error {
 	})
 	return err
 }
+
+// Log records an item in the with the Logger. Arguments are handled
+// as with fmt.Println.
+func (a *AwsConn) Log(v ...interface{}) {
+	a.Logger.Println(v)
+}
