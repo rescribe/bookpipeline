@@ -42,6 +42,7 @@ one is found this general process is followed:
 `
 
 const PauseBetweenChecks = 3 * time.Minute
+const TimeBeforeShutdown = 5 * time.Minute
 const HeartbeatTime = 60
 
 // null writer to enable non-verbose logging to be discarded
@@ -671,6 +672,7 @@ func main() {
 	var checkOCRQueue <-chan time.Time
 	var checkOCRPageQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
+	var shutdownIfQuiet <-chan time.Time
 	if !*nopreproc {
 		checkPreQueue = time.After(0)
 	}
@@ -705,6 +707,7 @@ func main() {
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
+			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkWipeQueue:
 			msg, err := conn.CheckQueue(conn.WipeQueueId(), HeartbeatTime*2)
 			checkWipeQueue = time.After(PauseBetweenChecks)
@@ -721,6 +724,7 @@ func main() {
 			if err != nil {
 				log.Println("Error during wipe", err)
 			}
+			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), HeartbeatTime*2)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
@@ -739,6 +743,7 @@ func main() {
 			if err != nil {
 				log.Println("Error during OCR Page process", err)
 			}
+			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkOCRQueue:
 			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime*2)
 			checkOCRQueue = time.After(PauseBetweenChecks)
@@ -755,6 +760,7 @@ func main() {
 			if err != nil {
 				log.Println("Error during OCR process", err)
 			}
+			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkAnalyseQueue:
 			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatTime*2)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
@@ -771,6 +777,9 @@ func main() {
 			if err != nil {
 				log.Println("Error during analysis", err)
 			}
+			shutdownIfQuiet = time.After(TimeBeforeShutdown)
+		case <-shutdownIfQuiet:
+			log.Println("If I was sufficiently brave, now would be the time I would shut down")
 		}
 	}
 }
