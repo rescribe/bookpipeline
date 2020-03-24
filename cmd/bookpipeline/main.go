@@ -637,6 +637,7 @@ func main() {
 	noocr := flag.Bool("no", false, "disable ocr")
 	noocrpg := flag.Bool("nop", false, "disable ocr on individual pages")
 	noanalyse := flag.Bool("na", false, "disable analysis")
+	autoshutdown := flag.Bool("shutdown", true, "automatically shut down if no work has been available for 5 minutes")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -687,6 +688,9 @@ func main() {
 	}
 	if !*noanalyse {
 		checkAnalyseQueue = time.After(0)
+	}
+	if *autoshutdown {
+		shutdownIfQuiet = time.After(TimeBeforeShutdown)
 	}
 
 	for {
@@ -779,7 +783,9 @@ func main() {
 			}
 			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-shutdownIfQuiet:
-			log.Println("If I was sufficiently brave, now would be the time I would shut down")
+			if *autoshutdown {
+				log.Println("If I was sufficiently brave, now would be the time I would shut down")
+			}
 		}
 	}
 }
