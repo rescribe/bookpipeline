@@ -635,13 +635,6 @@ func stopTimer(t *time.Timer) {
 	}
 }
 
-func restartTimer(t *time.Timer) {
-	//if !t.Stop() {
-	//	<-t.C
-	//}
-	t.Reset(TimeBeforeShutdown)
-}
-
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
@@ -722,7 +715,7 @@ func main() {
 			verboselog.Println("Message received on preprocess queue, processing", msg.Body)
 			stopTimer(shutdownIfQuiet)
 			err = processBook(msg, conn, preprocess, origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
-			restartTimer(shutdownIfQuiet)
+			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
@@ -740,7 +733,7 @@ func main() {
 			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on wipeonly queue, processing", msg.Body)
 			err = processBook(msg, conn, wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
-			restartTimer(shutdownIfQuiet)
+			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
 				log.Println("Error during wipe", err)
 			}
@@ -760,7 +753,7 @@ func main() {
 			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on OCR Page queue, processing", msg.Body)
 			err = ocrPage(msg, conn, ocr(*training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
-			restartTimer(shutdownIfQuiet)
+			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
 				log.Println("Error during OCR Page process", err)
 			}
@@ -778,7 +771,7 @@ func main() {
 			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on OCR queue, processing", msg.Body)
 			err = processBook(msg, conn, ocr(*training), preprocessedPattern, conn.OCRQueueId(), conn.AnalyseQueueId())
-			restartTimer(shutdownIfQuiet)
+			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
 				log.Println("Error during OCR process", err)
 			}
@@ -796,7 +789,7 @@ func main() {
 			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on analyse queue, processing", msg.Body)
 			err = processBook(msg, conn, analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
-			restartTimer(shutdownIfQuiet)
+			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
 				log.Println("Error during analysis", err)
 			}
