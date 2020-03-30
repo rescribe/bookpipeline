@@ -629,6 +629,19 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	return nil
 }
 
+func stopTimer(t *time.Timer) {
+	if !t.Stop() {
+		<-t.C
+	}
+}
+
+func restartTimer(t *time.Timer) {
+	if !t.Stop() {
+		<-t.C
+	}
+	t.Reset(TimeBeforeShutdown)
+}
+
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
@@ -673,7 +686,7 @@ func main() {
 	var checkOCRQueue <-chan time.Time
 	var checkOCRPageQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
-	var shutdownIfQuiet <-chan time.Time
+	var shutdownIfQuiet *time.Timer
 	if !*nopreproc {
 		checkPreQueue = time.After(0)
 	}
@@ -690,7 +703,7 @@ func main() {
 		checkAnalyseQueue = time.After(0)
 	}
 	if *autoshutdown {
-		shutdownIfQuiet = time.After(TimeBeforeShutdown)
+		shutdownIfQuiet = time.NewTimer(TimeBeforeShutdown)
 	}
 
 	for {
@@ -707,11 +720,12 @@ func main() {
 				continue
 			}
 			verboselog.Println("Message received on preprocess queue, processing", msg.Body)
+			stopTimer(shutdownIfQuiet)
 			err = processBook(msg, conn, preprocess, origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
+			restartTimer(shutdownIfQuiet)
 			if err != nil {
 				log.Println("Error during preprocess", err)
 			}
-			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkWipeQueue:
 			msg, err := conn.CheckQueue(conn.WipeQueueId(), HeartbeatTime*2)
 			checkWipeQueue = time.After(PauseBetweenChecks)
@@ -723,12 +737,13 @@ func main() {
 				verboselog.Println("No message received on wipeonly queue, sleeping")
 				continue
 			}
+			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on wipeonly queue, processing", msg.Body)
 			err = processBook(msg, conn, wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
+			restartTimer(shutdownIfQuiet)
 			if err != nil {
 				log.Println("Error during wipe", err)
 			}
-			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), HeartbeatTime*2)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
@@ -742,12 +757,13 @@ func main() {
 			// Have OCRPageQueue checked immediately after completion, as chances are high that
 			// there will be more pages that should be done without delay
 			checkOCRPageQueue = time.After(0)
+			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on OCR Page queue, processing", msg.Body)
 			err = ocrPage(msg, conn, ocr(*training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
+			restartTimer(shutdownIfQuiet)
 			if err != nil {
 				log.Println("Error during OCR Page process", err)
 			}
-			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkOCRQueue:
 			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime*2)
 			checkOCRQueue = time.After(PauseBetweenChecks)
@@ -759,12 +775,13 @@ func main() {
 				verboselog.Println("No message received on OCR queue, sleeping")
 				continue
 			}
+			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on OCR queue, processing", msg.Body)
 			err = processBook(msg, conn, ocr(*training), preprocessedPattern, conn.OCRQueueId(), conn.AnalyseQueueId())
+			restartTimer(shutdownIfQuiet)
 			if err != nil {
 				log.Println("Error during OCR process", err)
 			}
-			shutdownIfQuiet = time.After(TimeBeforeShutdown)
 		case <-checkAnalyseQueue:
 			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatTime*2)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
@@ -776,13 +793,14 @@ func main() {
 				verboselog.Println("No message received on analyse queue, sleeping")
 				continue
 			}
+			stopTimer(shutdownIfQuiet)
 			verboselog.Println("Message received on analyse queue, processing", msg.Body)
 			err = processBook(msg, conn, analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
+			restartTimer(shutdownIfQuiet)
 			if err != nil {
 				log.Println("Error during analysis", err)
 			}
-			shutdownIfQuiet = time.After(TimeBeforeShutdown)
-		case <-shutdownIfQuiet:
+		case <-shutdownIfQuiet.C:
 			if *autoshutdown {
 				log.Println("If I was sufficiently brave, now would be the time I would shut down")
 			}
