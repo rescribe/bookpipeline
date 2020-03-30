@@ -794,17 +794,18 @@ func main() {
 				log.Println("Error during analysis", err)
 			}
 		case <-shutdownIfQuiet.C:
-			if *autoshutdown {
-				conn.Log("Shutting down")
-				cmd := exec.Command("sudo", "systemctl", "poweroff")
-				var stdout, stderr bytes.Buffer
-				cmd.Stdout = &stdout
-				cmd.Stderr = &stderr
-				err := cmd.Run()
-				if err != nil {
-					conn.Log("Error shutting down, error:", err,
-					         ", stdout: ", stdout.String(), ", stderr: ", stderr.String())
-				}
+			if !*autoshutdown {
+				continue
+			}
+			conn.Log("Shutting down")
+			cmd := exec.Command("sudo", "systemctl", "poweroff")
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			err := cmd.Run()
+			if err != nil {
+				conn.Log("Error shutting down, error:", err,
+				         ", stdout: ", stdout.String(), ", stderr: ", stderr.String())
 			}
 		}
 	}
