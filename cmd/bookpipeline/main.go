@@ -636,9 +636,9 @@ func stopTimer(t *time.Timer) {
 }
 
 func restartTimer(t *time.Timer) {
-	if !t.Stop() {
-		<-t.C
-	}
+	//if !t.Stop() {
+	//	<-t.C
+	//}
 	t.Reset(TimeBeforeShutdown)
 }
 
