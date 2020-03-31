@@ -675,7 +675,7 @@ func main() {
 	noocr := flag.Bool("no", false, "disable ocr")
 	noocrpg := flag.Bool("nop", false, "disable ocr on individual pages")
 	noanalyse := flag.Bool("na", false, "disable analysis")
-	autoshutdown := flag.Bool("shutdown", true, "automatically shut down if no work has been available for 5 minutes")
+	autoshutdown := flag.Bool("shutdown", false, "automatically shut down if no work has been available for 5 minutes")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
