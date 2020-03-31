@@ -22,8 +22,6 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
-// TODO: stop using filepath.Join for keys; just use '/' delimeter
-
 const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-nop] [-na] [-t training] [-shutdown true/false]
 
 Watches the preprocess, ocr and analyse queues for book names. When
@@ -96,7 +94,7 @@ func download(dl chan string, process chan string, conn Pipeliner, dir string, e
 func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc chan error, logger *log.Logger) {
 	for path := range c {
 		name := filepath.Base(path)
-		key := filepath.Join(bookname, name)
+		key := bookname + "/" + name
 		logger.Println("Uploading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
 		if err != nil {
@@ -113,7 +111,7 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, bookname string, training string, errc chan error, logger *log.Logger) {
 	for path := range c {
 		name := filepath.Base(path)
-		key := filepath.Join(bookname, name)
+		key := bookname + "/" + name
 		logger.Println("Uploading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
 		if err != nil {
@@ -311,7 +309,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		}
 
 		logger.Println("Downloading binarised page to add to PDF", binfn)
-		err := conn.Download(conn.WIPStorageId(), filepath.Join(bookname, binfn), filepath.Join(savedir, binfn))
+		err := conn.Download(conn.WIPStorageId(), bookname + "/" + binfn), filepath.Join(savedir, binfn))
 		if err != nil {
 			logger.Println("Download failed; skipping page", binfn)
 		} else {
@@ -325,11 +323,11 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		}
 
 		logger.Println("Downloading colour page to add to PDF", colourfn)
-		err = conn.Download(conn.WIPStorageId(), filepath.Join(bookname, colourfn), filepath.Join(savedir, colourfn))
+		err = conn.Download(conn.WIPStorageId(), bookname + "/" + colourfn, filepath.Join(savedir, colourfn))
 		if err != nil {
 			colourfn = strings.Replace(colourfn, ".jpg", ".png", 1)
 			logger.Println("Download failed; trying", colourfn)
-			err = conn.Download(conn.WIPStorageId(), filepath.Join(bookname, colourfn), filepath.Join(savedir, colourfn))
+			err = conn.Download(conn.WIPStorageId(), bookname + "/" + colourfn, filepath.Join(savedir, colourfn))
 			if err != nil {
 				logger.Println("Download failed; skipping page", colourfn)
 			}
