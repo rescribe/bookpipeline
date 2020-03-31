@@ -43,6 +43,7 @@ one is found this general process is followed:
 
 const PauseBetweenChecks = 3 * time.Minute
 const TimeBeforeShutdown = 5 * time.Minute
+const LogSaveTime = 1 * time.Minute
 const HeartbeatTime = 60
 
 // null writer to enable non-verbose logging to be discarded
@@ -635,6 +636,36 @@ func stopTimer(t *time.Timer) {
 	}
 }
 
+func savelogs(conn Pipeliner, starttime int64, hostname string) error {
+	cmd := exec.Command("journalctl", "-u", "bookpipeline", "-n", "all")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("Error getting logs, error: %v, stdout: %v, stderr: %v",
+			err, stdout, stderr)
+	}
+	key := fmt.Sprintf("bookpipeline.log.%d.%s", starttime, hostname)
+	path := filepath.Join(os.TempDir(), key)
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("Error creating log file", err)
+	}
+	defer f.Close()
+	_, err = f.WriteString(stdout.String())
+	if err != nil {
+		return fmt.Errorf("Error saving log file", err)
+	}
+	_ = f.Close()
+	err = conn.Upload(conn.WIPStorageId(), key, path)
+	if err != nil {
+		return fmt.Errorf("Error uploading log", err)
+	}
+	conn.Log("Log saved to", key)
+	return nil
+}
+
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
@@ -674,12 +705,16 @@ func main() {
 	}
 	verboselog.Println("Finished setting up AWS session")
 
+	starttime := time.Now().Unix()
+	hostname, err := os.Hostname()
+
 	var checkPreQueue <-chan time.Time
 	var checkWipeQueue <-chan time.Time
 	var checkOCRQueue <-chan time.Time
 	var checkOCRPageQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
 	var shutdownIfQuiet *time.Timer
+	var savelognow *time.Ticker
 	if !*nopreproc {
 		checkPreQueue = time.After(0)
 	}
@@ -698,6 +733,7 @@ func main() {
 	if *autoshutdown {
 		shutdownIfQuiet = time.NewTimer(TimeBeforeShutdown)
 	}
+	savelognow = time.NewTicker(LogSaveTime)
 
 	for {
 		select {
@@ -793,11 +829,18 @@ func main() {
 			if err != nil {
 				log.Println("Error during analysis", err)
 			}
+		case <-savelognow.C:
+			conn.Log("Saving logs")
+			err = savelogs(conn, starttime, hostname)
+			if err != nil {
+				conn.Log("Error saving logs", err)
+			}
 		case <-shutdownIfQuiet.C:
 			if !*autoshutdown {
 				continue
 			}
 			conn.Log("Shutting down")
+			_ = savelogs(conn, starttime, hostname)
 			cmd := exec.Command("sudo", "systemctl", "poweroff")
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
