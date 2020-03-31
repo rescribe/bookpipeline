@@ -42,7 +42,7 @@ one is found this general process is followed:
 const PauseBetweenChecks = 3 * time.Minute
 const TimeBeforeShutdown = 5 * time.Minute
 const LogSaveTime = 1 * time.Minute
-const HeartbeatTime = 60
+const HeartbeatSeconds = 60
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -309,7 +309,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		}
 
 		logger.Println("Downloading binarised page to add to PDF", binfn)
-		err := conn.Download(conn.WIPStorageId(), bookname + "/" + binfn), filepath.Join(savedir, binfn))
+		err := conn.Download(conn.WIPStorageId(), bookname + "/" + binfn, filepath.Join(savedir, binfn))
 		if err != nil {
 			logger.Println("Download failed; skipping page", binfn)
 		} else {
@@ -387,7 +387,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 func heartbeat(conn Pipeliner, t *time.Ticker, msg bookpipeline.Qmsg, queue string, msgc chan bookpipeline.Qmsg, errc chan error) {
 	currentmsg := msg
 	for range t.C {
-		m, err := conn.QueueHeartbeat(currentmsg, queue, HeartbeatTime*2)
+		m, err := conn.QueueHeartbeat(currentmsg, queue, HeartbeatSeconds*2)
 		if err != nil {
 			// This is for better debugging of the heartbeat issue
 			conn.Log("Error with heartbeat", err)
@@ -469,7 +469,7 @@ func ocrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 		return fmt.Errorf("Failed to create directory %s: %s", d, err)
 	}
 
-	t := time.NewTicker(HeartbeatTime * time.Second)
+	t := time.NewTicker(HeartbeatSeconds * time.Second)
 	go heartbeat(conn, t, msg, fromQueue, msgc, errc)
 
 	// these functions will do their jobs when their channels have data
@@ -549,7 +549,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 		return fmt.Errorf("Failed to create directory %s: %s", d, err)
 	}
 
-	t := time.NewTicker(HeartbeatTime * time.Second)
+	t := time.NewTicker(HeartbeatSeconds * time.Second)
 	go heartbeat(conn, t, msg, fromQueue, msgc, errc)
 
 	// these functions will do their jobs when their channels have data
@@ -739,7 +739,7 @@ func main() {
 	for {
 		select {
 		case <-checkPreQueue:
-			msg, err := conn.CheckQueue(conn.PreQueueId(), HeartbeatTime*2)
+			msg, err := conn.CheckQueue(conn.PreQueueId(), HeartbeatSeconds*2)
 			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				conn.Log("Error checking preprocess queue", err)
@@ -757,7 +757,7 @@ func main() {
 				conn.Log("Error during preprocess", err)
 			}
 		case <-checkWipeQueue:
-			msg, err := conn.CheckQueue(conn.WipeQueueId(), HeartbeatTime*2)
+			msg, err := conn.CheckQueue(conn.WipeQueueId(), HeartbeatSeconds*2)
 			checkWipeQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				conn.Log("Error checking wipeonly queue", err)
@@ -775,7 +775,7 @@ func main() {
 				conn.Log("Error during wipe", err)
 			}
 		case <-checkOCRPageQueue:
-			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), HeartbeatTime*2)
+			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), HeartbeatSeconds*2)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				conn.Log("Error checking OCR Page queue", err)
@@ -795,7 +795,7 @@ func main() {
 				conn.Log("Error during OCR Page process", err)
 			}
 		case <-checkOCRQueue:
-			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime*2)
+			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatSeconds*2)
 			checkOCRQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				conn.Log("Error checking OCR queue", err)
@@ -813,7 +813,7 @@ func main() {
 				conn.Log("Error during OCR process", err)
 			}
 		case <-checkAnalyseQueue:
-			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatTime*2)
+			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatSeconds*2)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
 			if err != nil {
 				conn.Log("Error checking analyse queue", err)
