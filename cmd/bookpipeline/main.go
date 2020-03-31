@@ -24,7 +24,7 @@ import (
 
 // TODO: stop using filepath.Join for keys; just use '/' delimeter
 
-const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-nop] [-na] [-t training]
+const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-nop] [-na] [-t training] [-shutdown true/false]
 
 Watches the preprocess, ocr and analyse queues for book names. When
 one is found this general process is followed:
@@ -636,6 +636,9 @@ func stopTimer(t *time.Timer) {
 	}
 }
 
+// TODO: rather than relying on journald, would be nicer to save the logs
+//       ourselves maybe, so that we weren't relying on a particular systemd
+//       setup.
 func savelogs(conn Pipeliner, starttime int64, hostname string) error {
 	cmd := exec.Command("journalctl", "-u", "bookpipeline", "-n", "all")
 	var stdout, stderr bytes.Buffer
@@ -644,7 +647,7 @@ func savelogs(conn Pipeliner, starttime int64, hostname string) error {
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("Error getting logs, error: %v, stdout: %v, stderr: %v",
-			err, stdout, stderr)
+			err, stdout.String(), stderr.String())
 	}
 	key := fmt.Sprintf("bookpipeline.log.%d.%s", starttime, hostname)
 	path := filepath.Join(os.TempDir(), key)
@@ -698,12 +701,12 @@ func main() {
 	var conn Pipeliner
 	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
 
-	verboselog.Println("Setting up AWS session")
+	conn.Log("Setting up AWS session")
 	err := conn.Init()
 	if err != nil {
 		log.Fatalln("Error setting up cloud connection:", err)
 	}
-	verboselog.Println("Finished setting up AWS session")
+	conn.Log("Finished setting up AWS session")
 
 	starttime := time.Now().Unix()
 	hostname, err := os.Hostname()
@@ -741,43 +744,43 @@ func main() {
 			msg, err := conn.CheckQueue(conn.PreQueueId(), HeartbeatTime*2)
 			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				log.Println("Error checking preprocess queue", err)
+				conn.Log("Error checking preprocess queue", err)
 				continue
 			}
 			if msg.Handle == "" {
-				verboselog.Println("No message received on preprocess queue, sleeping")
+				conn.Log("No message received on preprocess queue, sleeping")
 				continue
 			}
-			verboselog.Println("Message received on preprocess queue, processing", msg.Body)
+			conn.Log("Message received on preprocess queue, processing", msg.Body)
 			stopTimer(shutdownIfQuiet)
 			err = processBook(msg, conn, preprocess, origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
 			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
-				log.Println("Error during preprocess", err)
+				conn.Log("Error during preprocess", err)
 			}
 		case <-checkWipeQueue:
 			msg, err := conn.CheckQueue(conn.WipeQueueId(), HeartbeatTime*2)
 			checkWipeQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				log.Println("Error checking wipeonly queue", err)
+				conn.Log("Error checking wipeonly queue", err)
 				continue
 			}
 			if msg.Handle == "" {
-				verboselog.Println("No message received on wipeonly queue, sleeping")
+				conn.Log("No message received on wipeonly queue, sleeping")
 				continue
 			}
 			stopTimer(shutdownIfQuiet)
-			verboselog.Println("Message received on wipeonly queue, processing", msg.Body)
+			conn.Log("Message received on wipeonly queue, processing", msg.Body)
 			err = processBook(msg, conn, wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
 			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
-				log.Println("Error during wipe", err)
+				conn.Log("Error during wipe", err)
 			}
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), HeartbeatTime*2)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				log.Println("Error checking OCR Page queue", err)
+				conn.Log("Error checking OCR Page queue", err)
 				continue
 			}
 			if msg.Handle == "" {
@@ -787,47 +790,47 @@ func main() {
 			// there will be more pages that should be done without delay
 			checkOCRPageQueue = time.After(0)
 			stopTimer(shutdownIfQuiet)
-			verboselog.Println("Message received on OCR Page queue, processing", msg.Body)
+			conn.Log("Message received on OCR Page queue, processing", msg.Body)
 			err = ocrPage(msg, conn, ocr(*training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
 			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
-				log.Println("Error during OCR Page process", err)
+				conn.Log("Error during OCR Page process", err)
 			}
 		case <-checkOCRQueue:
 			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatTime*2)
 			checkOCRQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				log.Println("Error checking OCR queue", err)
+				conn.Log("Error checking OCR queue", err)
 				continue
 			}
 			if msg.Handle == "" {
-				verboselog.Println("No message received on OCR queue, sleeping")
+				conn.Log("No message received on OCR queue, sleeping")
 				continue
 			}
 			stopTimer(shutdownIfQuiet)
-			verboselog.Println("Message received on OCR queue, processing", msg.Body)
+			conn.Log("Message received on OCR queue, processing", msg.Body)
 			err = processBook(msg, conn, ocr(*training), preprocessedPattern, conn.OCRQueueId(), conn.AnalyseQueueId())
 			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
-				log.Println("Error during OCR process", err)
+				conn.Log("Error during OCR process", err)
 			}
 		case <-checkAnalyseQueue:
 			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatTime*2)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				log.Println("Error checking analyse queue", err)
+				conn.Log("Error checking analyse queue", err)
 				continue
 			}
 			if msg.Handle == "" {
-				verboselog.Println("No message received on analyse queue, sleeping")
+				conn.Log("No message received on analyse queue, sleeping")
 				continue
 			}
 			stopTimer(shutdownIfQuiet)
-			verboselog.Println("Message received on analyse queue, processing", msg.Body)
+			conn.Log("Message received on analyse queue, processing", msg.Body)
 			err = processBook(msg, conn, analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
 			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
-				log.Println("Error during analysis", err)
+				conn.Log("Error during analysis", err)
 			}
 		case <-savelognow.C:
 			conn.Log("Saving logs")
@@ -848,7 +851,7 @@ func main() {
 			err := cmd.Run()
 			if err != nil {
 				conn.Log("Error shutting down, error:", err,
-				         ", stdout: ", stdout.String(), ", stderr: ", stderr.String())
+				         ", stdout:", stdout.String(), ", stderr:", stderr.String())
 			}
 		}
 	}
