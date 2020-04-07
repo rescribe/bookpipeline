@@ -4,11 +4,6 @@
 
 package main
 
-// TODO: set up iam role and policy needed for ec2 instances to access this stuff;
-//       see arn:aws:iam::557852942063:policy/pipelinestorageandqueue
-//       and arn:aws:iam::557852942063:role/pipeliner
-// TODO: set up launch template for ec2 instances
-
 import (
 	"log"
 	"os"
@@ -18,8 +13,7 @@ import (
 
 type MkPipeliner interface {
 	MinimalInit() error
-	CreateBucket(string) error
-	CreateQueue(string) error
+	MkPipeline() error
 }
 
 func main() {
@@ -34,25 +28,8 @@ func main() {
 		log.Fatalln("Failed to set up cloud connection:", err)
 	}
 
-	prefix := "rescribe"
-	buckets := []string{"inprogress", "done"}
-	queues := []string{"preprocess", "wipeonly", "ocr", "analyse", "ocrpage"}
-
-	for _, bucket := range buckets {
-		bname := prefix + bucket
-		log.Printf("Creating bucket %s\n", bname)
-		err = conn.CreateBucket(bname)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
-
-	for _, queue := range queues {
-		qname := prefix + queue
-		log.Printf("Creating queue %s\n", qname)
-		err = conn.CreateQueue(qname)
-		if err != nil {
-			log.Fatalln(err)
-		}
+	err = conn.MkPipeline()
+	if err != nil {
+		log.Fatalln("MkPipeline failed:", err)
 	}
 }
