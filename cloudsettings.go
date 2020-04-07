@@ -19,7 +19,6 @@ const (
 const (
 	queuePreProc  = "rescribepreprocess"
 	queueWipeOnly = "rescribewipeonly"
-	queueOcr      = "rescribeocr"
 	queueOcrPage  = "rescribeocrpage"
 	queueAnalyse  = "rescribeanalyse"
 )

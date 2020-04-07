@@ -21,7 +21,6 @@ This is handy to work around bugs when things are misbehaving.
 Valid queue names:
 - preprocess
 - wipeonly
-- ocr
 - ocrpage
 - analyse
 `
@@ -38,7 +37,6 @@ type QueuePipeliner interface {
 	AddToQueue(url string, msg string) error
 	PreQueueId() string
 	WipeQueueId() string
-	OCRQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
 }
@@ -70,7 +68,6 @@ func main() {
 	}{
 		{conn.PreQueueId(), "preprocess"},
 		{conn.WipeQueueId(), "wipeonly"},
-		{conn.OCRQueueId(), "ocr"},
 		{conn.OCRPageQueueId(), "ocrpage"},
 		{conn.AnalyseQueueId(), "analyse"},
 	}

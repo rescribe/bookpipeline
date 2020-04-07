@@ -30,7 +30,6 @@ type LsPipeliner interface {
 	Init() error
 	PreQueueId() string
 	WipeQueueId() string
-	OCRQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
@@ -66,7 +65,6 @@ func getQueueDetails(conn LsPipeliner, qdetails chan queueDetails) {
 	queues := []struct{ name, id string }{
 		{"preprocess", conn.PreQueueId()},
 		{"wipeonly", conn.WipeQueueId()},
-		{"ocr", conn.OCRQueueId()},
 		{"ocrpage", conn.OCRPageQueueId()},
 		{"analyse", conn.AnalyseQueueId()},
 	}

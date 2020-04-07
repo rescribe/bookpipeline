@@ -40,16 +40,14 @@ type AwsConn struct {
 	Region string
 	Logger *log.Logger
 
-	// these are used internally
-	sess                                    *session.Session
-	ec2svc                                  *ec2.EC2
-	s3svc                                   *s3.S3
-	sqssvc                                  *sqs.SQS
-	downloader                              *s3manager.Downloader
-	uploader                                *s3manager.Uploader
-	wipequrl, prequrl, ocrqurl, analysequrl string
-	ocrpgqurl                               string
-	wipstorageid                            string
+	sess                                      *session.Session
+	ec2svc                                    *ec2.EC2
+	s3svc                                     *s3.S3
+	sqssvc                                    *sqs.SQS
+	downloader                                *s3manager.Downloader
+	uploader                                  *s3manager.Uploader
+	wipequrl, prequrl, ocrpgqurl, analysequrl string
+	wipstorageid                              string
 }
 
 // MinimalInit does the bare minimum to initialise aws services
@@ -105,14 +103,14 @@ func (a *AwsConn) Init() error {
 	}
 	a.wipequrl = *result.QueueUrl
 
-	a.Logger.Println("Getting OCR queue URL")
+	a.Logger.Println("Getting OCR Page queue URL")
 	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: aws.String(queueOcr),
+		QueueName: aws.String(queueOcrPage),
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error getting OCR queue URL: %s", err))
+		return errors.New(fmt.Sprintf("Error getting OCR Page queue URL: %s", err))
 	}
-	a.ocrqurl = *result.QueueUrl
+	a.ocrpgqurl = *result.QueueUrl
 
 	a.Logger.Println("Getting analyse queue URL")
 	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
@@ -122,15 +120,6 @@ func (a *AwsConn) Init() error {
 		return errors.New(fmt.Sprintf("Error getting analyse queue URL: %s", err))
 	}
 	a.analysequrl = *result.QueueUrl
-
-	a.Logger.Println("Getting OCR Page queue URL")
-	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: aws.String(queueOcrPage),
-	})
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error getting OCR Page queue URL: %s", err))
-	}
-	a.ocrpgqurl = *result.QueueUrl
 
 	return nil
 }
@@ -243,10 +232,6 @@ func (a *AwsConn) PreQueueId() string {
 
 func (a *AwsConn) WipeQueueId() string {
 	return a.wipequrl
-}
-
-func (a *AwsConn) OCRQueueId() string {
-	return a.ocrqurl
 }
 
 func (a *AwsConn) OCRPageQueueId() string {
@@ -467,7 +452,7 @@ func (a *AwsConn) Log(v ...interface{}) {
 // mkpipeline sets up necessary buckets and queues for the pipeline
 func (a *AwsConn) MkPipeline() error {
 	buckets := []string{storageWip}
-	queues := []string{queuePreProc, queueWipeOnly, queueOcr, queueAnalyse, queueOcrPage}
+	queues := []string{queuePreProc, queueWipeOnly, queueAnalyse, queueOcrPage}
 
 	for _, bucket := range buckets {
 		err := a.CreateBucket(bucket)

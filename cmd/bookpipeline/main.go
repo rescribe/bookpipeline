@@ -22,10 +22,10 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
-const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-no] [-nop] [-na] [-t training] [-shutdown true/false]
+const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-nop] [-na] [-t training] [-shutdown true/false]
 
-Watches the preprocess, ocr and analyse queues for book names. When
-one is found this general process is followed:
+Watches the preprocess, wipeonly, ocrpage and analyse queues for messages.
+When one is found this general process is followed:
 
 - The book name is hidden from the queue, and a 'heartbeat' is
   started which keeps it hidden (this will time out after 2 minutes
@@ -66,7 +66,6 @@ type Pipeliner interface {
 	Clouder
 	PreQueueId() string
 	WipeQueueId() string
-	OCRQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
 	WIPStorageId() string
@@ -672,7 +671,6 @@ func main() {
 	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
 	nopreproc := flag.Bool("np", false, "disable preprocessing")
 	nowipe := flag.Bool("nw", false, "disable wipeonly")
-	noocr := flag.Bool("no", false, "disable ocr")
 	noocrpg := flag.Bool("nop", false, "disable ocr on individual pages")
 	noanalyse := flag.Bool("na", false, "disable analysis")
 	autoshutdown := flag.Bool("shutdown", false, "automatically shut down if no work has been available for 5 minutes")
@@ -693,7 +691,6 @@ func main() {
 
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`)
 	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
-	preprocessedPattern := regexp.MustCompile(`_bin[0-9].[0-9].png$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var conn Pipeliner
@@ -711,7 +708,6 @@ func main() {
 
 	var checkPreQueue <-chan time.Time
 	var checkWipeQueue <-chan time.Time
-	var checkOCRQueue <-chan time.Time
 	var checkOCRPageQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
 	var shutdownIfQuiet *time.Timer
@@ -721,9 +717,6 @@ func main() {
 	}
 	if !*nowipe {
 		checkWipeQueue = time.After(0)
-	}
-	if !*noocr {
-		checkOCRQueue = time.After(0)
 	}
 	if !*noocrpg {
 		checkOCRPageQueue = time.After(0)
@@ -793,24 +786,6 @@ func main() {
 			shutdownIfQuiet.Reset(TimeBeforeShutdown)
 			if err != nil {
 				conn.Log("Error during OCR Page process", err)
-			}
-		case <-checkOCRQueue:
-			msg, err := conn.CheckQueue(conn.OCRQueueId(), HeartbeatSeconds*2)
-			checkOCRQueue = time.After(PauseBetweenChecks)
-			if err != nil {
-				conn.Log("Error checking OCR queue", err)
-				continue
-			}
-			if msg.Handle == "" {
-				conn.Log("No message received on OCR queue, sleeping")
-				continue
-			}
-			stopTimer(shutdownIfQuiet)
-			conn.Log("Message received on OCR queue, processing", msg.Body)
-			err = processBook(msg, conn, ocr(*training), preprocessedPattern, conn.OCRQueueId(), conn.AnalyseQueueId())
-			shutdownIfQuiet.Reset(TimeBeforeShutdown)
-			if err != nil {
-				conn.Log("Error during OCR process", err)
 			}
 		case <-checkAnalyseQueue:
 			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), HeartbeatSeconds*2)
