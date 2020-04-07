@@ -450,6 +450,7 @@ func (a *AwsConn) Log(v ...interface{}) {
 }
 
 // mkpipeline sets up necessary buckets and queues for the pipeline
+// TODO: also set up the necessary security group and iam stuff
 func (a *AwsConn) MkPipeline() error {
 	buckets := []string{storageWip}
 	queues := []string{queuePreProc, queueWipeOnly, queueAnalyse, queueOcrPage}

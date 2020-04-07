@@ -11,7 +11,9 @@ by running `go get rescribe.xyz/bookpipeline/...`
 
 The commands in the cmd/ directory are at the heart of this
 package. For more details on their usage, use `go doc` or read
-doc.go in the package repository. The key commands are:
+doc.go in the package repository.
+
+The key commands for the virtual server side are:
 
   - bookpipeline    : processes items from queues, doing preprocessing,
                       ocr and postprocessing, and moving items on to

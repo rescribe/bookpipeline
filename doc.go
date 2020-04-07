@@ -5,6 +5,8 @@
 /*
 Package bookpipeline contains various tools and functions for the OCR of
 books, with a focus on distributed OCR using short-lived virtual servers.
+It also contains several tools that are useful standalone; read the
+accompanying README for more details.
 
 Introduction
 
@@ -25,8 +27,8 @@ what they do and how they work with the '-h' flag, so for example to get usage
 information on the booktopipeline tool simply run the following:
   booktopipeline -h
 
-You'll also need to set up your ~/.aws/credentials appropriately so that the
-tools work.
+To get the pipeline tools to work for you, you'll need to change the settings
+in cloudsettings.go, and set up your ~/.aws/credentials appropriately.
 
 Managing servers
 
@@ -123,20 +125,6 @@ rescribewipeonly
 This queue works the same as rescribepreprocess, except that it doesn't
 binarise the pages, only runs the wiper. Hence it is designed for books
 which have been prebinarised.
-
-  example message: APolishGentleman_MemoirByAdamKruczkiewicz
-  example message: APolishGentleman_MemoirByAdamKruczkiewicz rescribefrav2
-
-rescribeocr
-
-This queue is no longer used, as it could result in processes that took more
-than 12 hours to complete, which was unreliable with SQS. Instead pages are
-submitted individually to the rescribeocrpage by the preprocess and wipe
-functions, which has the added advantage that different pages can be processed
-in parallel on different servers, enabling books to be processed significantly
-faster. The code for processing books from the rescribeocr queue is still
-present in bookpipeline, and the queue is still checked, but it is not
-expected to be used.
 
   example message: APolishGentleman_MemoirByAdamKruczkiewicz
   example message: APolishGentleman_MemoirByAdamKruczkiewicz rescribefrav2
