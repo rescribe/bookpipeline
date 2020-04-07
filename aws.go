@@ -187,7 +187,7 @@ func (a *AwsConn) QueueHeartbeat(msg Qmsg, qurl string, duration int64) (Qmsg, e
 				VisibilityTimeout: aws.Int64(0),
 			})
 
-			for i := 0; i < int(duration) * 5; i++ {
+			for i := 0; i < int(duration)*5; i++ {
 				msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
 					MaxNumberOfMessages: aws.Int64(10),
 					VisibilityTimeout:   &duration,
@@ -292,9 +292,9 @@ func (a *AwsConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta, 
 func (a *AwsConn) ListObjectPrefixes(bucket string) ([]string, error) {
 	var prefixes []string
 	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
+		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
-		MaxKeys: aws.Int64(1),
+		MaxKeys:   aws.Int64(1),
 	}, func(page *s3.ListObjectsV2Output, last bool) bool {
 		for _, r := range page.CommonPrefixes {
 			prefixes = append(prefixes, *r.Prefix)
@@ -327,9 +327,9 @@ func (a *AwsConn) CreateQueue(name string) error {
 	_, err := a.sqssvc.CreateQueue(&sqs.CreateQueueInput{
 		QueueName: aws.String(name),
 		Attributes: map[string]*string{
-		        "VisibilityTimeout":             aws.String("120"),     // 2 minutes
-		        "MessageRetentionPeriod":        aws.String("1209600"), // 14 days; max allowed by sqs
-		        "ReceiveMessageWaitTimeSeconds": aws.String("20"),
+			"VisibilityTimeout":             aws.String("120"),     // 2 minutes
+			"MessageRetentionPeriod":        aws.String("1209600"), // 14 days; max allowed by sqs
+			"ReceiveMessageWaitTimeSeconds": aws.String("20"),
 		},
 	})
 	if err != nil {
@@ -339,7 +339,7 @@ func (a *AwsConn) CreateQueue(name string) error {
 		// quietly ignores the CreateQueue request if it is identical to an
 		// existing queue.
 		if ok && aerr.Code() == sqs.ErrCodeQueueNameExists {
-		        return errors.New("Error: Queue already exists but has different attributes:" + name)
+			return errors.New("Error: Queue already exists but has different attributes:" + name)
 		} else {
 			return errors.New(fmt.Sprintf("Error creating queue %s: %v", name, err))
 		}
@@ -447,7 +447,7 @@ func (a *AwsConn) StartInstances(n int) error {
 			IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
 				Arn: aws.String(spotProfile),
 			},
-			ImageId: aws.String(spotImage),
+			ImageId:      aws.String(spotImage),
 			InstanceType: aws.String(spotType),
 			SecurityGroupIds: []*string{
 				aws.String(spotSg),

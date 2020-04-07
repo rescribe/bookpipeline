@@ -116,7 +116,7 @@ func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err er
 	}
 	// Search for graph.png to determine done books (and save the date of it to sort with)
 	for _, p := range prefixes {
-		objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), p + "graph.png")
+		objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), p+"graph.png")
 		if err != nil || len(objs) == 0 {
 			inprogressmeta = append(inprogressmeta, bookpipeline.ObjMeta{Name: p})
 		} else {

@@ -107,14 +107,14 @@ func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines
 	final := graphconf[len(graphconf)-1]
 	ticks[len(ticks)-1] = chart.Tick{final.Pgnum, fmt.Sprintf("%.0f", final.Pgnum)}
 	for i := 0; i <= yticknum; i++ {
-		n := float64(i * 100) / yticknum
+		n := float64(i*100) / yticknum
 		yticks = append(yticks, chart.Tick{n, fmt.Sprintf("%.1f", n)})
 	}
 
 	mainSeries := chart.ContinuousSeries{
 		Style: chart.Style{
-			StrokeColor:     chart.ColorBlue,
-			FillColor:       chart.ColorAlternateBlue,
+			StrokeColor: chart.ColorBlue,
+			FillColor:   chart.ColorAlternateBlue,
 		},
 		XValues: xvalues,
 		YValues: yvalues,
@@ -165,18 +165,18 @@ func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines
 	annotations = append(annotations, chart.Value2{Label: fmt.Sprintf("%.0f", highconf), XValue: xvalues[len(xvalues)-1], YValue: highconf})
 
 	graph := chart.Chart{
-		Title:      bookname,
-		Width:      3840,
-		Height:     2160,
+		Title:  bookname,
+		Width:  3840,
+		Height: 2160,
 		XAxis: chart.XAxis{
-			Name:      xaxis,
+			Name: xaxis,
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 			},
 			Ticks: ticks,
 		},
 		YAxis: chart.YAxis{
-			Name:      "Confidence",
+			Name: "Confidence",
 			Range: &chart.ContinuousRange{
 				Min: 0.0,
 				Max: 100.0,

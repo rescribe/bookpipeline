@@ -13,8 +13,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"sort"
+	"strings"
 	"time"
 
 	"rescribe.xyz/bookpipeline"
@@ -121,7 +121,7 @@ func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, b
 			return
 		}
 		logger.Println("Adding", key, training, "to queue", toQueue)
-		err = conn.AddToQueue(toQueue, key + " " + training)
+		err = conn.AddToQueue(toQueue, key+" "+training)
 		if err != nil {
 			for range c {
 			} // consume the rest of the receiving channel so it isn't blocked
@@ -195,192 +195,192 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 
 func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Logger) {
 	return func(toanalyse chan string, up chan string, errc chan error, logger *log.Logger) {
-	confs := make(map[string][]*bookpipeline.Conf)
-	bestconfs := make(map[string]*bookpipeline.Conf)
-	savedir := ""
+		confs := make(map[string][]*bookpipeline.Conf)
+		bestconfs := make(map[string]*bookpipeline.Conf)
+		savedir := ""
 
-	for path := range toanalyse {
-		if savedir == "" {
-			savedir = filepath.Dir(path)
+		for path := range toanalyse {
+			if savedir == "" {
+				savedir = filepath.Dir(path)
+			}
+			logger.Println("Calculating confidence for", path)
+			avg, err := hocr.GetAvgConf(path)
+			if err != nil && err.Error() == "No words found" {
+				continue
+			}
+			if err != nil {
+				for range toanalyse {
+				} // consume the rest of the receiving channel so it isn't blocked
+				close(up)
+				errc <- fmt.Errorf("Error retreiving confidence for %s: %s", path, err)
+				return
+			}
+			base := filepath.Base(path)
+			codestart := strings.Index(base, "_bin")
+			name := base[0:codestart]
+			var c bookpipeline.Conf
+			c.Path = path
+			c.Code = base[codestart:]
+			c.Conf = avg
+			confs[name] = append(confs[name], &c)
 		}
-		logger.Println("Calculating confidence for", path)
-		avg, err := hocr.GetAvgConf(path)
-		if err != nil && err.Error() == "No words found" {
-			continue
-		}
+
+		fn := filepath.Join(savedir, "conf")
+		logger.Println("Saving confidences in file", fn)
+		f, err := os.Create(fn)
 		if err != nil {
-			for range toanalyse {
-			} // consume the rest of the receiving channel so it isn't blocked
 			close(up)
-			errc <- fmt.Errorf("Error retreiving confidence for %s: %s", path, err)
+			errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 			return
 		}
-		base := filepath.Base(path)
-		codestart := strings.Index(base, "_bin")
-		name := base[0:codestart]
-		var c bookpipeline.Conf
-		c.Path = path
-		c.Code = base[codestart:]
-		c.Conf = avg
-		confs[name] = append(confs[name], &c)
-	}
+		defer f.Close()
 
-	fn := filepath.Join(savedir, "conf")
-	logger.Println("Saving confidences in file", fn)
-	f, err := os.Create(fn)
-	if err != nil {
-		close(up)
-		errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
-		return
-	}
-	defer f.Close()
-
-	logger.Println("Finding best confidence for each page, and saving all confidences")
-	for base, conf := range confs {
-		var best float64
-		for _, c := range conf {
-			if c.Conf > best {
-				best = c.Conf
-				bestconfs[base] = c
-			}
-			_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.Path, c.Conf)
-			if err != nil {
-				close(up)
-				errc <- fmt.Errorf("Error writing confidences file: %s", err)
-				return
+		logger.Println("Finding best confidence for each page, and saving all confidences")
+		for base, conf := range confs {
+			var best float64
+			for _, c := range conf {
+				if c.Conf > best {
+					best = c.Conf
+					bestconfs[base] = c
+				}
+				_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.Path, c.Conf)
+				if err != nil {
+					close(up)
+					errc <- fmt.Errorf("Error writing confidences file: %s", err)
+					return
+				}
 			}
 		}
-	}
-	up <- fn
+		up <- fn
 
-	logger.Println("Creating best file listing the best file for each page")
-	fn = filepath.Join(savedir, "best")
-	f, err = os.Create(fn)
-	if err != nil {
-		close(up)
-		errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
-		return
-	}
-	defer f.Close()
-	for _, conf := range bestconfs {
-		_, err = fmt.Fprintf(f, "%s\n", filepath.Base(conf.Path))
-	}
-	up <- fn
-
-	var pgs []string
-	for _, conf := range bestconfs {
-		pgs = append(pgs, conf.Path)
-	}
-	sort.Strings(pgs)
-
-	logger.Println("Downloading binarised and original images to create PDFs")
-	bookname, err := filepath.Rel(os.TempDir(), savedir)
-	if err != nil {
-		close(up)
-		errc <- fmt.Errorf("Failed to do filepath.Rel of %s to %s: %s", os.TempDir(), savedir, err)
-		return
-	}
-	colourpdf := new(bookpipeline.Fpdf)
-	err = colourpdf.Setup()
-	if err != nil {
-		close(up)
-		errc <- fmt.Errorf("Failed to set up PDF: %s", err)
-		return
-	}
-	binarisedpdf := new(bookpipeline.Fpdf)
-	err = binarisedpdf.Setup()
-	if err != nil {
-		close(up)
-		errc <- fmt.Errorf("Failed to set up PDF: %s", err)
-		return
-	}
-	binhascontent, colourhascontent := false, false
-	for _, pg := range pgs {
-		var colourfn, binfn string
-		base := filepath.Base(pg)
-		nosuffix := strings.TrimSuffix(base, ".hocr")
-		p := strings.SplitN(base, "_bin", 2)
-
-		binfn = nosuffix + ".png"
-		if len(p) > 1 {
-			colourfn = p[0] + ".jpg"
-		} else {
-			colourfn = nosuffix + ".jpg"
-		}
-
-		logger.Println("Downloading binarised page to add to PDF", binfn)
-		err := conn.Download(conn.WIPStorageId(), bookname + "/" + binfn, filepath.Join(savedir, binfn))
-		if err != nil {
-			logger.Println("Download failed; skipping page", binfn)
-		} else {
-			err = binarisedpdf.AddPage(filepath.Join(savedir, binfn), pg, true)
-			if err != nil {
-				close(up)
-				errc <- fmt.Errorf("Failed to add page %s to PDF: %s", binfn, err)
-				return
-			}
-			binhascontent = true
-		}
-
-		logger.Println("Downloading colour page to add to PDF", colourfn)
-		err = conn.Download(conn.WIPStorageId(), bookname + "/" + colourfn, filepath.Join(savedir, colourfn))
-		if err != nil {
-			colourfn = strings.Replace(colourfn, ".jpg", ".png", 1)
-			logger.Println("Download failed; trying", colourfn)
-			err = conn.Download(conn.WIPStorageId(), bookname + "/" + colourfn, filepath.Join(savedir, colourfn))
-			if err != nil {
-				logger.Println("Download failed; skipping page", colourfn)
-			}
-		}
-		if err == nil {
-			err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
-			if err != nil {
-				close(up)
-				errc <- fmt.Errorf("Failed to add page %s to PDF: %s", colourfn, err)
-				return
-			}
-			colourhascontent = true
-		}
-	}
-	if colourhascontent {
-		fn = filepath.Join(savedir, bookname + ".colour.pdf")
-		err = colourpdf.Save(fn)
+		logger.Println("Creating best file listing the best file for each page")
+		fn = filepath.Join(savedir, "best")
+		f, err = os.Create(fn)
 		if err != nil {
 			close(up)
-			errc <- fmt.Errorf("Failed to save colour pdf: %s", err)
+			errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
+			return
+		}
+		defer f.Close()
+		for _, conf := range bestconfs {
+			_, err = fmt.Fprintf(f, "%s\n", filepath.Base(conf.Path))
+		}
+		up <- fn
+
+		var pgs []string
+		for _, conf := range bestconfs {
+			pgs = append(pgs, conf.Path)
+		}
+		sort.Strings(pgs)
+
+		logger.Println("Downloading binarised and original images to create PDFs")
+		bookname, err := filepath.Rel(os.TempDir(), savedir)
+		if err != nil {
+			close(up)
+			errc <- fmt.Errorf("Failed to do filepath.Rel of %s to %s: %s", os.TempDir(), savedir, err)
+			return
+		}
+		colourpdf := new(bookpipeline.Fpdf)
+		err = colourpdf.Setup()
+		if err != nil {
+			close(up)
+			errc <- fmt.Errorf("Failed to set up PDF: %s", err)
+			return
+		}
+		binarisedpdf := new(bookpipeline.Fpdf)
+		err = binarisedpdf.Setup()
+		if err != nil {
+			close(up)
+			errc <- fmt.Errorf("Failed to set up PDF: %s", err)
+			return
+		}
+		binhascontent, colourhascontent := false, false
+		for _, pg := range pgs {
+			var colourfn, binfn string
+			base := filepath.Base(pg)
+			nosuffix := strings.TrimSuffix(base, ".hocr")
+			p := strings.SplitN(base, "_bin", 2)
+
+			binfn = nosuffix + ".png"
+			if len(p) > 1 {
+				colourfn = p[0] + ".jpg"
+			} else {
+				colourfn = nosuffix + ".jpg"
+			}
+
+			logger.Println("Downloading binarised page to add to PDF", binfn)
+			err := conn.Download(conn.WIPStorageId(), bookname+"/"+binfn, filepath.Join(savedir, binfn))
+			if err != nil {
+				logger.Println("Download failed; skipping page", binfn)
+			} else {
+				err = binarisedpdf.AddPage(filepath.Join(savedir, binfn), pg, true)
+				if err != nil {
+					close(up)
+					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", binfn, err)
+					return
+				}
+				binhascontent = true
+			}
+
+			logger.Println("Downloading colour page to add to PDF", colourfn)
+			err = conn.Download(conn.WIPStorageId(), bookname+"/"+colourfn, filepath.Join(savedir, colourfn))
+			if err != nil {
+				colourfn = strings.Replace(colourfn, ".jpg", ".png", 1)
+				logger.Println("Download failed; trying", colourfn)
+				err = conn.Download(conn.WIPStorageId(), bookname+"/"+colourfn, filepath.Join(savedir, colourfn))
+				if err != nil {
+					logger.Println("Download failed; skipping page", colourfn)
+				}
+			}
+			if err == nil {
+				err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
+				if err != nil {
+					close(up)
+					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", colourfn, err)
+					return
+				}
+				colourhascontent = true
+			}
+		}
+		if colourhascontent {
+			fn = filepath.Join(savedir, bookname+".colour.pdf")
+			err = colourpdf.Save(fn)
+			if err != nil {
+				close(up)
+				errc <- fmt.Errorf("Failed to save colour pdf: %s", err)
+				return
+			}
+			up <- fn
+		}
+		if binhascontent {
+			fn = filepath.Join(savedir, bookname+".binarised.pdf")
+			err = binarisedpdf.Save(fn)
+			if err != nil {
+				close(up)
+				errc <- fmt.Errorf("Failed to save binarised pdf: %s", err)
+				return
+			}
+			up <- fn
+		}
+
+		logger.Println("Creating graph")
+		fn = filepath.Join(savedir, "graph.png")
+		f, err = os.Create(fn)
+		if err != nil {
+			close(up)
+			errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
+			return
+		}
+		defer f.Close()
+		err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
+		if err != nil && err.Error() != "Not enough valid confidences" {
+			close(up)
+			errc <- fmt.Errorf("Error rendering graph: %s", err)
 			return
 		}
 		up <- fn
-	}
-	if binhascontent {
-		fn = filepath.Join(savedir, bookname + ".binarised.pdf")
-		err = binarisedpdf.Save(fn)
-		if err != nil {
-			close(up)
-			errc <- fmt.Errorf("Failed to save binarised pdf: %s", err)
-			return
-		}
-		up <- fn
-	}
 
-	logger.Println("Creating graph")
-	fn = filepath.Join(savedir, "graph.png")
-	f, err = os.Create(fn)
-	if err != nil {
 		close(up)
-		errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
-		return
-	}
-	defer f.Close()
-	err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
-	if err != nil && err.Error() != "Not enough valid confidences" {
-		close(up)
-		errc <- fmt.Errorf("Error rendering graph: %s", err)
-		return
-	}
-	up <- fn
-
-	close(up)
 	}
 }
 
@@ -849,7 +849,7 @@ func main() {
 			err := cmd.Run()
 			if err != nil {
 				conn.Log("Error shutting down, error:", err,
-				         ", stdout:", stdout.String(), ", stderr:", stderr.String())
+					", stdout:", stdout.String(), ", stderr:", stderr.String())
 			}
 		}
 	}

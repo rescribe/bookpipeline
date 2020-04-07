@@ -44,8 +44,8 @@ type Pipeliner interface {
 }
 
 func getpdfs(conn Pipeliner, l *log.Logger, bookname string) {
-	for _, suffix := range []string { ".colour.pdf", ".binarised.pdf" } {
-		fn := filepath.Join(bookname, bookname + suffix)
+	for _, suffix := range []string{".colour.pdf", ".binarised.pdf"} {
+		fn := filepath.Join(bookname, bookname+suffix)
 		l.Println("Downloading PDF", fn)
 		err := conn.Download(conn.WIPStorageId(), fn, fn)
 		if err != nil {
@@ -115,7 +115,7 @@ func main() {
 	}
 
 	if *binarisedpdf {
-		fn := filepath.Join(bookname, bookname + ".binarised.pdf")
+		fn := filepath.Join(bookname, bookname+".binarised.pdf")
 		verboselog.Println("Downloading file", fn)
 		err = conn.Download(conn.WIPStorageId(), fn, fn)
 		if err != nil {
@@ -124,7 +124,7 @@ func main() {
 	}
 
 	if *colourpdf {
-		fn := filepath.Join(bookname, bookname + ".colour.pdf")
+		fn := filepath.Join(bookname, bookname+".colour.pdf")
 		verboselog.Println("Downloading file", fn)
 		err = conn.Download(conn.WIPStorageId(), fn, fn)
 		if err != nil {

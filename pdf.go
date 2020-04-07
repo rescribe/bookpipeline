@@ -22,7 +22,7 @@ import (
 )
 
 // TODO: maybe set this in Fpdf struct
-const pageWidth = 5 // pageWidth in inches
+const pageWidth = 5    // pageWidth in inches
 const scaleSmaller = 3 // amount the width and height are divided by
 
 // pxToPt converts a pixel value into a pt value (72 pts per inch)
@@ -113,7 +113,7 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 				continue
 			}
 			p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
-			p.fpdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), html.UnescapeString(w.Text) + " ", "", 0, "T", false, 0, "")
+			p.fpdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), html.UnescapeString(w.Text)+" ", "", 0, "T", false, 0, "")
 		}
 	}
 	return p.fpdf.Error()
