@@ -105,45 +105,47 @@ a job is completed successfully it is deleted from the queue.
 
 Queues
 
-rescribepreprocess
+Queue names are defined in cloudsettings.go.
 
-Each message in the rescribepreprocess queue is a bookname, optionally
+queuePreProc
+
+Each message in the queuePreProc queue is a bookname, optionally
 followed by a space and the name of the training to use. Each page of the
 bookname will be binarised with several different parameters, and then
 wiped, with each version uploaded to S3, with the path of the preprocessed
 page, plus the training name if it was provided, will be added to the
-rescribeocrpage queue. The pages are binarised with different parameters as
+queueOcrPage queue. The pages are binarised with different parameters as
 it can be difficult to determine which binarisation level will be best prior
-to OCR, so several different options are used, and in the rescribeanalyse
+to OCR, so several different options are used, and in the queueAnalyse
 step the best one is chosen, based on the confidence of the OCR output.
 
   example message: APolishGentleman_MemoirByAdamKruczkiewicz
   example message: APolishGentleman_MemoirByAdamKruczkiewicz rescribelatv7
 
-rescribewipeonly
+queueWipeOnly
 
-This queue works the same as rescribepreprocess, except that it doesn't
+This queue works the same as queuePreProc, except that it doesn't
 binarise the pages, only runs the wiper. Hence it is designed for books
 which have been prebinarised.
 
   example message: APolishGentleman_MemoirByAdamKruczkiewicz
   example message: APolishGentleman_MemoirByAdamKruczkiewicz rescribefrav2
 
-rescribeocrpage
+queueOcrPage
 
 This queue contains the path of individual pages, optionally followed by
 a space and the name of the training to use. Each page is OCRed, and the
 results are uploaded to S3. After each page is OCRed, a check is made to
 see whether all pages that look like they were preprocessed have
 corresponding .hocr files. If so, the bookname is added to the
-rescribeanalyse queue.
+queueAnalyse queue.
 
   example message: APolishGentleman_MemoirByAdamKruczkiewicz/00162_bin0.0.png
   example message: APolishGentleman_MemoirByAdamKruczkiewicz/00162_bin0.0.png rescribelatv7
 
-rescribeanalyse
+queueAnalyse
 
-A message on the rescribeanalyse queue contains only a book name. The
+A message on the queueAnalyse queue contains only a book name. The
 confidences for each page are calculated and saved in the 'conf' file, and
 the best version of each page is decided upon and saved in the 'best' file.
 PDFs are then generated, and the confidence graph is generated.
@@ -154,9 +156,7 @@ Queue manipulation
 
 The queues should generally only be messed with by the bookpipeline and
 booktopipeline tools, but if you're feeling ambitious you can take a look at
-a couple of tools:
-  - addtoqueue
-  - unstickocr
+the `addtoqueue` tool.
 
 Remember that messages in a queue are hidden for a few minutes when they are
 read, so for example you couldn't straightforwardly delete a message which was
