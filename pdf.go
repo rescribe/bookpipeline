@@ -31,6 +31,7 @@ func pxToPt(i int) float64 {
 	return float64(i) / pageWidth
 }
 
+// Fpdf abstracts the gofpdf.Fpdf adding some useful methods
 type Fpdf struct {
 	fpdf *gofpdf.Fpdf
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-const PreprocPattern = `_bin[0-9].[0-9].png`
+const defaultAwsRegion = `eu-west-2`
 
 type Qmsg struct {
 	Id, Handle, Body string
@@ -35,8 +35,11 @@ type ObjMeta struct {
 	Date time.Time
 }
 
+// AwsConn contains the necessary things to interact with various AWS
+// services in ways useful for the bookpipeline package. It is
+// designed to be generic enough to swap in other backends easily.
 type AwsConn struct {
-	// these need to be set before running Init()
+	// these should be set before running Init(), or left to defaults
 	Region string
 	Logger *log.Logger
 
@@ -53,10 +56,10 @@ type AwsConn struct {
 // MinimalInit does the bare minimum to initialise aws services
 func (a *AwsConn) MinimalInit() error {
 	if a.Region == "" {
-		return errors.New("No Region set")
+		a.Region = defaultAwsRegion
 	}
 	if a.Logger == nil {
-		return errors.New("No logger set")
+		a.Logger = log.New(os.Stdout, "", 0)
 	}
 
 	var err error

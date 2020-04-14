@@ -32,6 +32,8 @@ type GraphConf struct {
 	Pgnum, Conf float64
 }
 
+// createLine creates a horizontal line with a particular y value for
+// a graph
 func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousSeries {
 	var yvalues []float64
 	for range xvalues {
@@ -46,10 +48,12 @@ func createLine(xvalues []float64, y float64, c drawing.Color) chart.ContinuousS
 	}
 }
 
+// Graph creates a graph of the confidence of each page in a book
 func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	return GraphOpts(confs, bookname, "Page number", true, w)
 }
 
+// Graph creates a graph of confidences
 func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines bool, w io.Writer) error {
 	if len(confs) < 2 {
 		return errors.New("Not enough valid confidences")
