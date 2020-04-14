@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package bookpipeline contains various tools and functions for the OCR of
+The bookpipeline package contains various tools and functions for the OCR of
 books, with a focus on distributed OCR using short-lived virtual servers.
 It also contains several tools that are useful standalone; read the
 accompanying README for more details.
