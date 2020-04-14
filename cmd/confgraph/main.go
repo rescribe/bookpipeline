@@ -2,6 +2,8 @@
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
+// confgraph creates a graph showing the average word confidence
+// of each page of hOCR in a directory.
 package main
 
 import (

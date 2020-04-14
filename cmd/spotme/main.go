@@ -2,6 +2,7 @@
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
+// spotme creates new spot instances for the book pipeline.
 package main
 
 import (

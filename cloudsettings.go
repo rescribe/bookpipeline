@@ -8,6 +8,9 @@ package bookpipeline
 // you want to use the cloud functionality on your own site.
 
 // Spot instance details.
+// This is only needed if you want to start spot instances with the
+// spotme command, to start up preconfigured virtual servers running
+// bookpipeline.
 // The profile needs to allow permissions to the below S3 buckets and
 // SQS queues, the Sg (security group) doesn't need any permissions,
 // beyond SSH if you like, and the image should have bookpipeline

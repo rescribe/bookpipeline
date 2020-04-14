@@ -2,6 +2,8 @@
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
+// pagegraph creates a graph showing the average confidence of each
+// word in a page of hOCR.
 package main
 
 import (

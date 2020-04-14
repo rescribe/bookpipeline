@@ -2,6 +2,8 @@
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
+// addtoqueue adds a message to a queue. This is handy to work
+// around bugs in the book pipeline when things are misbehaving.
 package main
 
 import (
