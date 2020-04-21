@@ -19,15 +19,8 @@ Create new spot instances for the book pipeline.
 `
 
 type SpotPipeliner interface {
-	Init() error
+	MinimalInit() error
 	StartInstances(n int) error
-}
-
-// NullWriter is used so non-verbose logging may be discarded
-type NullWriter bool
-
-func (w NullWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
 }
 
 func main() {
@@ -38,13 +31,9 @@ func main() {
 	}
 	flag.Parse()
 
-	var verboselog *log.Logger
-	var n NullWriter
-	verboselog = log.New(n, "", 0)
-
 	var conn SpotPipeliner
-	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
-	err := conn.Init()
+	conn = &bookpipeline.AwsConn{}
+	err := conn.MinimalInit()
 	if err != nil {
 		log.Fatalln("Failed to set up cloud connection:", err)
 	}
