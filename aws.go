@@ -149,6 +149,35 @@ func (a *AwsConn) CheckQueue(url string, timeout int64) (Qmsg, error) {
 	}
 }
 
+func (a *AwsConn) LogAndPurgeQueue(url string) error {
+	for {
+		msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
+			MaxNumberOfMessages: aws.Int64(10),
+			VisibilityTimeout:   aws.Int64(300),
+			QueueUrl:            &url,
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(msgResult.Messages) > 0 {
+			for _, m := range msgResult.Messages {
+				a.Logger.Println(*m.Body)
+				_, err = a.sqssvc.DeleteMessage(&sqs.DeleteMessageInput{
+					QueueUrl:      &url,
+					ReceiptHandle: m.ReceiptHandle,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			break
+		}
+	}
+	return nil
+}
+
 // QueueHeartbeat updates the visibility timeout of a message. This
 // ensures that the message remains "in flight", meaning that it
 // cannot be seen by other processes, but if this process fails the
