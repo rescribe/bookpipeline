@@ -81,6 +81,7 @@ func (a *LocalConn) CheckQueue(url string, timeout int64) (Qmsg, error) {
 	if err != nil && err != io.EOF {
 		return Qmsg{}, err
 	}
+	s = strings.TrimSpace(s)
 
 	return Qmsg{Body: s, Handle: s}, nil
 }
