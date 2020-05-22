@@ -727,9 +727,7 @@ func main() {
 	if !*noanalyse {
 		checkAnalyseQueue = time.After(0)
 	}
-	if *autoshutdown {
-		shutdownIfQuiet = time.NewTimer(TimeBeforeShutdown)
-	}
+	shutdownIfQuiet = time.NewTimer(TimeBeforeShutdown)
 	savelognow = time.NewTicker(LogSaveTime)
 
 	for {
