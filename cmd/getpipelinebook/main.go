@@ -17,7 +17,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: getpipelinebook [-a] [-graph] [-pdf] [-png] [-v] bookname
+const usage = `Usage: getpipelinebook [-c conn] [-a] [-graph] [-pdf] [-png] [-v] bookname
 
 Downloads the pipeline results for a book.
 
@@ -57,6 +57,7 @@ func getpdfs(conn Pipeliner, l *log.Logger, bookname string) {
 
 func main() {
 	all := flag.Bool("a", false, "Get all files for book")
+	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 	graph := flag.Bool("graph", false, "Only download graphs (can be used alongside -pdf)")
 	binarisedpdf := flag.Bool("binarisedpdf", false, "Only download binarised PDF (can be used alongside -graph)")
 	colourpdf := flag.Bool("colourpdf", false, "Only download colour PDF (can be used alongside -graph)")
@@ -83,7 +84,14 @@ func main() {
 	}
 
 	var conn Pipeliner
-	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
+	switch *conntype {
+	case "aws":
+		conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
+	case "local":
+		conn = &bookpipeline.LocalConn{Logger: verboselog}
+	default:
+		log.Fatalln("Unknown connection type")
+	}
 
 	verboselog.Println("Setting up AWS session")
 	err := conn.MinimalInit()

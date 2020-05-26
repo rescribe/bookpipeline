@@ -25,7 +25,7 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
-const usage = `Usage: bookpipeline [-v] [-np] [-nw] [-nop] [-na] [-t training] [-shutdown true/false]
+const usage = `Usage: bookpipeline [-v] [-c conn] [-np] [-nw] [-nop] [-na] [-t training] [-shutdown true/false]
 
 Watches the preprocess, wipeonly, ocrpage and analyse queues for messages.
 When one is found this general process is followed:
@@ -677,6 +677,7 @@ func main() {
 	noocrpg := flag.Bool("nop", false, "disable ocr on individual pages")
 	noanalyse := flag.Bool("na", false, "disable analysis")
 	autoshutdown := flag.Bool("shutdown", false, "automatically shut down if no work has been available for 5 minutes")
+	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -697,7 +698,14 @@ func main() {
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var conn Pipeliner
-	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
+	switch *conntype {
+	case "aws":
+		conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
+	case "local":
+		conn = &bookpipeline.LocalConn{Logger: verboselog}
+	default:
+		log.Fatalln("Unknown connection type")
+	}
 
 	conn.Log("Setting up AWS session")
 	err := conn.Init()
