@@ -16,7 +16,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: booktopipeline [-t training] [-prebinarised] [-v] bookdir [bookname]
+const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-v] bookdir [bookname]
 
 Uploads the book in bookdir to the S3 'inprogress' bucket and adds it
 to the 'preprocess' SQS queue, or the 'wipeonly' queue if the
@@ -57,6 +57,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 
 func main() {
 	verbose := flag.Bool("v", false, "Verbose")
+	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
 	training := flag.String("t", "", "Training to use (training filename without the .traineddata part)")
 
@@ -86,7 +87,14 @@ func main() {
 	}
 
 	var conn Pipeliner
-	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
+	switch *conntype {
+	case "aws":
+		conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
+	case "local":
+		conn = &bookpipeline.LocalConn{Logger: verboselog}
+	default:
+		log.Fatalln("Unknown connection type")
+	}
 	err := conn.Init()
 	if err != nil {
 		log.Fatalln("Failed to set up cloud connection:", err)

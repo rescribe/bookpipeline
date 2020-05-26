@@ -14,7 +14,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: addtoqueue qname msg
+const usage = `Usage: addtoqueue [-c conn] qname msg
 
 addtoqueue adds a message to a queue.
 
@@ -44,6 +44,7 @@ type QueuePipeliner interface {
 }
 
 func main() {
+	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -58,7 +59,15 @@ func main() {
 	var n NullWriter
 	quietlog := log.New(n, "", 0)
 	var conn QueuePipeliner
-	conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: quietlog}
+
+	switch *conntype {
+	case "aws":
+		conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: quietlog}
+	case "local":
+		conn = &bookpipeline.LocalConn{Logger: quietlog}
+	default:
+		log.Fatalln("Unknown connection type")
+	}
 
 	err := conn.Init()
 	if err != nil {
