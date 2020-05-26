@@ -1,4 +1,4 @@
-// Copyright 2019 Nick White.
+// Copyright 2020 Nick White.
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
@@ -180,7 +180,7 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 	i := strings.Index(s, handle)
 
 	// store the joining of part before and part after handle
-	complete := s[0:i] + s[i + len(handle):len(s)]
+	complete := s[0:i] + s[i + len(handle) + 1:len(s)]
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))
 	if err != nil {
@@ -210,6 +210,11 @@ func (a *LocalConn) Download(bucket string, key string, path string) error {
 
 // Upload just copies the file from path to TempDir/bucket/key
 func (a *LocalConn) Upload(bucket string, key string, path string) error {
+	d := filepath.Join(a.TempDir, bucket, filepath.Dir(key))
+	err := os.Mkdir(d, 0700)
+	if err != nil && !os.IsExist(err) {
+		return fmt.Errorf("Error creating temporary directory: %v", err)
+	}
 	f, err := os.Create(filepath.Join(a.TempDir, bucket, key))
 	if err != nil {
 		return err
