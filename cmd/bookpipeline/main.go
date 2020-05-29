@@ -76,6 +76,10 @@ type Pipeliner interface {
 	Log(v ...interface{})
 }
 
+type pageimg struct {
+	hocr, img string
+}
+
 func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error, logger *log.Logger) {
 	for key := range dl {
 		fn := filepath.Join(dir, filepath.Base(key))
@@ -105,6 +109,13 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 			errc <- err
 			return
 		}
+		err = os.Remove(path)
+		if err != nil {
+			for range c {
+			} // consume the rest of the receiving channel so it isn't blocked
+			errc <- err
+			return
+		}
 	}
 
 	done <- true
@@ -116,6 +127,13 @@ func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, b
 		key := bookname + "/" + name
 		logger.Println("Uploading", key)
 		err := conn.Upload(conn.WIPStorageId(), key, path)
+		if err != nil {
+			for range c {
+			} // consume the rest of the receiving channel so it isn't blocked
+			errc <- err
+			return
+		}
+		err = os.Remove(path)
 		if err != nil {
 			for range c {
 			} // consume the rest of the receiving channel so it isn't blocked
@@ -297,51 +315,89 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			return
 		}
 		binhascontent, colourhascontent := false, false
+
+		var colourimgs, binimgs []pageimg
+
 		for _, pg := range pgs {
-			var colourfn, binfn string
 			base := filepath.Base(pg)
 			nosuffix := strings.TrimSuffix(base, ".hocr")
 			p := strings.SplitN(base, "_bin", 2)
 
-			binfn = nosuffix + ".png"
+			var fn string
 			if len(p) > 1 {
-				colourfn = p[0] + ".jpg"
+				fn = p[0] + ".jpg"
 			} else {
-				colourfn = nosuffix + ".jpg"
+				fn = nosuffix + ".jpg"
 			}
 
-			logger.Println("Downloading binarised page to add to PDF", binfn)
-			err := conn.Download(conn.WIPStorageId(), bookname+"/"+binfn, filepath.Join(savedir, binfn))
+			binimgs = append(binimgs, pageimg{hocr: pg, img: nosuffix + ".png"})
+			colourimgs = append(colourimgs, pageimg{hocr: pg, img: fn})
+		}
+
+		for _, pg := range binimgs {
+			logger.Println("Downloading binarised page to add to PDF", pg.img)
+			err := conn.Download(conn.WIPStorageId(), bookname+"/"+pg.img, filepath.Join(savedir, pg.img))
 			if err != nil {
-				logger.Println("Download failed; skipping page", binfn)
+				logger.Println("Download failed; skipping page", pg.img)
 			} else {
-				err = binarisedpdf.AddPage(filepath.Join(savedir, binfn), pg, true)
+				err = binarisedpdf.AddPage(filepath.Join(savedir, pg.img), filepath.Join(savedir, pg.hocr), true)
 				if err != nil {
 					close(up)
-					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", binfn, err)
+					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
 				}
 				binhascontent = true
+				err = os.Remove(filepath.Join(savedir, pg.img))
+				if err != nil {
+					close(up)
+					errc <- err
+					return
+				}
 			}
+		}
 
-			logger.Println("Downloading colour page to add to PDF", colourfn)
+		if binhascontent {
+			fn = filepath.Join(savedir, bookname+".binarised.pdf")
+			err = binarisedpdf.Save(fn)
+			if err != nil {
+				close(up)
+				errc <- fmt.Errorf("Failed to save binarised pdf: %s", err)
+				return
+			}
+			up <- fn
+			key := bookname + "/" + bookname + ".binarised.pdf"
+			conn.Log("Uploading", key)
+			err := conn.Upload(conn.WIPStorageId(), key, fn)
+			if err != nil {
+			}
+		}
+
+		for _, pg := range colourimgs {
+			logger.Println("Downloading colour page to add to PDF", pg.img)
+			colourfn := pg.img
 			err = conn.Download(conn.WIPStorageId(), bookname+"/"+colourfn, filepath.Join(savedir, colourfn))
 			if err != nil {
-				colourfn = strings.Replace(colourfn, ".jpg", ".png", 1)
+				colourfn = strings.Replace(pg.img, ".jpg", ".png", 1)
 				logger.Println("Download failed; trying", colourfn)
 				err = conn.Download(conn.WIPStorageId(), bookname+"/"+colourfn, filepath.Join(savedir, colourfn))
 				if err != nil {
-					logger.Println("Download failed; skipping page", colourfn)
+					logger.Println("Download failed; skipping page", pg.img)
 				}
 			}
 			if err == nil {
-				err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg, true)
+				err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg.hocr, true)
 				if err != nil {
 					close(up)
-					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", colourfn, err)
+					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
 				}
 				colourhascontent = true
+				err = os.Remove(filepath.Join(savedir, colourfn))
+				if err != nil {
+					close(up)
+					errc <- err
+					return
+				}
 			}
 		}
 		if colourhascontent {
@@ -350,16 +406,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			if err != nil {
 				close(up)
 				errc <- fmt.Errorf("Failed to save colour pdf: %s", err)
-				return
-			}
-			up <- fn
-		}
-		if binhascontent {
-			fn = filepath.Join(savedir, bookname+".binarised.pdf")
-			err = binarisedpdf.Save(fn)
-			if err != nil {
-				close(up)
-				errc <- fmt.Errorf("Failed to save binarised pdf: %s", err)
 				return
 			}
 			up <- fn
