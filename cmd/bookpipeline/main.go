@@ -164,6 +164,7 @@ func preprocess(pre chan string, up chan string, errc chan error, logger *log.Lo
 			errc <- err
 			return
 		}
+		_ = os.Remove(path)
 		for _, p := range done {
 			up <- p
 		}
