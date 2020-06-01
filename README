@@ -5,7 +5,9 @@ books, with a focus on distributed OCR using short-lived virtual
 servers.
 
 This is a Go package, and can be installed in the standard go way,
-by running `go get rescribe.xyz/bookpipeline/...`
+by running `go get rescribe.xyz/bookpipeline/...` and documentation
+can be read with the `go doc` command or online at
+<https://pkg.go.dev/rescribe.xyz/bookpipeline>.
 
 ## Commands
 
