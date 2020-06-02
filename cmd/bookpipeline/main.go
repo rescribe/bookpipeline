@@ -160,7 +160,6 @@ func preprocess(pre chan string, up chan string, errc chan error, logger *log.Lo
 		if err != nil {
 			for range pre {
 			} // consume the rest of the receiving channel so it isn't blocked
-			close(up)
 			errc <- err
 			return
 		}
@@ -182,7 +181,6 @@ func wipe(towipe chan string, up chan string, errc chan error, logger *log.Logge
 		if err != nil {
 			for range towipe {
 			} // consume the rest of the receiving channel so it isn't blocked
-			close(up)
 			errc <- err
 			return
 		}
@@ -204,7 +202,6 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 			if err != nil {
 				for range toocr {
 				} // consume the rest of the receiving channel so it isn't blocked
-				close(up)
 				errc <- fmt.Errorf("Error ocring %s with training %s: %s\nStdout: %s\nStderr: %s\n", path, training, err, stdout.String(), stderr.String())
 				return
 			}
@@ -232,7 +229,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			if err != nil {
 				for range toanalyse {
 				} // consume the rest of the receiving channel so it isn't blocked
-				close(up)
 				errc <- fmt.Errorf("Error retreiving confidence for %s: %s", path, err)
 				return
 			}
@@ -250,7 +246,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		logger.Println("Saving confidences in file", fn)
 		f, err := os.Create(fn)
 		if err != nil {
-			close(up)
 			errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 			return
 		}
@@ -266,7 +261,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 				}
 				_, err = fmt.Fprintf(f, "%s\t%02.f\n", c.Path, c.Conf)
 				if err != nil {
-					close(up)
 					errc <- fmt.Errorf("Error writing confidences file: %s", err)
 					return
 				}
@@ -278,7 +272,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		fn = filepath.Join(savedir, "best")
 		f, err = os.Create(fn)
 		if err != nil {
-			close(up)
 			errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 			return
 		}
@@ -297,21 +290,18 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		logger.Println("Downloading binarised and original images to create PDFs")
 		bookname, err := filepath.Rel(os.TempDir(), savedir)
 		if err != nil {
-			close(up)
 			errc <- fmt.Errorf("Failed to do filepath.Rel of %s to %s: %s", os.TempDir(), savedir, err)
 			return
 		}
 		colourpdf := new(bookpipeline.Fpdf)
 		err = colourpdf.Setup()
 		if err != nil {
-			close(up)
 			errc <- fmt.Errorf("Failed to set up PDF: %s", err)
 			return
 		}
 		binarisedpdf := new(bookpipeline.Fpdf)
 		err = binarisedpdf.Setup()
 		if err != nil {
-			close(up)
 			errc <- fmt.Errorf("Failed to set up PDF: %s", err)
 			return
 		}
@@ -343,14 +333,12 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			} else {
 				err = binarisedpdf.AddPage(filepath.Join(savedir, pg.img), filepath.Join(savedir, pg.hocr), true)
 				if err != nil {
-					close(up)
 					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
 				}
 				binhascontent = true
 				err = os.Remove(filepath.Join(savedir, pg.img))
 				if err != nil {
-					close(up)
 					errc <- err
 					return
 				}
@@ -361,7 +349,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			fn = filepath.Join(savedir, bookname+".binarised.pdf")
 			err = binarisedpdf.Save(fn)
 			if err != nil {
-				close(up)
 				errc <- fmt.Errorf("Failed to save binarised pdf: %s", err)
 				return
 			}
@@ -388,14 +375,12 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			if err == nil {
 				err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg.hocr, true)
 				if err != nil {
-					close(up)
 					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
 				}
 				colourhascontent = true
 				err = os.Remove(filepath.Join(savedir, colourfn))
 				if err != nil {
-					close(up)
 					errc <- err
 					return
 				}
@@ -405,7 +390,6 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 			fn = filepath.Join(savedir, bookname+".colour.pdf")
 			err = colourpdf.Save(fn)
 			if err != nil {
-				close(up)
 				errc <- fmt.Errorf("Failed to save colour pdf: %s", err)
 				return
 			}
@@ -416,14 +400,12 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		fn = filepath.Join(savedir, "graph.png")
 		f, err = os.Create(fn)
 		if err != nil {
-			close(up)
 			errc <- fmt.Errorf("Error creating file %s: %s", fn, err)
 			return
 		}
 		defer f.Close()
 		err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
 		if err != nil && err.Error() != "Not enough valid confidences" {
-			close(up)
 			errc <- fmt.Errorf("Error rendering graph: %s", err)
 			return
 		}
