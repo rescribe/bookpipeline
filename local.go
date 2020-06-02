@@ -178,9 +178,19 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 	s := string(b)
 
 	i := strings.Index(s, handle)
+	if i == -1 {
+		return fmt.Errorf("Warning: %s not found in queue %s, so not deleted", handle, url)
+	}
 
 	// store the joining of part before and part after handle
-	complete := s[0:i] + s[i + len(handle) + 2:len(s)]
+	var complete string
+	// the '+2' is 1 for newline character + 1 to move beyond handle
+	if len(s) >= len(handle) + 2 {
+		if i > 0 {
+			complete = s[0:i]
+		}
+		complete += s[i + len(handle) + 2:len(s)]
+	}
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))
 	if err != nil {
