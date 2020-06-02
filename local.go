@@ -180,7 +180,7 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 	i := strings.Index(s, handle)
 
 	// store the joining of part before and part after handle
-	complete := s[0:i] + s[i + len(handle) + 1:len(s)]
+	complete := s[0:i] + s[i + len(handle) + 2:len(s)]
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))
 	if err != nil {
