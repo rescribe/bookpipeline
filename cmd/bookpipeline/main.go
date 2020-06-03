@@ -321,8 +321,8 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 				fn = nosuffix + ".jpg"
 			}
 
-			binimgs = append(binimgs, pageimg{hocr: pg, img: nosuffix + ".png"})
-			colourimgs = append(colourimgs, pageimg{hocr: pg, img: fn})
+			binimgs = append(binimgs, pageimg{hocr: base, img: nosuffix + ".png"})
+			colourimgs = append(colourimgs, pageimg{hocr: base, img: fn})
 		}
 
 		for _, pg := range binimgs {
