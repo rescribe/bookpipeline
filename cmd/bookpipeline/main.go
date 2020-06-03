@@ -373,7 +373,7 @@ func analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 				}
 			}
 			if err == nil {
-				err = colourpdf.AddPage(filepath.Join(savedir, colourfn), pg.hocr, true)
+				err = colourpdf.AddPage(filepath.Join(savedir, colourfn), filepath.Join(savedir, pg.hocr), true)
 				if err != nil {
 					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
