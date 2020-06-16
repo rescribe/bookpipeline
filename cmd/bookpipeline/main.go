@@ -667,7 +667,14 @@ func stopTimer(t *time.Timer) {
 
 // TODO: rather than relying on journald, would be nicer to save the logs
 //       ourselves maybe, so that we weren't relying on a particular systemd
-//       setup.
+//       setup. this can be done by having the conn.Log also append line
+//       to a file (though that would mean everything would have to go through
+//       conn.Log, which we're not consistently doing yet). the correct thing
+//       to do then would be to implement a new interface that covers the part
+//       of log.Logger we use (e.g. Print and Printf), and then have an exported
+//       conn struct that implements those, so that we could pass a log.Logger
+//       or the new conn struct everywhere (we wouldn't be passing a log.Logger,
+//       it's just good to be able to keep the compatibility)
 func savelogs(conn Pipeliner, starttime int64, hostname string) error {
 	cmd := exec.Command("journalctl", "-u", "bookpipeline", "-n", "all")
 	var stdout, stderr bytes.Buffer

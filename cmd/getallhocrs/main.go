@@ -68,6 +68,13 @@ func main() {
 			if !strings.HasSuffix(o, ".hocr") {
 				continue
 			}
+			// skip already downloaded items
+			_, err = os.Stat(o)
+			if err == nil || os.IsExist(err) {
+				log.Println("  Skipping already complete download of", o)
+				continue
+			}
+			log.Println("  Downloading", o)
 			err = conn.Download(conn.WIPStorageId(), o, o)
 			if err != nil {
 				log.Fatalln("Failed to download file", o, err)
