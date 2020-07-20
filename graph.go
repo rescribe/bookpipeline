@@ -53,7 +53,7 @@ func Graph(confs map[string]*Conf, bookname string, w io.Writer) error {
 	return GraphOpts(confs, bookname, "Page number", true, w)
 }
 
-// Graph creates a graph of confidences
+// GraphOpts creates a graph of confidences
 func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines bool, w io.Writer) error {
 	if len(confs) < 2 {
 		return errors.New("Not enough valid confidences")
