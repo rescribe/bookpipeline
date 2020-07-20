@@ -177,7 +177,7 @@ func wipe(towipe chan string, up chan string, errc chan error, logger *log.Logge
 		s := strings.Split(path, ".")
 		base := strings.Join(s[:len(s)-1], "")
 		outpath := base + "_bin0.0.png"
-		err := preproc.WipeFile(path, outpath, 5, 0.03, 30)
+		err := preproc.WipeFile(path, outpath, 5, 0.03, 30, 120, 0.005, 30)
 		if err != nil {
 			for range towipe {
 			} // consume the rest of the receiving channel so it isn't blocked
