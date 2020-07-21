@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/smtp"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -617,6 +618,34 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	case err = <-errc:
 		t.Stop()
 		_ = os.RemoveAll(d)
+		// if the error is in preprocessing, chances are that it will never
+		// complete, and will fill the ocrpage queue with parts which succeeded
+		// on each run, so in that case it's better to delete the message from
+		// the queue and notify us.
+		if fromQueue == conn.PreQueueId() {
+			conn.Log("Deleting message from queue due to a bad error", fromQueue)
+			err2 := conn.DelFromQueue(fromQueue, msg.Handle)
+			if err2 != nil {
+				conn.Log("Error deleting message from queue", err2)
+			}
+			if bookpipeline.MailServer != "" {
+				logs, err2 := getlogs()
+				if err2 != nil {
+					conn.Log("Failed to get logs ", err2)
+					logs = ""
+				}
+				msg := fmt.Sprintf("To: %s\r\nFrom: %s\r\n" +
+					"Subject: [bookpipeline] Error in preprocessing queue with %s\r\n\r\n" +
+					" Fail message: %s\r\nFull log:\r\n%s\r\n",
+					bookpipeline.MailTo, bookpipeline.MailFrom, bookname, err, logs)
+				host := fmt.Sprintf("%s:%d", bookpipeline.MailServer, bookpipeline.MailPort)
+				auth := smtp.PlainAuth("", bookpipeline.MailUser, bookpipeline.MailPass, bookpipeline.MailServer)
+				err2 = smtp.SendMail(host, auth, bookpipeline.MailFrom, []string{bookpipeline.MailTo}, []byte(msg))
+				if err2 != nil {
+					conn.Log("!!! Error sending email ", err2)
+				}
+			}
+		}
 		return err
 	case <-done:
 	}
@@ -675,15 +704,19 @@ func stopTimer(t *time.Timer) {
 //       conn struct that implements those, so that we could pass a log.Logger
 //       or the new conn struct everywhere (we wouldn't be passing a log.Logger,
 //       it's just good to be able to keep the compatibility)
-func savelogs(conn Pipeliner, starttime int64, hostname string) error {
+func getlogs() (string, error) {
 	cmd := exec.Command("journalctl", "-u", "bookpipeline", "-n", "all")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	return stdout.String(), err
+}
+
+func savelogs(conn Pipeliner, starttime int64, hostname string) error {
+	logs, err := getlogs()
 	if err != nil {
-		return fmt.Errorf("Error getting logs, error: %v, stdout: %v, stderr: %v",
-			err, stdout.String(), stderr.String())
+		return fmt.Errorf("Error getting logs, error: %v", err)
 	}
 	key := fmt.Sprintf("bookpipeline.log.%d.%s", starttime, hostname)
 	path := filepath.Join(os.TempDir(), key)
@@ -692,7 +725,7 @@ func savelogs(conn Pipeliner, starttime int64, hostname string) error {
 		return fmt.Errorf("Error creating log file", err)
 	}
 	defer f.Close()
-	_, err = f.WriteString(stdout.String())
+	_, err = f.WriteString(logs)
 	if err != nil {
 		return fmt.Errorf("Error saving log file", err)
 	}
