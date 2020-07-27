@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/smtp"
 	"os"
@@ -41,6 +42,9 @@ When one is found this general process is followed:
 - The book name is removed from the queue it was taken from, and
   added to the next queue for future processing
 
+Optionally important messages can be emailed by the process; to enable
+this put a text file in {UserConfigDir}/bookpipeline/mailsettings with
+the contents: {smtpserver} {port} {username} {password} {from} {to}
 `
 
 const PauseBetweenChecks = 3 * time.Minute
@@ -79,6 +83,27 @@ type Pipeliner interface {
 
 type pageimg struct {
 	hocr, img string
+}
+
+type mailSettings struct {
+	server, port, user, pass, from, to string
+}
+
+func getMailSettings() (mailSettings, error) {
+	confdir, err := os.UserConfigDir()
+	if err != nil {
+		return mailSettings{}, fmt.Errorf("Error finding UserConfigDir for mailsettings: %v", err)
+	}
+	p := filepath.Join(confdir, "bookpipeline", "mailsettings")
+	b, err := ioutil.ReadFile(p)
+	if err != nil {
+		return mailSettings{}, fmt.Errorf("Error reading mailsettings from %s: %v", p, err)
+	}
+	f := strings.Fields(string(b))
+	if len(f) != 6 {
+		return mailSettings{}, fmt.Errorf("Error parsing mailsettings, need %d fields, got %d", 6, len(f))
+	}
+	return mailSettings{f[0], f[1], f[2], f[3], f[4], f[5]}, nil
 }
 
 func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error, logger *log.Logger) {
@@ -628,7 +653,11 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 			if err2 != nil {
 				conn.Log("Error deleting message from queue", err2)
 			}
-			if bookpipeline.MailServer != "" {
+			ms, err2 := getMailSettings()
+			if err2 != nil {
+				conn.Log("Failed to mail settings ", err2)
+			}
+			if err2 == nil && ms.server != "" {
 				logs, err2 := getlogs()
 				if err2 != nil {
 					conn.Log("Failed to get logs ", err2)
@@ -637,12 +666,12 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 				msg := fmt.Sprintf("To: %s\r\nFrom: %s\r\n" +
 					"Subject: [bookpipeline] Error in preprocessing queue with %s\r\n\r\n" +
 					" Fail message: %s\r\nFull log:\r\n%s\r\n",
-					bookpipeline.MailTo, bookpipeline.MailFrom, bookname, err, logs)
-				host := fmt.Sprintf("%s:%d", bookpipeline.MailServer, bookpipeline.MailPort)
-				auth := smtp.PlainAuth("", bookpipeline.MailUser, bookpipeline.MailPass, bookpipeline.MailServer)
-				err2 = smtp.SendMail(host, auth, bookpipeline.MailFrom, []string{bookpipeline.MailTo}, []byte(msg))
+					ms.to, ms.from, bookname, err, logs)
+				host := fmt.Sprintf("%s:%s", ms.server, ms.port)
+				auth := smtp.PlainAuth("", ms.user, ms.pass, ms.server)
+				err2 = smtp.SendMail(host, auth, ms.from, []string{ms.to}, []byte(msg))
 				if err2 != nil {
-					conn.Log("!!! Error sending email ", err2)
+					conn.Log("Error sending email ", err2)
 				}
 			}
 		}
@@ -776,8 +805,13 @@ func main() {
 		log.Fatalln("Unknown connection type")
 	}
 
+	_, err := getMailSettings()
+	if err != nil {
+		conn.Log("Warning: disabling email notifications as mail setting retrieval failed: ", err)
+	}
+
 	conn.Log("Setting up AWS session")
-	err := conn.Init()
+	err = conn.Init()
 	if err != nil {
 		log.Fatalln("Error setting up cloud connection:", err)
 	}
