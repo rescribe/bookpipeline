@@ -90,11 +90,7 @@ type mailSettings struct {
 }
 
 func getMailSettings() (mailSettings, error) {
-	confdir, err := os.UserConfigDir()
-	if err != nil {
-		return mailSettings{}, fmt.Errorf("Error finding UserConfigDir for mailsettings: %v", err)
-	}
-	p := filepath.Join(confdir, "bookpipeline", "mailsettings")
+	p := filepath.Join(os.Getenv("HOME"), ".config", "bookpipeline", "mailsettings")
 	b, err := ioutil.ReadFile(p)
 	if err != nil {
 		return mailSettings{}, fmt.Errorf("Error reading mailsettings from %s: %v", p, err)
