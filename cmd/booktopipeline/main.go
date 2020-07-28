@@ -78,7 +78,7 @@ func main() {
 	} else {
 		bookname = filepath.Base(bookdir)
 	}
-
+	
 	if *verbose {
 		verboselog = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
@@ -106,6 +106,19 @@ func main() {
 	} else {
 		qid = conn.PreQueueId()
 	}
+	
+	pngdirs, _ := filepath.Glob(bookdir + "/*.png")
+	jpgdirs, _ := filepath.Glob(bookdir + "/*.jpg")
+	pngcount := len(pngdirs)
+	jpgcount := len(jpgdirs)
+	if pngcount > jpgcount {
+		qid = conn.WipeQueueId()
+		fmt.Println("Uploading book to wipe-only queue")
+	} else {
+		qid = conn.PreQueueId()
+		fmt.Println("Uploading book to preprocess queue")
+	}
+
 
 	verboselog.Println("Walking", bookdir)
 	walker := make(fileWalk)
