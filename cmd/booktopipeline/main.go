@@ -16,11 +16,15 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-v] bookdir [bookname]
+const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-notbinarised] [-v] bookdir [bookname]
 
 Uploads the book in bookdir to the S3 'inprogress' bucket and adds it
-to the 'preprocess' SQS queue, or the 'wipeonly' queue if the
-prebinarised flag is set.
+to the 'preprocess' or 'wipeonly' SQS queue. The queue to send to is
+autodetected based on the number of .jpg and .png files; more .jpg
+than .png means it will be presumed to be not binarised, and it will
+go to the 'preprocess' queue. The queue can be manually selected by
+using the flags -prebinarised (for the wipeonly queue) or
+-notbinarised (for the preprocess queue).
 
 If bookname is omitted the last part of the bookdir is used.
 `
@@ -59,6 +63,7 @@ func main() {
 	verbose := flag.Bool("v", false, "Verbose")
 	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
+	dobinarise := flag.Bool("notbinarised", false, "Not binarised (default): all preprocessing will be done including binarisation")
 	training := flag.String("t", "", "Training to use (training filename without the .traineddata part)")
 
 	flag.Usage = func() {
@@ -78,7 +83,7 @@ func main() {
 	} else {
 		bookname = filepath.Base(bookdir)
 	}
-	
+
 	if *verbose {
 		verboselog = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
@@ -100,25 +105,26 @@ func main() {
 		log.Fatalln("Failed to set up cloud connection:", err)
 	}
 
-	var qid string
-	if *wipeonly {
-		qid = conn.WipeQueueId()
-	} else {
-		qid = conn.PreQueueId()
-	}
-	
+	qid := conn.PreQueueId()
+
+	// Auto detect type of queue to send to based on file extension
 	pngdirs, _ := filepath.Glob(bookdir + "/*.png")
 	jpgdirs, _ := filepath.Glob(bookdir + "/*.jpg")
 	pngcount := len(pngdirs)
 	jpgcount := len(jpgdirs)
 	if pngcount > jpgcount {
 		qid = conn.WipeQueueId()
-		fmt.Println("Uploading book to wipe-only queue")
 	} else {
 		qid = conn.PreQueueId()
-		fmt.Println("Uploading book to preprocess queue")
 	}
 
+	// Flags set override the queue selection
+	if *wipeonly {
+		qid = conn.WipeQueueId()
+	}
+	if *dobinarise {
+		qid = conn.PreQueueId()
+	}
 
 	verboselog.Println("Walking", bookdir)
 	walker := make(fileWalk)
@@ -146,4 +152,13 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error adding book to queue:", err)
 	}
+
+	var qname string
+	if qid == conn.PreQueueId() {
+		qname = "preprocess"
+	} else {
+		qname = "wipeonly"
+	}
+
+	fmt.Println("Uploaded book to %s queue", qname)
 }
