@@ -67,22 +67,13 @@ func main() {
 		name := strings.Split(p, "/")[0]
 		log.Printf("Downloading a page from %s\n", name)
 
-		for _, n := range []string{"_bin0.0", "_bin0.2", "_bin0.4", "_bin0.5"} {
-			fn := pgnum + n + ".hocr"
-			err = conn.Download(conn.WIPStorageId(), p+fn, name+fn)
-			if err != nil && strings.HasPrefix(err.Error(), "NoSuchKey:") {
-				continue
-			} else if err != nil {
-				log.Fatalf("Download of %s%s failed: %v\n", p+fn, err)
-			}
-
-			fn = pgnum + n + ".png"
-			err = conn.Download(conn.WIPStorageId(), p+fn, name+fn)
-			if err != nil && strings.HasPrefix(err.Error(), "NoSuchKey:") {
-				continue
-			} else if err != nil {
-				log.Fatalf("Download of %s%s failed: %v\n", p+fn, err)
-			}
+		fn := pgnum + ".jpg"
+		err = conn.Download(conn.WIPStorageId(), p+fn, name+fn)
+		if err != nil && strings.HasPrefix(err.Error(), "NoSuchKey:") {
+			log.Printf("Skipping %s as no page %s found\n", p, pgnum)
+			continue
+		} else if err != nil {
+			log.Fatalf("Download of %s%s failed: %v\n", p+fn, err)
 		}
 	}
 }
