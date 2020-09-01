@@ -63,7 +63,7 @@ func main() {
 	verbose := flag.Bool("v", false, "Verbose")
 	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
-	dobinarise := flag.Bool("notbinarised", false, "Not binarised (default): all preprocessing will be done including binarisation")
+	dobinarise := flag.Bool("notbinarised", false, "Not binarised: all preprocessing will be done including binarisation")
 	training := flag.String("t", "", "Training to use (training filename without the .traineddata part)")
 
 	flag.Usage = func() {
