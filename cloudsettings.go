@@ -19,7 +19,7 @@ package bookpipeline
 // TODO: create profile and security group with mkpipeline
 const (
 	spotProfile = "arn:aws:iam::557852942063:instance-profile/pipeliner"
-	spotImage   = "ami-0e00bfcc9a3884d2d"
+	spotImage   = "ami-001c9c4a1ee39aeb2"
 	spotType    = "m5.large"
 	spotSg      = "sg-0be8a3ab89e7136b9"
 )
