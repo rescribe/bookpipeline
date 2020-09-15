@@ -639,11 +639,11 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 	case err = <-errc:
 		t.Stop()
 		_ = os.RemoveAll(d)
-		// if the error is in preprocessing, chances are that it will never
+		// if the error is in preprocessing / wipeonly, chances are that it will never
 		// complete, and will fill the ocrpage queue with parts which succeeded
 		// on each run, so in that case it's better to delete the message from
 		// the queue and notify us.
-		if fromQueue == conn.PreQueueId() {
+		if fromQueue == conn.PreQueueId() || fromQueue == conn.WipeQueueId() {
 			conn.Log("Deleting message from queue due to a bad error", fromQueue)
 			err2 := conn.DelFromQueue(fromQueue, msg.Handle)
 			if err2 != nil {
@@ -660,7 +660,7 @@ func processBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 					logs = ""
 				}
 				msg := fmt.Sprintf("To: %s\r\nFrom: %s\r\n" +
-					"Subject: [bookpipeline] Error in preprocessing queue with %s\r\n\r\n" +
+					"Subject: [bookpipeline] Error in wipeonly / preprocessing queue with %s\r\n\r\n" +
 					" Fail message: %s\r\nFull log:\r\n%s\r\n",
 					ms.to, ms.from, bookname, err, logs)
 				host := fmt.Sprintf("%s:%s", ms.server, ms.port)
