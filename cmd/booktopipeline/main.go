@@ -9,6 +9,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	_ "image/png"
+	_ "image/jpeg"
 	"log"
 	"os"
 	"path/filepath"
@@ -124,6 +127,27 @@ func main() {
 	}
 	if *dobinarise {
 		qid = conn.PreQueueId()
+	}
+
+	verboselog.Println("Checking that all images are valid in", bookdir)
+	checker := make(fileWalk)
+	go func() {
+		err = filepath.Walk(bookdir, checker.Walk)
+		if err != nil {
+			log.Fatalln("Filesystem walk failed:", err)
+		}
+		close(checker)
+	}()
+
+	for path := range checker {
+		f, err := os.Open(path)
+		if err != nil {
+			log.Fatalln("Opening image %s failed, bailing: %v", path, err)
+		}
+		_, _, err = image.Decode(f)
+		if err != nil {
+			log.Fatalf("Decoding image %s failed, bailing: %v", path, err)
+		}
 	}
 
 	verboselog.Println("Walking", bookdir)
