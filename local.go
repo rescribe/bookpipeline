@@ -81,7 +81,7 @@ func (a *LocalConn) CheckQueue(url string, timeout int64) (Qmsg, error) {
 	if err != nil && err != io.EOF {
 		return Qmsg{}, err
 	}
-	s = strings.TrimSpace(s)
+	s = strings.TrimRight(s, "\n")
 
 	return Qmsg{Body: s, Handle: s}, nil
 }
@@ -184,12 +184,12 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 
 	// store the joining of part before and part after handle
 	var complete string
-	// the '+2' is 1 for newline character + 1 to move beyond handle
-	if len(s) >= len(handle) + 2 {
+	if len(s) >= len(handle) + 1 {
 		if i > 0 {
 			complete = s[:i]
 		}
-		complete += s[i + len(handle) + 2:]
+		// the '+1' is for the newline character
+		complete += s[i + len(handle) + 1:]
 	}
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))
