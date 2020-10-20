@@ -187,9 +187,9 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 	// the '+2' is 1 for newline character + 1 to move beyond handle
 	if len(s) >= len(handle) + 2 {
 		if i > 0 {
-			complete = s[0:i]
+			complete = s[:i]
 		}
-		complete += s[i + len(handle) + 2:len(s)]
+		complete += s[i + len(handle) + 2:]
 	}
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))
