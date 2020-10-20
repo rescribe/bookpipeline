@@ -184,5 +184,5 @@ func main() {
 		qname = "wipeonly"
 	}
 
-	fmt.Println("Uploaded book to %s queue", qname)
+	fmt.Println("Uploaded book to queue", qname)
 }

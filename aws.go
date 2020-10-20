@@ -478,7 +478,7 @@ func (a *AwsConn) StartInstances(n int) error {
 // Log records an item in the with the Logger. Arguments are handled
 // as with fmt.Println.
 func (a *AwsConn) Log(v ...interface{}) {
-	a.Logger.Print(v...)
+	a.Logger.Println(v...)
 }
 
 // mkpipeline sets up necessary buckets and queues for the pipeline
