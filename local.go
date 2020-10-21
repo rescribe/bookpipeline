@@ -132,8 +132,8 @@ func prefixwalker(dirpath string, prefix string, list *[]ObjMeta) filepath.WalkF
 		if info.IsDir() {
 			return nil
 		}
-		//n := filepath.Base(path)
 		n := strings.TrimPrefix(path, dirpath)
+		n = strings.TrimPrefix(n, "/")
 		o := ObjMeta{Name: n, Date: info.ModTime()}
 		*list = append(*list, o)
 		return nil
