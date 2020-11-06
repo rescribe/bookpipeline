@@ -9,6 +9,11 @@ by running `go get rescribe.xyz/bookpipeline/...` and documentation
 can be read with the `go doc` command or online at
 <https://pkg.go.dev/rescribe.xyz/bookpipeline>.
 
+If you just want to install and use the commands, you can get the
+package with `git clone https://git.rescribe.xyz/bookpipeline`, and
+then install them with `go install ./...` from within the
+`bookpipeline` directory.
+
 ## Commands
 
 The commands in the cmd/ directory are at the heart of this
