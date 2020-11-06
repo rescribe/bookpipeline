@@ -56,9 +56,9 @@ graph creation, PDF creation, and so on that the pipeline provides.
 You can use this by passing the '-c local' flag to the core bookpipeline
 commands. Here is a simple example run:
 
-  booktopipeline -c local MyBook
-  bookpipeline -v -c local           # run until MyBook has finished processing
-  getpipelinebook -c local MyBook
+    booktopipeline -c local MyBook
+    bookpipeline -v -c local        # run until MyBook has finished processing
+    getpipelinebook -c local MyBook
 
 ## Contributions
 
