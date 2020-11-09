@@ -801,17 +801,20 @@ func main() {
 		log.Fatalln("Unknown connection type")
 	}
 
-	_, err := getMailSettings()
-	if err != nil {
-		conn.Log("Warning: disabling email notifications as mail setting retrieval failed: ", err)
+	var err error
+	if *conntype != "local" {
+		_, err = getMailSettings()
+		if err != nil {
+			conn.Log("Warning: disabling email notifications as mail setting retrieval failed: ", err)
+		}
 	}
 
-	conn.Log("Setting up AWS session")
+	conn.Log("Setting up session")
 	err = conn.Init()
 	if err != nil {
-		log.Fatalln("Error setting up cloud connection:", err)
+		log.Fatalln("Error setting up connection:", err)
 	}
-	conn.Log("Finished setting up AWS session")
+	conn.Log("Finished setting up session")
 
 	starttime := time.Now().Unix()
 	hostname, err := os.Hostname()
@@ -836,6 +839,9 @@ func main() {
 	}
 	shutdownIfQuiet = time.NewTimer(TimeBeforeShutdown)
 	savelognow = time.NewTicker(LogSaveTime)
+	if *conntype == "local" {
+		savelognow.Stop()
+	}
 
 	for {
 		select {
