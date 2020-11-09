@@ -221,7 +221,7 @@ func processbook(training string, conn Pipeliner) {
 			}
 			conn.Log("Message received on preprocess queue, processing", msg.Body)
 			stopTimer(stopIfQuiet)
-			err = pipeline.ProcessBook(msg, conn, pipeline.Preprocess, origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
+			err = pipeline.ProcessBook(msg, conn, pipeline.Preprocess([]float64{0.1, 0.2, 0.3}), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during preprocess", err)
