@@ -1,3 +1,7 @@
+// Copyright 2020 Nick White.
+// Use of this source code is governed by the GPLv3
+// license that can be found in the LICENSE file.
+
 // pipeline is a package used by the bookpipeline command, which
 // handles the core functionality, using channels heavily to
 // coordinate jobs. Note that it is considered an "internal" package,
