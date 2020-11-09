@@ -17,6 +17,8 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
+// TODO: use internal/pipeline/get.go functions
+
 const usage = `Usage: getpipelinebook [-c conn] [-a] [-graph] [-pdf] [-png] [-v] bookname
 
 Downloads the pipeline results for a book.

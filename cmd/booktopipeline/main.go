@@ -19,6 +19,8 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
+// TODO: use internal/pipeline/get.go functions
+
 const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-notbinarised] [-v] bookdir [bookname]
 
 Uploads the book in bookdir to the S3 'inprogress' bucket and adds it
