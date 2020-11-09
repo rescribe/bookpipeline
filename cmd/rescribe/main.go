@@ -10,6 +10,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -88,7 +89,7 @@ func main() {
 
 	bookdir := flag.Arg(0)
 	var bookname string
-	if flag.NArg() > 2 {
+	if flag.NArg() > 1 {
 		bookname = flag.Arg(1)
 	} else {
 		bookname = filepath.Base(bookdir)
@@ -102,22 +103,41 @@ func main() {
 		verboselog = log.New(n, "", 0)
 	}
 
+	tempdir, err := ioutil.TempDir("", "bookpipeline")
+	if err != nil {
+		log.Fatalln("Error setting up temporary directory:", err)
+	}
+
 	var conn Pipeliner
-	// TODO: set tmpdir to a specific random thing for this run only
-	conn = &bookpipeline.LocalConn{Logger: verboselog}
+	conn = &bookpipeline.LocalConn{Logger: verboselog, TempDir: tempdir}
 
 	conn.Log("Setting up session")
-	err := conn.Init()
+	err = conn.Init()
 	if err != nil {
 		log.Fatalln("Error setting up connection:", err)
 	}
 	conn.Log("Finished setting up session")
 
-	uploadbook(bookdir, bookname, *training, conn)
+	fmt.Printf("Copying book to pipeline\n")
 
+	err = uploadbook(bookdir, bookname, *training, conn)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Printf("Processing book (this may take some time)\n")
 	processbook(*training, conn)
 
-	// TODO: save book
+	fmt.Printf("Saving finished book to %s\n", bookname)
+	err = downloadbook(bookname, conn)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	err = os.RemoveAll(tempdir)
+	if err != nil {
+		log.Fatalf("Error removing temporary directory %s: %v", tempdir, err)
+	}
 }
 
 func uploadbook(dir string, name string, training string, conn Pipeliner) error {
@@ -142,6 +162,29 @@ func uploadbook(dir string, name string, training string, conn Pipeliner) error 
 	return nil
 }
 
+func downloadbook(name string, conn Pipeliner) error {
+	err := os.MkdirAll(name, 0755)
+	if err != nil {
+		log.Fatalln("Failed to create directory", name, err)
+	}
+
+	err = pipeline.DownloadBestPages(name, conn)
+	if err != nil {
+		return fmt.Errorf("Error downloading best pages: %v", err)
+	}
+
+	err = pipeline.DownloadPdfs(name, conn)
+	if err != nil {
+		return fmt.Errorf("Error downloading PDFs: %v", err)
+	}
+
+	err = pipeline.DownloadAnalyses(name, conn)
+	if err != nil {
+		return fmt.Errorf("Error downloading analyses: %v", err)
+	}
+
+	return nil
+}
 
 func processbook(training string, conn Pipeliner) {
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`)

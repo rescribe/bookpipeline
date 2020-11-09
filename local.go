@@ -36,7 +36,7 @@ func (a *LocalConn) MinimalInit() error {
 	if a.TempDir == "" {
 		a.TempDir = filepath.Join(os.TempDir(), "bookpipeline")
 	}
-	err = os.Mkdir(a.TempDir, 0700)
+	err = os.MkdirAll(a.TempDir, 0700)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("Error creating temporary directory: %v", err)
 	}
