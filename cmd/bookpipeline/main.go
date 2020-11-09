@@ -216,7 +216,7 @@ func ocr(training string) func(chan string, chan string, chan error, *log.Logger
 		for path := range toocr {
 			logger.Println("OCRing", path)
 			name := strings.Replace(path, ".png", "", 1)
-			cmd := exec.Command("tesseract", "-l", training, path, name, "hocr")
+			cmd := exec.Command("tesseract", "-l", training, path, name, "-c", "tessedit_create_hocr=1", "-c", "hocr_font_info=0")
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
