@@ -52,6 +52,11 @@ type Pipeliner interface {
 	Log(v ...interface{})
 }
 
+type MinPipeliner interface {
+	Pipeliner
+	MinimalInit() error
+}
+
 type pageimg struct {
 	hocr, img string
 }

@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func DownloadBestPages(name string, conn Pipeliner) error {
+func DownloadBestPages(name string, conn Pipeliner, pluspngs bool) error {
 	fn := filepath.Join(name, "best")
 	err := conn.Download(conn.WIPStorageId(), fn, fn)
 	if err != nil {
@@ -26,12 +27,27 @@ func DownloadBestPages(name string, conn Pipeliner) error {
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		fn = filepath.Join(name, s.Text())
+		conn.Log("Downloading file", fn)
 		err = conn.Download(conn.WIPStorageId(), fn, fn)
 		if err != nil {
 			return fmt.Errorf("Failed to download file %s: %v", fn, err)
 		}
 	}
 
+	if !pluspngs {
+		return nil
+	}
+
+	s = bufio.NewScanner(f)
+	for s.Scan() {
+		txtfn := filepath.Join(name, s.Text())
+		fn = strings.Replace(txtfn, ".hocr", ".png", 1)
+		conn.Log("Downloading file", fn)
+		err = conn.Download(conn.WIPStorageId(), fn, fn)
+		if err != nil {
+			return fmt.Errorf("Failed to download file", fn, err)
+		}
+	}
 	return nil
 }
 
@@ -52,6 +68,21 @@ func DownloadAnalyses(name string, conn Pipeliner) error {
 		err := conn.Download(conn.WIPStorageId(), fn, fn)
 		if err != nil {
 			return fmt.Errorf("Failed to download analysis file %s: %v", fn, err)
+		}
+	}
+	return nil
+}
+
+func DownloadAll(name string, conn Pipeliner) error {
+	objs, err := conn.ListObjects(conn.WIPStorageId(), name)
+	if err != nil {
+		return fmt.Errorf("Failed to get list of files for book", name, err)
+	}
+	for _, i := range objs {
+		conn.Log("Downloading", i)
+		err = conn.Download(conn.WIPStorageId(), i, i)
+		if err != nil {
+			return fmt.Errorf("Failed to download file", i, err)
 		}
 	}
 	return nil

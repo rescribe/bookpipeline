@@ -168,7 +168,7 @@ func downloadbook(name string, conn Pipeliner) error {
 		log.Fatalln("Failed to create directory", name, err)
 	}
 
-	err = pipeline.DownloadBestPages(name, conn)
+	err = pipeline.DownloadBestPages(name, conn, false)
 	if err != nil {
 		return fmt.Errorf("Error downloading best pages: %v", err)
 	}
