@@ -13,8 +13,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"rescribe.xyz/bookpipeline"
@@ -74,7 +76,7 @@ func resetTimer(t *time.Timer, d time.Duration) {
 
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
-	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
+	training := flag.String("t", "training/rescribev7_fast.traineddata", "path to the tesseract training file to use")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -103,6 +105,33 @@ func main() {
 		verboselog = log.New(n, "", 0)
 	}
 
+	f, err := os.Open(*training)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Training file %s could not be opened.\n", *training)
+		fmt.Fprintf(os.Stderr, "Set the `-t` flag with path to a tesseract .traineddata file.\n")
+		os.Exit(1)
+	}
+	f.Close()
+
+	abstraining, err := filepath.Abs(*training)
+	if err != nil {
+		log.Fatalf("Error getting absolute path of training %s: %v", err)
+	}
+	tessPrefix, trainingName := filepath.Split(abstraining)
+	trainingName = strings.TrimSuffix(trainingName, ".traineddata")
+	err = os.Setenv("TESSDATA_PREFIX", tessPrefix)
+	if err != nil {
+		log.Fatalln("Error setting TESSDATA_PREFIX:", err)
+	}
+
+	// TODO: would be good to be able to set custom path to tesseract
+	_, err = exec.Command("tesseract", "--help").Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Can't run Tesseract.\n")
+		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available.\n")
+		os.Exit(1)
+	}
+
 	tempdir, err := ioutil.TempDir("", "bookpipeline")
 	if err != nil {
 		log.Fatalln("Error setting up temporary directory:", err)
@@ -120,14 +149,14 @@ func main() {
 
 	fmt.Printf("Copying book to pipeline\n")
 
-	err = uploadbook(bookdir, bookname, *training, conn)
+	err = uploadbook(bookdir, bookname, trainingName, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
 	}
 
 	fmt.Printf("Processing book\n")
-	err = processbook(*training, conn)
+	err = processbook(trainingName, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
