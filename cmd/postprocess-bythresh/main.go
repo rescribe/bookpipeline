@@ -19,7 +19,6 @@ import (
 //TO DO: make writetofile return an error and handle that accordingly
 // potential TO DO: add text versions where footer is cropped on odd/even pages only
 
-
 // the trimblanks function trims the blank lines from a text input
 func trimblanks(hocrfile string) string {
 
@@ -50,7 +49,7 @@ func dehyphenateString(in string) string {
 		words := strings.Split(line, " ")
 		last := words[len(words)-1]
 		// the - 2 here is to account for a trailing newline and counting from zero
-		if len(last) > 0 && last[len(last) - 1] == '-' && i < len(lines) - 2 {
+		if len(last) > 0 && last[len(last)-1] == '-' && i < len(lines)-2 {
 			nextwords := strings.Split(lines[i+1], " ")
 			if len(nextwords) > 0 {
 				line = line[0:len(line)-1] + nextwords[0]
@@ -66,17 +65,15 @@ func dehyphenateString(in string) string {
 	return strings.Join(newlines, " ")
 }
 
-
 // the fullcrop function takes a text input and crops the first and the last line (if text is at least 2 lines long)
 func fullcrop(noblanks string) string {
 
-
 	alllines := strings.Split(noblanks, "\n")
-	
+
 	if len(alllines) <= 2 {
-	return ""
-	}	else {
-	return strings.Join(alllines[1:len(alllines)-2], "\n")
+		return ""
+	} else {
+		return strings.Join(alllines[1:len(alllines)-2], "\n")
 	}
 
 }
@@ -132,7 +129,6 @@ func convertselect(bookdirectory, hocrfilename string, confthresh int) (string, 
 	var killheadtxt string
 	var footkilltxt string
 
-
 	hocrfilepath := filepath.Join(bookdirectory, hocrfilename)
 
 	confpath := filepath.Join(bookdirectory, "conf")
@@ -165,18 +161,16 @@ func convertselect(bookdirectory, hocrfilename string, confthresh int) (string, 
 		if err != nil {
 			log.Fatal(err)
 		}
-		
-		
+
 		trimbest := trimblanks(hocrfiletext)
-		
+
 		alltxt = dehyphenateString(trimbest)
-			
+
 		croptxt = dehyphenateString(fullcrop(trimbest))
-	
+
 		killheadtxt = dehyphenateString(headcrop(trimbest))
-		
+
 		footkilltxt = dehyphenateString(footcrop(trimbest))
-		
 
 	}
 	return alltxt, croptxt, killheadtxt, footkilltxt
@@ -185,7 +179,7 @@ func convertselect(bookdirectory, hocrfilename string, confthresh int) (string, 
 // the writetofile function takes a directory, filename and text input and creates a text file within the bookdirectory from them.
 func writetofile(bookdirectory, textfilebase, txt string) error {
 	alltxtfile := filepath.Join(bookdirectory, textfilebase)
-	
+
 	file, err := os.Create(alltxtfile)
 	if err != nil {
 		return fmt.Errorf("Error opening file %s: %v", alltxtfile, err)
@@ -194,7 +188,7 @@ func writetofile(bookdirectory, textfilebase, txt string) error {
 	if _, err := file.WriteString(txt); err != nil {
 		log.Println(err)
 	}
-return err
+	return err
 
 }
 
@@ -215,7 +209,7 @@ func main() {
 
 	bookdirectory := flag.Arg(0)
 	confthreshstring := strconv.Itoa(*confthresh)
-	
+
 	fmt.Println("Postprocessing", bookdirectory, "with threshold", *confthresh)
 
 	bestpath := filepath.Join(bookdirectory, "best")
@@ -239,32 +233,31 @@ func main() {
 			crop = crop + " " + croptxt
 			killhead = killhead + " " + killheadtxt
 			killfoot = killfoot + " " + footkilltxt
-		
+
 		}
 	}
-	
-	
-	bookname:= filepath.Base(bookdirectory)
-		b := bookname + "_" + confthreshstring
 
-		err1 := writetofile(bookdirectory, b + "_all.txt", all)
-		if err1 != nil {
+	bookname := filepath.Base(bookdirectory)
+	b := bookname + "_" + confthreshstring
+
+	err1 := writetofile(bookdirectory, b+"_all.txt", all)
+	if err1 != nil {
 		log.Fatalf("Ah shit, we're going down, Nick says ABORT! %v", err1)
-		}
-		
-		err2 := writetofile(bookdirectory, b + "_crop.txt", crop)
-		if err2 != nil {
+	}
+
+	err2 := writetofile(bookdirectory, b+"_crop.txt", crop)
+	if err2 != nil {
 		log.Fatalf("Ah shit, we're going down, Nick says ABORT! %v", err2)
-		}
-		
-		err3 := writetofile(bookdirectory, b + "_nohead.txt", killhead)
-		if err3 != nil {
+	}
+
+	err3 := writetofile(bookdirectory, b+"_nohead.txt", killhead)
+	if err3 != nil {
 		log.Fatalf("Ah shit, we're going down, Nick says ABORT! %v", err3)
-		}
-		
-		err4 := writetofile(bookdirectory, b + "_nofoot.txt", killfoot)
-		if err4 != nil {
+	}
+
+	err4 := writetofile(bookdirectory, b+"_nofoot.txt", killfoot)
+	if err4 != nil {
 		log.Fatalf("Ah shit, we're going down, Nick says ABORT! %v", err4)
-		}
+	}
 
 }

@@ -640,8 +640,8 @@ func ProcessBook(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string
 					conn.Log("Failed to get logs ", err2)
 					logs = ""
 				}
-				msg := fmt.Sprintf("To: %s\r\nFrom: %s\r\n" +
-					"Subject: [bookpipeline] Error in wipeonly / preprocessing queue with %s\r\n\r\n" +
+				msg := fmt.Sprintf("To: %s\r\nFrom: %s\r\n"+
+					"Subject: [bookpipeline] Error in wipeonly / preprocessing queue with %s\r\n\r\n"+
 					" Fail message: %s\r\nFull log:\r\n%s\r\n",
 					ms.to, ms.from, bookname, err, logs)
 				host := fmt.Sprintf("%s:%s", ms.server, ms.port)

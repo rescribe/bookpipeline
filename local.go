@@ -27,7 +27,7 @@ const storageId = "storage"
 type LocalConn struct {
 	// these should be set before running Init(), or left to defaults
 	TempDir string
-	Logger *log.Logger
+	Logger  *log.Logger
 }
 
 // MinimalInit does the bare minimum initialisation
@@ -184,12 +184,12 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 
 	// store the joining of part before and part after handle
 	var complete string
-	if len(s) >= len(handle) + 1 {
+	if len(s) >= len(handle)+1 {
 		if i > 0 {
 			complete = s[:i]
 		}
 		// the '+1' is for the newline character
-		complete += s[i + len(handle) + 1:]
+		complete += s[i+len(handle)+1:]
 	}
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))

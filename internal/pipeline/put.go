@@ -7,8 +7,8 @@ package pipeline
 import (
 	"fmt"
 	"image"
-	_ "image/png"
 	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"path/filepath"
 )
