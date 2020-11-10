@@ -122,15 +122,21 @@ func main() {
 
 	err = uploadbook(bookdir, bookname, *training, conn)
 	if err != nil {
+		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("Processing book (this may take some time)\n")
-	processbook(*training, conn)
+	fmt.Printf("Processing book\n")
+	err = processbook(*training, conn)
+	if err != nil {
+		_ = os.RemoveAll(tempdir)
+		log.Fatalln(err)
+	}
 
 	fmt.Printf("Saving finished book to %s\n", bookname)
 	err = downloadbook(bookname, conn)
 	if err != nil {
+		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
 	}
 
@@ -186,7 +192,7 @@ func downloadbook(name string, conn Pipeliner) error {
 	return nil
 }
 
-func processbook(training string, conn Pipeliner) {
+func processbook(training string, conn Pipeliner) error {
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`)
 	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
@@ -212,26 +218,26 @@ func processbook(training string, conn Pipeliner) {
 			msg, err := conn.CheckQueue(conn.PreQueueId(), QueueTimeoutSecs)
 			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				conn.Log("Error checking preprocess queue", err)
-				continue
+				return fmt.Errorf("Error checking preprocess queue", err)
 			}
 			if msg.Handle == "" {
 				conn.Log("No message received on preprocess queue, sleeping")
 				continue
 			}
-			conn.Log("Message received on preprocess queue, processing", msg.Body)
 			stopTimer(stopIfQuiet)
+			conn.Log("Message received on preprocess queue, processing", msg.Body)
+			fmt.Printf("  Preprocessing book (binarising and wiping)\n")
 			err = pipeline.ProcessBook(msg, conn, pipeline.Preprocess([]float64{0.1, 0.2, 0.3}), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
+			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				conn.Log("Error during preprocess", err)
+				return fmt.Errorf("Error during preprocess", err)
 			}
 		case <-checkWipeQueue:
 			msg, err := conn.CheckQueue(conn.WipeQueueId(), QueueTimeoutSecs)
 			checkWipeQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				conn.Log("Error checking wipeonly queue", err)
-				continue
+				return fmt.Errorf("Error checking wipeonly queue", err)
 			}
 			if msg.Handle == "" {
 				conn.Log("No message received on wipeonly queue, sleeping")
@@ -239,17 +245,18 @@ func processbook(training string, conn Pipeliner) {
 			}
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on wipeonly queue, processing", msg.Body)
+			fmt.Printf("  Preprocessing book (wiping only)\n")
 			err = pipeline.ProcessBook(msg, conn, pipeline.Wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
+			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				conn.Log("Error during wipe", err)
+				return fmt.Errorf("Error during wipe", err)
 			}
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), QueueTimeoutSecs)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				conn.Log("Error checking OCR Page queue", err)
-				continue
+				return fmt.Errorf("Error checking OCR Page queue", err)
 			}
 			if msg.Handle == "" {
 				continue
@@ -259,17 +266,17 @@ func processbook(training string, conn Pipeliner) {
 			checkOCRPageQueue = time.After(0)
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on OCR Page queue, processing", msg.Body)
+			fmt.Printf(".")
 			err = pipeline.OcrPage(msg, conn, pipeline.Ocr(training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				conn.Log("Error during OCR Page process", err)
+				return fmt.Errorf("\nError during OCR Page process", err)
 			}
 		case <-checkAnalyseQueue:
 			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), QueueTimeoutSecs)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				conn.Log("Error checking analyse queue", err)
-				continue
+				return fmt.Errorf("Error checking analyse queue", err)
 			}
 			if msg.Handle == "" {
 				conn.Log("No message received on analyse queue, sleeping")
@@ -277,14 +284,17 @@ func processbook(training string, conn Pipeliner) {
 			}
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on analyse queue, processing", msg.Body)
+			fmt.Printf("\n  Analysing OCR and compiling PDFs\n")
 			err = pipeline.ProcessBook(msg, conn, pipeline.Analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				conn.Log("Error during analysis", err)
+				return fmt.Errorf("Error during analysis", err)
 			}
 		case <-stopIfQuiet.C:
 			conn.Log("Processing finished")
-			return
+			return nil
 		}
 	}
+
+	return fmt.Errorf("Ended unexpectedly") // should never be reached
 }
