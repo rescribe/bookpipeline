@@ -226,7 +226,7 @@ func main() {
 			checkOCRPageQueue = time.After(0)
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on OCR Page queue, processing", msg.Body)
-			err = pipeline.OcrPage(msg, conn, pipeline.Ocr(*training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
+			err = pipeline.OcrPage(msg, conn, pipeline.Ocr(*training, ""), conn.OCRPageQueueId(), conn.AnalyseQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during OCR Page process", err)

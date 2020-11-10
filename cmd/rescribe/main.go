@@ -77,6 +77,7 @@ func resetTimer(t *time.Timer, d time.Duration) {
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "training/rescribev7_fast.traineddata", "path to the tesseract training file to use")
+	tesscmd := flag.String("tesscmd", "tesseract", "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -124,11 +125,12 @@ func main() {
 		log.Fatalln("Error setting TESSDATA_PREFIX:", err)
 	}
 
-	// TODO: would be good to be able to set custom path to tesseract
-	_, err = exec.Command("tesseract", "--help").Output()
+	_, err = exec.Command(*tesscmd, "--help").Output()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Can't run Tesseract.\n")
 		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available.\n")
+		fmt.Fprintf(os.Stderr, "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n")
+		fmt.Fprintf(os.Stderr, "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR\\tesseract.exe' ...\n")
 		os.Exit(1)
 	}
 
@@ -149,14 +151,14 @@ func main() {
 
 	fmt.Printf("Copying book to pipeline\n")
 
-	err = uploadbook(bookdir, bookname, trainingName, conn)
+	err = uploadbook(bookdir, bookname, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
 	}
 
 	fmt.Printf("Processing book\n")
-	err = processbook(trainingName, conn)
+	err = processbook(trainingName, *tesscmd, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
@@ -175,7 +177,7 @@ func main() {
 	}
 }
 
-func uploadbook(dir string, name string, training string, conn Pipeliner) error {
+func uploadbook(dir string, name string, conn Pipeliner) error {
 	err := pipeline.CheckImages(dir)
 	if err != nil {
 		return fmt.Errorf("Error with images in %s: %v", dir, err)
@@ -186,9 +188,7 @@ func uploadbook(dir string, name string, training string, conn Pipeliner) error 
 	}
 
 	qid := pipeline.DetectQueueType(dir, conn)
-	if training != "" {
-		name = name + " " + training
-	}
+
 	err = conn.AddToQueue(qid, name)
 	if err != nil {
 		return fmt.Errorf("Error adding book job to queue %s: %v", qid, err)
@@ -221,7 +221,7 @@ func downloadbook(name string, conn Pipeliner) error {
 	return nil
 }
 
-func processbook(training string, conn Pipeliner) error {
+func processbook(training string, tesscmd string, conn Pipeliner) error {
 	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`)
 	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
@@ -247,7 +247,7 @@ func processbook(training string, conn Pipeliner) error {
 			msg, err := conn.CheckQueue(conn.PreQueueId(), QueueTimeoutSecs)
 			checkPreQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				return fmt.Errorf("Error checking preprocess queue", err)
+				return fmt.Errorf("Error checking preprocess queue: %v", err)
 			}
 			if msg.Handle == "" {
 				conn.Log("No message received on preprocess queue, sleeping")
@@ -260,13 +260,13 @@ func processbook(training string, conn Pipeliner) error {
 			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				return fmt.Errorf("Error during preprocess", err)
+				return fmt.Errorf("Error during preprocess: %v", err)
 			}
 		case <-checkWipeQueue:
 			msg, err := conn.CheckQueue(conn.WipeQueueId(), QueueTimeoutSecs)
 			checkWipeQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				return fmt.Errorf("Error checking wipeonly queue", err)
+				return fmt.Errorf("Error checking wipeonly queue, %v", err)
 			}
 			if msg.Handle == "" {
 				conn.Log("No message received on wipeonly queue, sleeping")
@@ -279,13 +279,13 @@ func processbook(training string, conn Pipeliner) error {
 			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				return fmt.Errorf("Error during wipe", err)
+				return fmt.Errorf("Error during wipe: %v", err)
 			}
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), QueueTimeoutSecs)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				return fmt.Errorf("Error checking OCR Page queue", err)
+				return fmt.Errorf("Error checking OCR Page queue: %v", err)
 			}
 			if msg.Handle == "" {
 				continue
@@ -296,16 +296,16 @@ func processbook(training string, conn Pipeliner) error {
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on OCR Page queue, processing", msg.Body)
 			fmt.Printf(".")
-			err = pipeline.OcrPage(msg, conn, pipeline.Ocr(training), conn.OCRPageQueueId(), conn.AnalyseQueueId())
+			err = pipeline.OcrPage(msg, conn, pipeline.Ocr(training, tesscmd), conn.OCRPageQueueId(), conn.AnalyseQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				return fmt.Errorf("\nError during OCR Page process", err)
+				return fmt.Errorf("\nError during OCR Page process: %v", err)
 			}
 		case <-checkAnalyseQueue:
 			msg, err := conn.CheckQueue(conn.AnalyseQueueId(), QueueTimeoutSecs)
 			checkAnalyseQueue = time.After(PauseBetweenChecks)
 			if err != nil {
-				return fmt.Errorf("Error checking analyse queue", err)
+				return fmt.Errorf("Error checking analyse queue: %v", err)
 			}
 			if msg.Handle == "" {
 				conn.Log("No message received on analyse queue, sleeping")
@@ -317,7 +317,7 @@ func processbook(training string, conn Pipeliner) error {
 			err = pipeline.ProcessBook(msg, conn, pipeline.Analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
-				return fmt.Errorf("Error during analysis", err)
+				return fmt.Errorf("Error during analysis: %v", err)
 			}
 		case <-stopIfQuiet.C:
 			conn.Log("Processing finished")

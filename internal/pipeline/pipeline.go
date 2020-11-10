@@ -189,12 +189,15 @@ func Wipe(towipe chan string, up chan string, errc chan error, logger *log.Logge
 	close(up)
 }
 
-func Ocr(training string) func(chan string, chan string, chan error, *log.Logger) {
+func Ocr(training string, tesscmd string) func(chan string, chan string, chan error, *log.Logger) {
 	return func(toocr chan string, up chan string, errc chan error, logger *log.Logger) {
+		if tesscmd == "" {
+			tesscmd = "tesseract"
+		}
 		for path := range toocr {
 			logger.Println("OCRing", path)
 			name := strings.Replace(path, ".png", "", 1)
-			cmd := exec.Command("tesseract", "-l", training, path, name, "-c", "tessedit_create_hocr=1", "-c", "hocr_font_info=0")
+			cmd := exec.Command(tesscmd, "-l", training, path, name, "-c", "tessedit_create_hocr=1", "-c", "hocr_font_info=0")
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
@@ -491,7 +494,7 @@ func OcrPage(msg bookpipeline.Qmsg, conn Pipeliner, process func(chan string, ch
 	msgparts := strings.Split(msg.Body, " ")
 	bookname := filepath.Dir(msgparts[0])
 	if len(msgparts) > 1 && msgparts[1] != "" {
-		process = Ocr(msgparts[1])
+		process = Ocr(msgparts[1], "")
 	}
 
 	d := filepath.Join(os.TempDir(), bookname)
