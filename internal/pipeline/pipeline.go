@@ -269,6 +269,7 @@ func Analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 				}
 			}
 		}
+		f.Close()
 		up <- fn
 
 		logger.Println("Creating best file listing the best file for each page")
@@ -282,6 +283,7 @@ func Analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 		for _, conf := range bestconfs {
 			_, err = fmt.Fprintf(f, "%s\n", filepath.Base(conf.Path))
 		}
+		f.Close()
 		up <- fn
 
 		var pgs []string
@@ -461,8 +463,7 @@ func allOCRed(bookname string, conn Pipeliner) bool {
 		if preprocessedPattern.MatchString(png) {
 			atleastone = true
 			found := false
-			b := strings.TrimSuffix(filepath.Base(png), ".png")
-			hocrname := bookname + "/" + b + ".hocr"
+			hocrname := strings.TrimSuffix(png, ".png") + ".hocr"
 			for _, hocr := range objs {
 				if hocr == hocrname {
 					found = true
