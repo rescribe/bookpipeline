@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -76,9 +77,14 @@ func resetTimer(t *time.Timer, d time.Duration) {
 }
 
 func main() {
+	deftesscmd := "tesseract"
+	if runtime.GOOS == "windows" {
+		deftesscmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+	}
+
 	verbose := flag.Bool("v", false, "verbose")
 	training := flag.String("t", "training/rescribev7_fast.traineddata", "path to the tesseract training file to use")
-	tesscmd := flag.String("tesscmd", "tesseract", "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
+	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -131,7 +137,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: Can't run Tesseract.\n")
 		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available.\n")
 		fmt.Fprintf(os.Stderr, "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n")
-		fmt.Fprintf(os.Stderr, "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR\\tesseract.exe' ...\n")
+		fmt.Fprintf(os.Stderr, "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR (x86)\\tesseract.exe' ...\n")
 		os.Exit(1)
 	}
 
