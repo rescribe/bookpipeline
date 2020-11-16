@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"rescribe.xyz/bookpipeline"
+	"rescribe.xyz/utils/pkg/hocr"
 
 	"rescribe.xyz/bookpipeline/internal/pipeline"
 )
@@ -175,6 +176,55 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error removing temporary directory %s: %v", tempdir, err)
 	}
+
+	hocrs, err := filepath.Glob(fmt.Sprintf("%s/*hocr", bookname))
+	if err != nil {
+		log.Fatalf("Error looking for .hocr files: %v", err)
+	}
+
+	for _, v := range hocrs {
+		err = addTxtVersion(v)
+		if err != nil {
+			log.Fatalf("Error creating txt version of %s: %v", v, err)
+		}
+
+		err = os.MkdirAll(filepath.Join(bookname, "hocr"), 0755)
+		if err != nil {
+			log.Fatalf("Error creating hocr directory: %v", err)
+		}
+
+		err = os.Rename(v, filepath.Join(bookname, "hocr", filepath.Base(v)))
+		if err != nil {
+			log.Fatalf("Error moving hocr %s to hocr directory: %v", v, err)
+		}
+	}
+
+	// For simplicity, remove .binarised.pdf and rename .colour.pdf to .pdf
+	_ = os.Remove(filepath.Join(bookname, bookname + ".binarised.pdf"))
+	_ = os.Rename(filepath.Join(bookname, bookname + ".colour.pdf"), filepath.Join(bookname, bookname + ".pdf"))
+}
+
+func addTxtVersion(hocrfn string) error {
+	dir := filepath.Dir(hocrfn)
+	err := os.MkdirAll(filepath.Join(dir, "text"), 0755)
+	if err != nil {
+		log.Fatalf("Error creating text directory: %v", err)
+	}
+
+	t, err := hocr.GetText(hocrfn)
+	if err != nil {
+		return fmt.Errorf("Error getting text from hocr file %s: %v", hocrfn, err)
+	}
+
+	basefn := strings.TrimSuffix(filepath.Base(hocrfn), ".hocr") + ".txt"
+	fn := filepath.Join(dir, "text", basefn)
+
+	err = ioutil.WriteFile(fn, []byte(t), 0644)
+	if err != nil {
+		return fmt.Errorf("Error creating text file %s: %v", fn, err)
+	}
+
+	return nil
 }
 
 func uploadbook(dir string, name string, conn Pipeliner) error {
