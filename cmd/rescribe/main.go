@@ -24,7 +24,7 @@ import (
 	"rescribe.xyz/bookpipeline/internal/pipeline"
 )
 
-const usage = `Usage: rescribe [-v] [-t training] bookdir
+const usage = `Usage: rescribe [-v] [-t training] bookdir [savedir]
 
 Process and OCR a book using the Rescribe pipeline on a local machine.
 `
