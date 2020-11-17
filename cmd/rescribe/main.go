@@ -34,6 +34,7 @@ Process and OCR a book using the Rescribe pipeline on a local machine.
 const QueueTimeoutSecs = 2 * 60
 const PauseBetweenChecks = 1 * time.Second
 const LogSaveTime = 1 * time.Minute
+var thresholds = []float64{0.1, 0.2, 0.3}
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -222,8 +223,11 @@ func addTxtVersion(hocrfn string) error {
 		return fmt.Errorf("Error getting text from hocr file %s: %v", hocrfn, err)
 	}
 
-	basefn := strings.TrimSuffix(filepath.Base(hocrfn), ".hocr") + ".txt"
-	fn := filepath.Join(dir, "text", basefn)
+	basefn := filepath.Base(hocrfn)
+	for _, v := range thresholds {
+		basefn = strings.TrimSuffix(basefn, fmt.Sprintf("_bin%.1f.hocr", v))
+	}
+	fn := filepath.Join(dir, "text", basefn + ".txt")
 
 	err = ioutil.WriteFile(fn, []byte(t), 0644)
 	if err != nil {
@@ -312,7 +316,7 @@ func processbook(training string, tesscmd string, conn Pipeliner) error {
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on preprocess queue, processing", msg.Body)
 			fmt.Printf("  Preprocessing book (binarising and wiping)\n")
-			err = pipeline.ProcessBook(msg, conn, pipeline.Preprocess([]float64{0.1, 0.2, 0.3}), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
+			err = pipeline.ProcessBook(msg, conn, pipeline.Preprocess(thresholds), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
 			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
