@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -163,6 +164,63 @@ func (a *AwsConn) LogAndPurgeQueue(url string) error {
 		if len(msgResult.Messages) > 0 {
 			for _, m := range msgResult.Messages {
 				a.Logger.Println(*m.Body)
+				_, err = a.sqssvc.DeleteMessage(&sqs.DeleteMessageInput{
+					QueueUrl:      &url,
+					ReceiptHandle: m.ReceiptHandle,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			break
+		}
+	}
+	return nil
+}
+
+// LogQueue prints the body of all messages in a queue to the log
+func (a *AwsConn) LogQueue(url string) error {
+	for {
+		msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
+			MaxNumberOfMessages: aws.Int64(10),
+			VisibilityTimeout:   aws.Int64(300),
+			QueueUrl:            &url,
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(msgResult.Messages) > 0 {
+			for _, m := range msgResult.Messages {
+				a.Logger.Println(*m.Body)
+			}
+		} else {
+			break
+		}
+	}
+	return nil
+}
+
+// RemovePrefixesFromQueue removes any messages in a queue whose
+// body starts with the specified prefix.
+func (a *AwsConn) RemovePrefixesFromQueue(url string, prefix string) error {
+	for {
+		msgResult, err := a.sqssvc.ReceiveMessage(&sqs.ReceiveMessageInput{
+			MaxNumberOfMessages: aws.Int64(10),
+			VisibilityTimeout:   aws.Int64(300),
+			QueueUrl:            &url,
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(msgResult.Messages) > 0 {
+			for _, m := range msgResult.Messages {
+				if !strings.HasPrefix(*m.Body, prefix) {
+					continue
+				}
+				a.Logger.Printf("Removing %s from queue\n", *m.Body)
 				_, err = a.sqssvc.DeleteMessage(&sqs.DeleteMessageInput{
 					QueueUrl:      &url,
 					ReceiptHandle: m.ReceiptHandle,
