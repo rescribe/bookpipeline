@@ -102,6 +102,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	verboselog.Println("Checking that a book hasn't already been uploaded with that name")
+	list, err := conn.ListObjects(conn.WIPStorageId(), bookname)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if len(list) > 0 {
+		log.Fatalf("Error: There is already a book in S3 named %s", bookname)
+	}
+
 	verboselog.Println("Uploading all images are valid in", bookdir)
 	err = pipeline.UploadImages(bookdir, bookname, conn)
 	if err != nil {
