@@ -358,11 +358,6 @@ func Analyse(conn Pipeliner) func(chan string, chan string, chan error, *log.Log
 				return
 			}
 			up <- fn
-			key := bookname + "/" + bookname + ".binarised.pdf"
-			conn.Log("Uploading", key)
-			err := conn.Upload(conn.WIPStorageId(), key, fn)
-			if err != nil {
-			}
 		}
 
 		for _, pg := range colourimgs {
