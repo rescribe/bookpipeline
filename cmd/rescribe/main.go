@@ -184,7 +184,7 @@ func main() {
 		log.Fatalf("Error removing temporary directory %s: %v", tempdir, err)
 	}
 
-	hocrs, err := filepath.Glob(fmt.Sprintf("%s/*hocr", bookname))
+	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*hocr", bookname, string(filepath.Separator)))
 	if err != nil {
 		log.Fatalf("Error looking for .hocr files: %v", err)
 	}
