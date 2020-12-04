@@ -222,7 +222,7 @@ func (a *LocalConn) Download(bucket string, key string, path string) error {
 // Upload just copies the file from path to TempDir/bucket/key
 func (a *LocalConn) Upload(bucket string, key string, path string) error {
 	d := filepath.Join(a.TempDir, bucket, filepath.Dir(key))
-	err := os.Mkdir(d, 0700)
+	err := os.MkdirAll(d, 0700)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("Error creating temporary directory: %v", err)
 	}
