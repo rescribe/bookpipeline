@@ -29,6 +29,9 @@ import (
 const usage = `Usage: rescribe [-v] [-t training] bookdir [savedir]
 
 Process and OCR a book using the Rescribe pipeline on a local machine.
+
+OCR results are saved into the bookdir directory unless savedir is
+specified.
 `
 
 const QueueTimeoutSecs = 2 * 60
@@ -93,17 +96,16 @@ func main() {
 	}
 	flag.Parse()
 
-	if flag.NArg() < 1 || flag.NArg() > 3 {
+	if flag.NArg() < 1 || flag.NArg() > 2 {
 		flag.Usage()
 		return
 	}
 
 	bookdir := flag.Arg(0)
-	var bookname string
+	bookname := filepath.Base(bookdir)
+	savedir := bookdir
 	if flag.NArg() > 1 {
-		bookname = flag.Arg(1)
-	} else {
-		bookname = filepath.Base(bookdir)
+		savedir = flag.Arg(1)
 	}
 
 	var verboselog *log.Logger
@@ -172,8 +174,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("Saving finished book to %s\n", bookname)
-	err = downloadbook(bookname, conn)
+	fmt.Printf("Saving finished book to %s\n", savedir)
+	err = os.MkdirAll(savedir, 0755)
+	if err != nil {
+		log.Fatalf("Error creating save directory %s: %v", savedir, err)
+	}
+	err = downloadbook(savedir, bookname, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
@@ -184,7 +190,7 @@ func main() {
 		log.Fatalf("Error removing temporary directory %s: %v", tempdir, err)
 	}
 
-	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*hocr", bookname, string(filepath.Separator)))
+	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*hocr", savedir, string(filepath.Separator)))
 	if err != nil {
 		log.Fatalf("Error looking for .hocr files: %v", err)
 	}
@@ -195,20 +201,20 @@ func main() {
 			log.Fatalf("Error creating txt version of %s: %v", v, err)
 		}
 
-		err = os.MkdirAll(filepath.Join(bookname, "hocr"), 0755)
+		err = os.MkdirAll(filepath.Join(savedir, "hocr"), 0755)
 		if err != nil {
 			log.Fatalf("Error creating hocr directory: %v", err)
 		}
 
-		err = os.Rename(v, filepath.Join(bookname, "hocr", filepath.Base(v)))
+		err = os.Rename(v, filepath.Join(savedir, "hocr", filepath.Base(v)))
 		if err != nil {
 			log.Fatalf("Error moving hocr %s to hocr directory: %v", v, err)
 		}
 	}
 
 	// For simplicity, remove .binarised.pdf and rename .colour.pdf to .pdf
-	_ = os.Remove(filepath.Join(bookname, bookname + ".binarised.pdf"))
-	_ = os.Rename(filepath.Join(bookname, bookname + ".colour.pdf"), filepath.Join(bookname, bookname + ".pdf"))
+	_ = os.Remove(filepath.Join(savedir, bookname + ".binarised.pdf"))
+	_ = os.Rename(filepath.Join(savedir, bookname + ".colour.pdf"), filepath.Join(savedir, bookname + ".pdf"))
 }
 
 func addTxtVersion(hocrfn string) error {
@@ -257,23 +263,23 @@ func uploadbook(dir string, name string, conn Pipeliner) error {
 	return nil
 }
 
-func downloadbook(name string, conn Pipeliner) error {
+func downloadbook(dir string, name string, conn Pipeliner) error {
 	err := os.MkdirAll(name, 0755)
 	if err != nil {
 		log.Fatalln("Failed to create directory", name, err)
 	}
 
-	err = pipeline.DownloadBestPages(name, conn, false)
+	err = pipeline.DownloadBestPages(dir, name, conn, false)
 	if err != nil {
 		return fmt.Errorf("Error downloading best pages: %v", err)
 	}
 
-	err = pipeline.DownloadPdfs(name, conn)
+	err = pipeline.DownloadPdfs(dir, name, conn)
 	if err != nil {
 		return fmt.Errorf("Error downloading PDFs: %v", err)
 	}
 
-	err = pipeline.DownloadAnalyses(name, conn)
+	err = pipeline.DownloadAnalyses(dir, name, conn)
 	if err != nil {
 		return fmt.Errorf("Error downloading analyses: %v", err)
 	}

@@ -87,7 +87,7 @@ func main() {
 
 	if *all {
 		verboselog.Println("Downloading all files for", bookname)
-		err = pipeline.DownloadAll(bookname, conn)
+		err = pipeline.DownloadAll(bookname, bookname, conn)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -122,7 +122,7 @@ func main() {
 
 	if *pdf {
 		verboselog.Println("Downloading PDFs")
-		pipeline.DownloadPdfs(bookname, conn)
+		pipeline.DownloadPdfs(bookname, bookname, conn)
 	}
 
 	if *binarisedpdf || *colourpdf || *graph || *pdf {
@@ -130,19 +130,19 @@ func main() {
 	}
 
 	verboselog.Println("Downloading best pages")
-	err = pipeline.DownloadBestPages(bookname, conn, *png)
+	err = pipeline.DownloadBestPages(bookname, bookname, conn, *png)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	verboselog.Println("Downloading PDFs")
-	pipeline.DownloadPdfs(bookname, conn)
+	pipeline.DownloadPdfs(bookname, bookname, conn)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	verboselog.Println("Downloading analyses")
-	err = pipeline.DownloadAnalyses(bookname, conn)
+	err = pipeline.DownloadAnalyses(bookname, bookname, conn)
 	if err != nil {
 		log.Fatalln(err)
 	}
