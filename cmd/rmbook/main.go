@@ -57,7 +57,7 @@ func main() {
 		log.Fatalln("Error setting up cloud connection:", err)
 	}
 
-	bookname := flag.Arg(0)
+	bookname := flag.Arg(0) + "/"
 
 	fmt.Println("Getting list of files for book")
 	objs, err := conn.ListObjects(conn.WIPStorageId(), bookname)
