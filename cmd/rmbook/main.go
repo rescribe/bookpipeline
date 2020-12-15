@@ -13,7 +13,7 @@ import (
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: rmbook bookname
+const usage = `Usage: rmbook [-dryrun] bookname
 
 Removes a book from cloud storage.
 `
@@ -33,6 +33,7 @@ type RmPipeliner interface {
 }
 
 func main() {
+	dryrun := flag.Bool("dryrun", false, "print which files would be deleted but don't delete")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -66,6 +67,14 @@ func main() {
 
 	if len(objs) == 0 {
 		log.Fatalln("No files found for book:", bookname)
+	}
+
+	if *dryrun {
+		fmt.Printf("I would delete these files:\n")
+		for _, v := range objs {
+			fmt.Println(v)
+		}
+		return
 	}
 
 	fmt.Println("Deleting all files for book")
