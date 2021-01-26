@@ -369,7 +369,6 @@ func (a *AwsConn) ListObjectPrefixes(bucket string) ([]string, error) {
 	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
-		MaxKeys:   aws.Int64(1),
 	}, func(page *s3.ListObjectsV2Output, last bool) bool {
 		for _, r := range page.CommonPrefixes {
 			prefixes = append(prefixes, *r.Prefix)
