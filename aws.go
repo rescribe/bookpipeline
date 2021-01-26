@@ -355,11 +355,12 @@ func (a *AwsConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta, 
 	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
+		MaxKeys: aws.Int64(1),
 	}, func(page *s3.ListObjectsV2Output, last bool) bool {
 		for _, r := range page.Contents {
 			objs = append(objs, ObjMeta{Name: *r.Key, Date: *r.LastModified})
 		}
-		return true
+		return false // only process the first page as that's all we need
 	})
 	return objs, err
 }
