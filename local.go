@@ -159,6 +159,17 @@ func (a *LocalConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta
 	return list, err
 }
 
+func (a *LocalConn) ListObjectWithMeta(bucket string, prefix string) (ObjMeta, error) {
+	list, err := a.ListObjectsWithMeta(bucket, prefix)
+	if err != nil {
+		return ObjMeta{}, err
+	}
+	if len(list) == 0 {
+		return ObjMeta{}, fmt.Errorf("No object found for %s", prefix)
+	}
+	return list[0], nil
+}
+
 // AddToQueue adds a message to a queue
 func (a *LocalConn) AddToQueue(url string, msg string) error {
 	f, err := os.OpenFile(filepath.Join(a.TempDir, url), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

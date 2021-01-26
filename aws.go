@@ -355,14 +355,33 @@ func (a *AwsConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta, 
 	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
-		MaxKeys: aws.Int64(1),
 	}, func(page *s3.ListObjectsV2Output, last bool) bool {
 		for _, r := range page.Contents {
 			objs = append(objs, ObjMeta{Name: *r.Key, Date: *r.LastModified})
 		}
-		return false // only process the first page as that's all we need
+		return true
 	})
 	return objs, err
+}
+
+// ListObjectWithMeta lists the name and last modified date of the
+// first object with the specified prefix.
+func (a *AwsConn) ListObjectWithMeta(bucket string, prefix string) (ObjMeta, error) {
+	var obj ObjMeta
+	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(prefix),
+		MaxKeys: aws.Int64(1),
+	}, func(page *s3.ListObjectsV2Output, last bool) bool {
+		for _, r := range page.Contents {
+			obj = ObjMeta{Name: *r.Key, Date: *r.LastModified}
+		}
+		return false
+	})
+	if obj.Name == "" && obj.Date.IsZero() && err == nil {
+		return obj, fmt.Errorf("No object could be found for %s", prefix)
+	}
+	return obj, err
 }
 
 func (a *AwsConn) ListObjectPrefixes(bucket string) ([]string, error) {

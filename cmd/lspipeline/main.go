@@ -36,7 +36,7 @@ type LsPipeliner interface {
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
 	GetInstanceDetails() ([]bookpipeline.InstanceDetails, error)
-	ListObjectsWithMeta(bucket string, prefix string) ([]bookpipeline.ObjMeta, error)
+	ListObjectWithMeta(bucket string, prefix string) (bookpipeline.ObjMeta, error)
 	ListObjectPrefixes(bucket string) ([]string, error)
 	WIPStorageId() string
 }
@@ -107,20 +107,17 @@ func (o ObjMetas) Less(i, j int) bool {
 func getBookDetails(conn LsPipeliner, key string) (date time.Time, done bool, err error) {
 	// First try to get the graph.png file from the book, which marks
 	// it as done
-	objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), key+"graph.png")
-	if err == nil && len(objs) > 0 {
-		return objs[0].Date, true, nil
+	obj, err := conn.ListObjectWithMeta(conn.WIPStorageId(), key+"graph.png")
+	if err == nil {
+		return obj.Date, true, nil
 	}
 
 	// Otherwise get any file from the book to get a date to sort by
-	objs, err = conn.ListObjectsWithMeta(conn.WIPStorageId(), key)
+	obj, err = conn.ListObjectWithMeta(conn.WIPStorageId(), key)
 	if err != nil {
 		return time.Time{}, false, err
 	}
-	if len(objs) == 0 {
-		return time.Time{}, false, fmt.Errorf("No files found for book %s", key)
-	}
-	return objs[0].Date, false, nil
+	return obj.Date, false, nil
 }
 
 // getBookDetailsChan gets the details for a book putting it into either the
