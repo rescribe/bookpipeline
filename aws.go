@@ -401,9 +401,25 @@ func (a *AwsConn) ListObjectPrefixes(bucket string) ([]string, error) {
 // Deletes a list of objects
 func (a *AwsConn) DeleteObjects(bucket string, keys []string) error {
 	objs := []*s3.ObjectIdentifier{}
-	for _, v := range keys {
+	for i, v := range keys {
 		o := s3.ObjectIdentifier{Key: aws.String(v)}
 		objs = append(objs, &o)
+		// s3.DeleteObjects can only take up to 1000 keys at a time,
+		// so if necessary delete those collected so far and empty
+		// the objs queue
+		if i % 1000 == 1 {
+			_, err := a.s3svc.DeleteObjects(&s3.DeleteObjectsInput{
+				Bucket: aws.String(bucket),
+				Delete: &s3.Delete{
+					Objects: objs,
+					Quiet: aws.Bool(true),
+				},
+			})
+			if err != nil {
+				return err
+			}
+			objs = []*s3.ObjectIdentifier{}
+		}
 	}
 	_, err := a.s3svc.DeleteObjects(&s3.DeleteObjectsInput{
 		Bucket: aws.String(bucket),
