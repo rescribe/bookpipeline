@@ -62,8 +62,8 @@ func main() {
 	log.Println("Downloading all best files found")
 	for _, i := range objs {
 		parts := strings.Split(i, "/")
-		if parts[len(parts) - 1] == "best" {
-			err = conn.Download(conn.WIPStorageId(), i, parts[0] + "-best")
+		if parts[len(parts)-1] == "best" {
+			err = conn.Download(conn.WIPStorageId(), i, parts[0]+"-best")
 			if err != nil {
 				log.Fatalln("Failed to download file", i, err)
 			}

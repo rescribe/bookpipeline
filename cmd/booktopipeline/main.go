@@ -9,14 +9,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"image"
-	_ "image/png"
-	_ "image/jpeg"
 	"log"
 	"os"
 	"path/filepath"
 
 	"rescribe.xyz/bookpipeline"
+
+	"rescribe.xyz/bookpipeline/internal/pipeline"
 )
 
 const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-notbinarised] [-v] bookdir [bookname]
@@ -32,15 +31,6 @@ using the flags -prebinarised (for the wipeonly queue) or
 If bookname is omitted the last part of the bookdir is used.
 `
 
-type Pipeliner interface {
-	Init() error
-	PreQueueId() string
-	WipeQueueId() string
-	WIPStorageId() string
-	AddToQueue(url string, msg string) error
-	Upload(bucket string, key string, path string) error
-}
-
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
 
@@ -49,18 +39,6 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 }
 
 var verboselog *log.Logger
-
-type fileWalk chan string
-
-func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		f <- path
-	}
-	return nil
-}
 
 func main() {
 	verbose := flag.Bool("v", false, "Verbose")
@@ -94,7 +72,7 @@ func main() {
 		verboselog = log.New(n, "", log.LstdFlags)
 	}
 
-	var conn Pipeliner
+	var conn pipeline.Pipeliner
 	switch *conntype {
 	case "aws":
 		conn = &bookpipeline.AwsConn{Region: "eu-west-2", Logger: verboselog}
@@ -108,18 +86,7 @@ func main() {
 		log.Fatalln("Failed to set up cloud connection:", err)
 	}
 
-	qid := conn.PreQueueId()
-
-	// Auto detect type of queue to send to based on file extension
-	pngdirs, _ := filepath.Glob(bookdir + "/*.png")
-	jpgdirs, _ := filepath.Glob(bookdir + "/*.jpg")
-	pngcount := len(pngdirs)
-	jpgcount := len(jpgdirs)
-	if pngcount > jpgcount {
-		qid = conn.WipeQueueId()
-	} else {
-		qid = conn.PreQueueId()
-	}
+	qid := pipeline.DetectQueueType(bookdir, conn)
 
 	// Flags set override the queue selection
 	if *wipeonly {
@@ -130,43 +97,24 @@ func main() {
 	}
 
 	verboselog.Println("Checking that all images are valid in", bookdir)
-	checker := make(fileWalk)
-	go func() {
-		err = filepath.Walk(bookdir, checker.Walk)
-		if err != nil {
-			log.Fatalln("Filesystem walk failed:", err)
-		}
-		close(checker)
-	}()
-
-	for path := range checker {
-		f, err := os.Open(path)
-		if err != nil {
-			log.Fatalln("Opening image %s failed, bailing: %v", path, err)
-		}
-		_, _, err = image.Decode(f)
-		if err != nil {
-			log.Fatalf("Decoding image %s failed, bailing: %v", path, err)
-		}
+	err = pipeline.CheckImages(bookdir)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	verboselog.Println("Walking", bookdir)
-	walker := make(fileWalk)
-	go func() {
-		err = filepath.Walk(bookdir, walker.Walk)
-		if err != nil {
-			log.Fatalln("Filesystem walk failed:", err)
-		}
-		close(walker)
-	}()
+	verboselog.Println("Checking that a book hasn't already been uploaded with that name")
+	list, err := conn.ListObjects(conn.WIPStorageId(), bookname)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if len(list) > 0 {
+		log.Fatalf("Error: There is already a book in S3 named %s", bookname)
+	}
 
-	for path := range walker {
-		verboselog.Println("Uploading", path)
-		name := filepath.Base(path)
-		err = conn.Upload(conn.WIPStorageId(), filepath.Join(bookname, name), path)
-		if err != nil {
-			log.Fatalln("Failed to upload", path, err)
-		}
+	verboselog.Println("Uploading all images are valid in", bookdir)
+	err = pipeline.UploadImages(bookdir, bookname, conn)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	if *training != "" {

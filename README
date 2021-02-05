@@ -9,6 +9,11 @@ by running `go get rescribe.xyz/bookpipeline/...` and documentation
 can be read with the `go doc` command or online at
 <https://pkg.go.dev/rescribe.xyz/bookpipeline>.
 
+If you just want to install and use the commands, you can get the
+package with `git clone https://git.rescribe.xyz/bookpipeline`, and
+then install them with `go install ./...` from within the
+`bookpipeline` directory.
+
 ## Commands
 
 The commands in the cmd/ directory are at the heart of this
@@ -40,6 +45,20 @@ setting:
                 word in a page of hOCR
   - pdfbook   : creates a searchable PDF from a directory of hOCR
                 and image files
+
+## Rescribe tool for local operation
+
+While bookpipeline was built with cloud based operation in mind, there is also
+a local mode that can be used to run OCR jobs from a single computer, with all
+the benefits of preprocessing, choosing the best threshold for each image,
+graph creation, PDF creation, and so on that the pipeline provides.
+
+Several of the commands accept a `-c local` flag for local operation, but now
+there is also a new command, named `rescribe`, that is designed to make things
+much simpler for people just wanting to do some OCR on their local computer.
+
+More information about this, including links to prebuilt executables, can be
+found on our blog at <https://blog.rescribe.xyz/posts/desktop-tool/>.
 
 ## Contributions
 

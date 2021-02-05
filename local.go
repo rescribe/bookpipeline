@@ -27,7 +27,7 @@ const storageId = "storage"
 type LocalConn struct {
 	// these should be set before running Init(), or left to defaults
 	TempDir string
-	Logger *log.Logger
+	Logger  *log.Logger
 }
 
 // MinimalInit does the bare minimum initialisation
@@ -36,7 +36,7 @@ func (a *LocalConn) MinimalInit() error {
 	if a.TempDir == "" {
 		a.TempDir = filepath.Join(os.TempDir(), "bookpipeline")
 	}
-	err = os.Mkdir(a.TempDir, 0700)
+	err = os.MkdirAll(a.TempDir, 0700)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("Error creating temporary directory: %v", err)
 	}
@@ -134,6 +134,7 @@ func prefixwalker(dirpath string, prefix string, list *[]ObjMeta) filepath.WalkF
 		}
 		n := strings.TrimPrefix(path, dirpath)
 		n = strings.TrimPrefix(n, "/")
+		n = strings.TrimPrefix(n, "\\")
 		o := ObjMeta{Name: n, Date: info.ModTime()}
 		*list = append(*list, o)
 		return nil
@@ -156,6 +157,17 @@ func (a *LocalConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta
 	var list []ObjMeta
 	err := filepath.Walk(filepath.Join(a.TempDir, bucket), prefixwalker(filepath.Join(a.TempDir, bucket), prefix, &list))
 	return list, err
+}
+
+func (a *LocalConn) ListObjectWithMeta(bucket string, prefix string) (ObjMeta, error) {
+	list, err := a.ListObjectsWithMeta(bucket, prefix)
+	if err != nil {
+		return ObjMeta{}, err
+	}
+	if len(list) == 0 {
+		return ObjMeta{}, fmt.Errorf("No object found for %s", prefix)
+	}
+	return list[0], nil
 }
 
 // AddToQueue adds a message to a queue
@@ -184,12 +196,12 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 
 	// store the joining of part before and part after handle
 	var complete string
-	if len(s) >= len(handle) + 1 {
+	if len(s) >= len(handle)+1 {
 		if i > 0 {
 			complete = s[:i]
 		}
 		// the '+1' is for the newline character
-		complete += s[i + len(handle) + 1:]
+		complete += s[i+len(handle)+1:]
 	}
 
 	f, err := os.Create(filepath.Join(a.TempDir, url))
@@ -221,7 +233,7 @@ func (a *LocalConn) Download(bucket string, key string, path string) error {
 // Upload just copies the file from path to TempDir/bucket/key
 func (a *LocalConn) Upload(bucket string, key string, path string) error {
 	d := filepath.Join(a.TempDir, bucket, filepath.Dir(key))
-	err := os.Mkdir(d, 0700)
+	err := os.MkdirAll(d, 0700)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("Error creating temporary directory: %v", err)
 	}

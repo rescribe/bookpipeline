@@ -168,5 +168,19 @@ At present the bookpipeline has some silly limitations of file names for book
 pages to be recognised. This is something which will be fixed in due course.
   Pages that are to be fully processed: *[0-9]{4}.jpg$
   Pages that are to be wiped only: *[0-9]{6}(.bin)?.png$
+
+Local operation
+
+While bookpipeline was built with cloud based operation in mind, there is also
+a local mode that can be used to run OCR jobs from a single computer, with all
+the benefits of preprocessing, choosing the best threshold for each image,
+graph creation, PDF creation, and so on that the pipeline provides.
+
+Several of the commands accept a `-c local` flag for local operation, but now
+there is also a new command, named rescribe, that is designed to make things
+much simpler for people just wanting to do some OCR on their local computer.
+
+Note that the local mode is not as well tested as the core cloud modes; please
+report any bugs you find with it.
 */
 package bookpipeline

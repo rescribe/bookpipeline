@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"time"
 
 	"rescribe.xyz/bookpipeline"
 )
@@ -35,7 +36,7 @@ type LsPipeliner interface {
 	AnalyseQueueId() string
 	GetQueueDetails(url string) (string, string, error)
 	GetInstanceDetails() ([]bookpipeline.InstanceDetails, error)
-	ListObjectsWithMeta(bucket string, prefix string) ([]bookpipeline.ObjMeta, error)
+	ListObjectWithMeta(bucket string, prefix string) (bookpipeline.ObjMeta, error)
 	ListObjectPrefixes(bucket string) ([]string, error)
 	WIPStorageId() string
 }
@@ -100,43 +101,88 @@ func (o ObjMetas) Less(i, j int) bool {
 	return o[i].Date.Before(o[j].Date)
 }
 
+// getBookDetails determines whether a book is done and what date
+// it was completed, or if it has not finished, the date of any
+// book file.
+func getBookDetails(conn LsPipeliner, key string) (date time.Time, done bool, err error) {
+	// First try to get the graph.png file from the book, which marks
+	// it as done
+	obj, err := conn.ListObjectWithMeta(conn.WIPStorageId(), key+"graph.png")
+	if err == nil {
+		return obj.Date, true, nil
+	}
+
+	// Otherwise get any file from the book to get a date to sort by
+	obj, err = conn.ListObjectWithMeta(conn.WIPStorageId(), key)
+	if err != nil {
+		return time.Time{}, false, err
+	}
+	return obj.Date, false, nil
+}
+
+// getBookDetailsChan gets the details for a book putting it into either the
+// done or inprogress channels as appropriate, or sending an error to errc
+// on failure.
+func getBookDetailsChan(conn LsPipeliner, key string, done chan bookpipeline.ObjMeta, inprogress chan bookpipeline.ObjMeta, errc chan error) {
+	date, isdone, err := getBookDetails(conn, key)
+	if err != nil {
+		errc <- err
+		return
+	}
+	meta := bookpipeline.ObjMeta{Name: strings.TrimSuffix(key, "/"), Date: date}
+	if isdone {
+		done <- meta
+	} else {
+		inprogress <- meta
+	}
+}
+
 // getBookStatus returns a list of in progress and done books.
 // It determines this by finding all prefixes, and splitting them
 // into two lists, those which have a 'graph.png' file (the done
 // list), and those which do not (the inprogress list). They are
 // sorted according to the date of the graph.png file, or the date
 // of a random file with the prefix if no graph.png was found.
+// It spins up many goroutines to do query the book status and
+// dates, as it is far faster to do concurrently.
 func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err error) {
 	prefixes, err := conn.ListObjectPrefixes(conn.WIPStorageId())
-	var inprogressmeta, donemeta ObjMetas
 	if err != nil {
 		log.Println("Error getting object prefixes:", err)
 		return
 	}
-	// Search for graph.png to determine done books (and save the date of it to sort with)
+
+	donec := make(chan bookpipeline.ObjMeta, 100)
+	inprogressc := make(chan bookpipeline.ObjMeta, 100)
+	errc := make(chan error)
+
 	for _, p := range prefixes {
-		objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), p+"graph.png")
-		if err != nil || len(objs) == 0 {
-			inprogressmeta = append(inprogressmeta, bookpipeline.ObjMeta{Name: p})
-		} else {
-			donemeta = append(donemeta, bookpipeline.ObjMeta{Name: p, Date: objs[0].Date})
+		go getBookDetailsChan(conn, p, donec, inprogressc, errc)
+	}
+
+	var inprogressmeta, donemeta ObjMetas
+
+	// there will be exactly as many sends to donec or inprogressc
+	// as there are prefixes
+	for range prefixes {
+		select {
+		case i := <-donec:
+			donemeta = append(donemeta, i)
+		case i := <-inprogressc:
+			inprogressmeta = append(inprogressmeta, i)
+		case err = <-errc:
+			return inprogress, done, err
 		}
 	}
-	// Get a random file from the inprogress list to get a date to sort by
-	for _, i := range inprogressmeta {
-		objs, err := conn.ListObjectsWithMeta(conn.WIPStorageId(), i.Name)
-		if err != nil || len(objs) == 0 {
-			continue
-		}
-		i.Date = objs[0].Date
-	}
+
 	sort.Sort(donemeta)
-	for _, i := range donemeta {
-		done = append(done, strings.TrimSuffix(i.Name, "/"))
-	}
 	sort.Sort(inprogressmeta)
+
+	for _, i := range donemeta {
+		done = append(done, i.Name)
+	}
 	for _, i := range inprogressmeta {
-		inprogress = append(inprogress, strings.TrimSuffix(i.Name, "/"))
+		inprogress = append(inprogress, i.Name)
 	}
 
 	return
