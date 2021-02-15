@@ -9,20 +9,20 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"rescribe.xyz/bookpipeline"
 )
 
-const usage = `Usage: getsamplepages
+const usage = `Usage: getsamplepages [-prefix prefix]
 
 Downloads a sample page hocr and image from each book in a set
 of OCRed books. These can then be used for various testing,
 statistics, and so on.
 `
-
-const pgnum = "0100"
 
 // null writer to enable non-verbose logging to be discarded
 type NullWriter bool
@@ -40,6 +40,7 @@ type Pipeliner interface {
 }
 
 func main() {
+	prefix := flag.String("prefix", "", "Only select books with this prefix (e.g. '17' for 18th century books)")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -57,23 +58,46 @@ func main() {
 		log.Fatalln("Error setting up cloud connection:", err)
 	}
 
-	log.Println("Getting list of all books")
+	fmt.Println("Getting list of all books")
 	prefixes, err := conn.ListObjectPrefixes(conn.WIPStorageId())
 	if err != nil {
 		log.Fatalln("Failed to get list of books", err)
 	}
 
 	for _, p := range prefixes {
-		name := strings.Split(p, "/")[0]
-		log.Printf("Downloading a page from %s\n", name)
-
-		fn := pgnum + ".jpg"
-		err = conn.Download(conn.WIPStorageId(), p+fn, name+fn)
-		if err != nil && strings.HasPrefix(err.Error(), "NoSuchKey:") {
-			log.Printf("Skipping %s as no page %s found\n", p, pgnum)
+		if *prefix != "" && !strings.HasPrefix(p, *prefix) {
 			continue
-		} else if err != nil {
-			log.Fatalf("Download of %s%s failed: %v\n", p+fn, err)
+		}
+
+		name := strings.Split(p, "/")[0]
+
+		err = conn.Download(conn.WIPStorageId(), p+"best", name+"best")
+		if err != nil {
+		}
+		b, err := ioutil.ReadFile(name+"best")
+		if err != nil {
+			log.Fatalf("Failed to read file %s\n", name+"best")
+		}
+		lines := strings.SplitN(string(b), "\n", 2)
+		if len(lines) == 1 {
+			fmt.Printf("No pages found for %s, skipping\n", name)
+			continue
+		}
+		pg := strings.TrimSuffix(lines[0], ".hocr")
+
+		err = os.Remove(name+"best")
+		if err != nil {
+			log.Fatalf("Failed to remove temporary best file for %s", name)
+		}
+
+		fmt.Printf("Downloading page %s from %s\n", pg, name)
+
+		for _, suffix := range []string{".png", ".hocr"} {
+			fn := pg + suffix
+			err = conn.Download(conn.WIPStorageId(), p+fn, name+fn)
+			if err != nil {
+				log.Fatalf("Download of %s%s failed: %v\n", p+fn, err)
+			}
 		}
 	}
 }
