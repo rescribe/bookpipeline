@@ -87,7 +87,7 @@ func main() {
 	}
 
 	verbose := flag.Bool("v", false, "verbose")
-	training := flag.String("t", "training/rescribev7_fast.traineddata", "path to the tesseract training file to use")
+	training := flag.String("t", "trainings/rescribev7_fast.traineddata", "path to the tesseract training file to use")
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 
 	flag.Usage = func() {
