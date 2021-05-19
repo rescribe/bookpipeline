@@ -252,6 +252,18 @@ func (a *LocalConn) Upload(bucket string, key string, path string) error {
 	return err
 }
 
+// Deletes a list of objects
+func (a *LocalConn) DeleteObjects(bucket string, keys []string) error {
+	for _, v := range keys {
+		p := filepath.Join(a.TempDir, bucket, v)
+		err := os.Remove(p)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *LocalConn) GetLogger() *log.Logger {
 	return a.Logger
 }
