@@ -718,17 +718,17 @@ func SaveLogs(conn Pipeliner, starttime int64, hostname string) error {
 	path := filepath.Join(os.TempDir(), key)
 	f, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("Error creating log file", err)
+		return fmt.Errorf("Error creating log file: %v", err)
 	}
 	defer f.Close()
 	_, err = f.WriteString(logs)
 	if err != nil {
-		return fmt.Errorf("Error saving log file", err)
+		return fmt.Errorf("Error saving log file: %v", err)
 	}
 	_ = f.Close()
 	err = conn.Upload(conn.WIPStorageId(), key, path)
 	if err != nil {
-		return fmt.Errorf("Error uploading log", err)
+		return fmt.Errorf("Error uploading log: %v", err)
 	}
 	conn.Log("Log saved to", key)
 	return nil
