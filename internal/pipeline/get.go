@@ -81,7 +81,7 @@ func DownloadAnalyses(dir string, name string, conn Pipeliner) error {
 func DownloadAll(dir string, name string, conn Pipeliner) error {
 	objs, err := conn.ListObjects(conn.WIPStorageId(), name)
 	if err != nil {
-		return fmt.Errorf("Failed to get list of files for book", name, err)
+		return fmt.Errorf("Failed to get list of files for book %s: %v", name, err)
 	}
 	for _, i := range objs {
 		base := filepath.Base(i)
