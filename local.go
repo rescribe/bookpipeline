@@ -215,17 +215,18 @@ func (a *LocalConn) DelFromQueue(url string, handle string) error {
 
 // Download just copies the file from TempDir/bucket/key to path
 func (a *LocalConn) Download(bucket string, key string, path string) error {
+	fin, err := os.Open(filepath.Join(a.TempDir, bucket, key))
+	if err != nil {
+		return err
+	}
+	defer fin.Close()
+
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	fin, err := os.Open(filepath.Join(a.TempDir, bucket, key))
-	if err != nil {
-		return err
-	}
-	defer fin.Close()
 	_, err = io.Copy(f, fin)
 	return err
 }
