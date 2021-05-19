@@ -87,8 +87,8 @@ func download(dl chan string, process chan string, conn Pipeliner, dir string, e
 		if err != nil {
 			for range dl {
 			} // consume the rest of the receiving channel so it isn't blocked
-			close(process)
 			errc <- err
+			close(process)
 			return
 		}
 		process <- fn
