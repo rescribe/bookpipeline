@@ -238,17 +238,17 @@ func (a *LocalConn) Upload(bucket string, key string, path string) error {
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("Error creating temporary directory: %v", err)
 	}
-	f, err := os.Create(filepath.Join(a.TempDir, bucket, key))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
 	fin, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer fin.Close()
+	f, err := os.Create(filepath.Join(a.TempDir, bucket, key))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 	_, err = io.Copy(f, fin)
 	return err
 }
