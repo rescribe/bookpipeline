@@ -79,6 +79,10 @@ func GetMailSettings() (mailSettings, error) {
 	return mailSettings{f[0], f[1], f[2], f[3], f[4], f[5]}, nil
 }
 
+// download reads file names from a channel and downloads them into
+// dir, putting each successfully downloaded file name into the
+// process channel. If an error occurs it is sent to the errc channel
+// and the function returns early.
 func download(dl chan string, process chan string, conn Pipeliner, dir string, errc chan error, logger *log.Logger) {
 	for key := range dl {
 		fn := filepath.Join(dir, filepath.Base(key))
@@ -96,6 +100,11 @@ func download(dl chan string, process chan string, conn Pipeliner, dir string, e
 	close(process)
 }
 
+// up reads file names from a channel and uploads them with
+// the bookname/ prefix, removing the local copy of each file
+// once it has been successfully uploaded. The done channel is
+// then written to to signal completion. If an error occurs it
+// is sent to the errc channel and the function returns early.
 func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc chan error, logger *log.Logger) {
 	for path := range c {
 		name := filepath.Base(path)
