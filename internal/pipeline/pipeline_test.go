@@ -113,7 +113,7 @@ func Test_download(t *testing.T) {
 						t.Fatalf("Received a different error than was expected, expected one of: %v, got %v\nLog: %s", c.errs, err, slog.log)
 					}
 				case process := <-processchan:
-					expected := tempDir + "/" + c.process 
+					expected := tempDir + "/" + c.process
 					if expected != process {
 						t.Fatalf("Received a different addition to the process channel than was expected, expected: %v, got %v\nLog: %s", expected, process, slog.log)
 					}

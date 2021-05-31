@@ -49,6 +49,7 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 type Clouder interface {
 	Init() error
 	ListObjects(bucket string, prefix string) ([]string, error)
+	DeleteObjects(bucket string, keys []string) error
 	Download(bucket string, key string, fn string) error
 	Upload(bucket string, key string, path string) error
 	CheckQueue(url string, timeout int64) (bookpipeline.Qmsg, error)
