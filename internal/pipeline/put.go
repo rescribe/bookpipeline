@@ -1,4 +1,4 @@
-// Copyright 2020 Nick White.
+// Copyright 2021 Nick White.
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
@@ -11,6 +11,7 @@ import (
 	_ "image/png"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // null writer to enable non-verbose logging to be discarded
@@ -25,6 +26,11 @@ type fileWalk chan string
 func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return err
+	}
+	// skip files starting with . to prevent automatically generated
+	// files like .DS_Store getting in the way
+	if strings.HasPrefix(filepath.Base(path), ".") {
+		return nil
 	}
 	if !info.IsDir() {
 		f <- path
