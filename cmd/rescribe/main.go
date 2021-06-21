@@ -1,4 +1,4 @@
-// Copyright 2019 Nick White.
+// Copyright 2021 Nick White.
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
@@ -42,9 +42,6 @@ Note that embedded Tesseract includes these training files:
 - rescribefrav2_fast.traineddata (French historic printing)
 - rescribev8_fast.traineddata (Latin historic printing)
 `
-
-//go:embed tesseract-w32-v5.0.0-alpha.20210506.zip
-var w32zip []byte
 
 const QueueTimeoutSecs = 2 * 60
 const PauseBetweenChecks = 1 * time.Second
@@ -184,15 +181,13 @@ func main() {
 		}
 		switch runtime.GOOS {
 		case "windows":
-			err = unpackZip(w32zip, tessdir)
+			err = unpackZip(tesszip, tessdir)
 			if err != nil {
-				log.Fatalln("Error unpacking embedded w32 zip:", err)
+				log.Fatalln("Error unpacking embedded Tesseract zip:", err)
 			}
 			tessCommand = filepath.Join(tessdir, "tesseract.exe")
 		// TODO: add linux and osx
 		}
-
-		trainingPath = filepath.Join(tessdir, "tessdata", strings.Replace(trainingPath, "trainings/", "", 1))
 	}
 
 	f, err := os.Open(trainingPath)
