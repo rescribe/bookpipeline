@@ -8,8 +8,12 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
+	_ "embed"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -32,7 +36,15 @@ Process and OCR a book using the Rescribe pipeline on a local machine.
 
 OCR results are saved into the bookdir directory unless savedir is
 specified.
+
+Note that embedded Tesseract includes these training files:
+- carolinemsv1_fast.traineddata (Caroline Miniscule)
+- rescribefrav2_fast.traineddata (French historic printing)
+- rescribev8_fast.traineddata (Latin historic printing)
 `
+
+//go:embed tesseract-w32-v5.0.0-alpha.20210506.zip
+var w32zip []byte
 
 const QueueTimeoutSecs = 2 * 60
 const PauseBetweenChecks = 1 * time.Second
@@ -81,6 +93,49 @@ func resetTimer(t *time.Timer, d time.Duration) {
 	}
 }
 
+// unpackTessZip unpacks a byte array of a zip file into a directory
+func unpackZip(b []byte, dir string) error {
+	br := bytes.NewReader(b)
+	zr, err := zip.NewReader(br, br.Size())
+	if err != nil {
+		return fmt.Errorf("Error opening zip: %v", err)
+	}
+
+	for _, f := range zr.File {
+		fn := filepath.Join(dir, f.Name)
+		if f.Mode().IsDir() {
+			err = os.MkdirAll(fn, 0755)
+			if err != nil {
+				return fmt.Errorf("Error creating directory %s: %v", fn, err)
+			}
+			continue
+		}
+		w, err := os.Create(fn)
+		if err != nil {
+			return fmt.Errorf("Error creating file %s: %v", fn, err)
+		}
+		err = os.Chmod(fn, f.Mode())
+		if err != nil {
+			return fmt.Errorf("Error setting mode for file %s: %v", fn, err)
+		}
+		defer w.Close()
+		r, err := f.Open()
+		if err != nil {
+			return fmt.Errorf("Error opening file %s: %v", f.Name, err)
+		}
+		defer r.Close()
+		_, err = io.Copy(w, r)
+		if err != nil {
+			return fmt.Errorf("Error copying to file %s: %v", fn, err)
+		}
+		// explicitly close files to ensure we don't hit too many open files limit
+		w.Close()
+		r.Close()
+	}
+
+	return nil
+}
+
 func main() {
 	deftesscmd := "tesseract"
 	if runtime.GOOS == "windows" {
@@ -88,7 +143,8 @@ func main() {
 	}
 
 	verbose := flag.Bool("v", false, "verbose")
-	training := flag.String("t", "trainings/rescribev7_fast.traineddata", "path to the tesseract training file to use")
+	systess := flag.Bool("systess", false, "Use the system installed Tesseract, rather than the copy embedded in rescribe.")
+	training := flag.String("t", "trainings/rescribev8_fast.traineddata", "path to the tesseract training file to use")
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 
 	flag.Usage = func() {
@@ -102,12 +158,16 @@ func main() {
 		return
 	}
 
+	var err error
 	bookdir := flag.Arg(0)
 	bookname := filepath.Base(bookdir)
 	savedir := bookdir
+	tessdir := ""
 	if flag.NArg() > 1 {
 		savedir = flag.Arg(1)
 	}
+	trainingPath := *training
+	tessCommand := *tesscmd
 
 	var verboselog *log.Logger
 	if *verbose {
@@ -117,15 +177,33 @@ func main() {
 		verboselog = log.New(n, "", 0)
 	}
 
-	f, err := os.Open(*training)
+	if !*systess && runtime.GOOS == "windows" { // TODO: drop the GOOS check here once support for other oses is done
+		tessdir, err = ioutil.TempDir("", "tesseract")
+		if err != nil {
+			log.Fatalln("Error setting up tesseract directory:", err)
+		}
+		switch runtime.GOOS {
+		case "windows":
+			err = unpackZip(w32zip, tessdir)
+			if err != nil {
+				log.Fatalln("Error unpacking embedded w32 zip:", err)
+			}
+			tessCommand = filepath.Join(tessdir, "tesseract.exe")
+		// TODO: add linux and osx
+		}
+
+		trainingPath = filepath.Join(tessdir, "tessdata", strings.Replace(trainingPath, "trainings/", "", 1))
+	}
+
+	f, err := os.Open(trainingPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Training file %s could not be opened.\n", *training)
+		fmt.Fprintf(os.Stderr, "Error: Training file %s could not be opened.\n", trainingPath)
 		fmt.Fprintf(os.Stderr, "Set the `-t` flag with path to a tesseract .traineddata file.\n")
 		os.Exit(1)
 	}
 	f.Close()
 
-	abstraining, err := filepath.Abs(*training)
+	abstraining, err := filepath.Abs(trainingPath)
 	if err != nil {
 		log.Fatalf("Error getting absolute path of training %s: %v", err)
 	}
@@ -136,10 +214,10 @@ func main() {
 		log.Fatalln("Error setting TESSDATA_PREFIX:", err)
 	}
 
-	_, err = exec.Command(*tesscmd, "--help").Output()
+	_, err = exec.Command(tessCommand, "--help").Output()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Can't run Tesseract.\n")
-		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available.\n")
+		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available, or don't use the -systess flag.\n")
 		fmt.Fprintf(os.Stderr, "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n")
 		fmt.Fprintf(os.Stderr, "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR (x86)\\tesseract.exe' ...\n")
 		os.Exit(1)
@@ -169,7 +247,7 @@ func main() {
 	}
 
 	fmt.Printf("Processing book\n")
-	err = processbook(trainingName, *tesscmd, conn)
+	err = processbook(trainingName, tessCommand, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		log.Fatalln(err)
@@ -189,6 +267,13 @@ func main() {
 	err = os.RemoveAll(tempdir)
 	if err != nil {
 		log.Fatalf("Error removing temporary directory %s: %v", tempdir, err)
+	}
+
+	if !*systess {
+		err = os.RemoveAll(tessdir)
+		if err != nil {
+			log.Fatalf("Error removing tesseract directory %s: %v", tessdir, err)
+		}
 	}
 
 	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*.hocr", savedir, string(filepath.Separator)))
