@@ -7,6 +7,8 @@
 // a single book by the pipeline into one command.
 package main
 
+//go:generate go run getembeds.go
+
 import (
 	"archive/zip"
 	"bytes"
