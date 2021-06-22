@@ -185,14 +185,16 @@ func main() {
 	}
 
 	if !*systess {
+		err = unpackZip(tesszip, tessdir)
+		if err != nil {
+			log.Fatalln("Error unpacking embedded Tesseract zip:", err)
+		}
 		switch runtime.GOOS {
 		case "windows":
-			err = unpackZip(tesszip, tessdir)
-			if err != nil {
-				log.Fatalln("Error unpacking embedded Tesseract zip:", err)
-			}
 			tessCommand = filepath.Join(tessdir, "tesseract.exe")
-		// TODO: add linux and osx
+		case "linux":
+			tessCommand = filepath.Join(tessdir, "tesseract")
+		// TODO: add osx
 		}
 	}
 

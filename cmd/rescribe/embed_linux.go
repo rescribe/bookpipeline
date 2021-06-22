@@ -6,5 +6,5 @@ package main
 
 import _ "embed"
 
-// TODO: add go:embed here
+//go:embed tesseract-linux-v5.0.0-alpha.20210510.zip
 var tesszip []byte
