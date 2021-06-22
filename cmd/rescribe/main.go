@@ -371,12 +371,7 @@ func uploadbook(dir string, name string, conn Pipeliner) error {
 }
 
 func downloadbook(dir string, name string, conn Pipeliner) error {
-	err := os.MkdirAll(name, 0755)
-	if err != nil {
-		log.Fatalln("Failed to create directory", name, err)
-	}
-
-	err = pipeline.DownloadBestPages(dir, name, conn, false)
+	err := pipeline.DownloadBestPages(dir, name, conn, false)
 	if err != nil {
 		return fmt.Errorf("Error downloading best pages: %v", err)
 	}
