@@ -38,11 +38,6 @@ Process and OCR a book using the Rescribe pipeline on a local machine.
 
 OCR results are saved into the bookdir directory unless savedir is
 specified.
-
-Note that embedded Tesseract includes these training files:
-- carolinemsv1_fast.traineddata (Caroline Miniscule)
-- rescribefrav2_fast.traineddata (French historic printing)
-- rescribev8_fast.traineddata (Latin historic printing)
 `
 
 //go:embed tessdata.20210622.zip
@@ -146,7 +141,13 @@ func main() {
 
 	verbose := flag.Bool("v", false, "verbose")
 	systess := flag.Bool("systess", false, "Use the system installed Tesseract, rather than the copy embedded in rescribe.")
-	training := flag.String("t", "trainings/rescribev8_fast.traineddata", "path to the tesseract training file to use")
+	training := flag.String("t", "rescribev8_fast.traineddata", `Path to the tesseract training file to use.
+These training files are included in rescribe, and are always available:
+- carolinemsv1_fast.traineddata (Caroline Miniscule)
+- eng.traineddata (Modern English)
+- rescribefrav2_fast.traineddata (French historic printing)
+- rescribev8_fast.traineddata (Latin historic printing)
+	`)
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 
 	flag.Usage = func() {
