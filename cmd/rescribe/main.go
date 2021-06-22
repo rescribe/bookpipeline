@@ -179,11 +179,12 @@ func main() {
 		verboselog = log.New(n, "", 0)
 	}
 
-	if !*systess && runtime.GOOS == "windows" { // TODO: drop the GOOS check here once support for other oses is done
-		tessdir, err = ioutil.TempDir("", "tesseract")
-		if err != nil {
-			log.Fatalln("Error setting up tesseract directory:", err)
-		}
+	tessdir, err = ioutil.TempDir("", "tesseract")
+	if err != nil {
+		log.Fatalln("Error setting up tesseract directory:", err)
+	}
+
+	if !*systess {
 		switch runtime.GOOS {
 		case "windows":
 			err = unpackZip(tesszip, tessdir)
@@ -193,23 +194,23 @@ func main() {
 			tessCommand = filepath.Join(tessdir, "tesseract.exe")
 		// TODO: add linux and osx
 		}
+	}
 
-		tessdatadir := filepath.Join(tessdir, "tessdata")
-		err = os.MkdirAll(tessdatadir, 0755)
-		if err != nil {
-			log.Fatalln("Error setting up tessdata directory:", err)
-		}
-		err = unpackZip(tessdatazip, tessdatadir)
-		if err != nil {
-			log.Fatalln("Error unpacking embedded tessdata zip:", err)
-		}
+	tessdatadir := filepath.Join(tessdir, "tessdata")
+	err = os.MkdirAll(tessdatadir, 0755)
+	if err != nil {
+		log.Fatalln("Error setting up tessdata directory:", err)
+	}
+	err = unpackZip(tessdatazip, tessdatadir)
+	if err != nil {
+		log.Fatalln("Error unpacking embedded tessdata zip:", err)
+	}
 
-		// if trainingPath doesn't exist, set it to the embedded training instead
-		_, err = os.Stat(trainingPath)
-		if !os.IsExist(err) {
-			trainingPath = filepath.Base(trainingPath)
-			trainingPath = filepath.Join(tessdatadir, trainingPath)
-		}
+	// if trainingPath doesn't exist, set it to the embedded training instead
+	_, err = os.Stat(trainingPath)
+	if !os.IsExist(err) {
+		trainingPath = filepath.Base(trainingPath)
+		trainingPath = filepath.Join(tessdatadir, trainingPath)
 	}
 
 	f, err := os.Open(trainingPath)
