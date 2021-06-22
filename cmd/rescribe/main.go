@@ -43,6 +43,9 @@ Note that embedded Tesseract includes these training files:
 - rescribev8_fast.traineddata (Latin historic printing)
 `
 
+//go:embed tessdata.20210622.zip
+var tessdatazip []byte
+
 const QueueTimeoutSecs = 2 * 60
 const PauseBetweenChecks = 1 * time.Second
 const LogSaveTime = 1 * time.Minute
@@ -187,6 +190,23 @@ func main() {
 			}
 			tessCommand = filepath.Join(tessdir, "tesseract.exe")
 		// TODO: add linux and osx
+		}
+
+		tessdatadir := filepath.Join(tessdir, "tessdata")
+		err = os.MkdirAll(tessdatadir, 0755)
+		if err != nil {
+			log.Fatalln("Error setting up tessdata directory:", err)
+		}
+		err = unpackZip(tessdatazip, tessdatadir)
+		if err != nil {
+			log.Fatalln("Error unpacking embedded tessdata zip:", err)
+		}
+
+		// if trainingPath doesn't exist, set it to the embedded training instead
+		_, err = os.Stat(trainingPath)
+		if !os.IsExist(err) {
+			trainingPath = filepath.Base(trainingPath)
+			trainingPath = filepath.Join(tessdatadir, trainingPath)
 		}
 	}
 
