@@ -191,11 +191,12 @@ These training files are included in rescribe, and are always available:
 			log.Fatalln("Error unpacking embedded Tesseract zip:", err)
 		}
 		switch runtime.GOOS {
-		case "windows":
-			tessCommand = filepath.Join(tessdir, "tesseract.exe")
+		case "darwin":
+			tessCommand = filepath.Join(tessdir, "tesseract")
 		case "linux":
 			tessCommand = filepath.Join(tessdir, "tesseract")
-		// TODO: add osx
+		case "windows":
+			tessCommand = filepath.Join(tessdir, "tesseract.exe")
 		}
 	}
 
@@ -241,6 +242,7 @@ These training files are included in rescribe, and are always available:
 		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available, or don't use the -systess flag.\n")
 		fmt.Fprintf(os.Stderr, "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n")
 		fmt.Fprintf(os.Stderr, "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR (x86)\\tesseract.exe' ...\n")
+		fmt.Fprintf(os.Stderr, "Error message: %v\n", err)
 		os.Exit(1)
 	}
 

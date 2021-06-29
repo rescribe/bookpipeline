@@ -6,5 +6,5 @@ package main
 
 import _ "embed"
 
-// TODO: add go:embed here
+//go:embed tesseract-osx-v4.1.1.20191227.zip
 var tesszip []byte
