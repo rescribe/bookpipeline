@@ -353,7 +353,11 @@ func addTxtVersion(hocrfn string) error {
 }
 
 func uploadbook(dir string, name string, conn Pipeliner) error {
-	err := pipeline.CheckImages(dir)
+	_, err := os.Stat(dir)
+	if err != nil && !os.IsExist(err) {
+		return fmt.Errorf("Error: directory %s not found", dir)
+	}
+	err = pipeline.CheckImages(dir)
 	if err != nil {
 		return fmt.Errorf("Error with images in %s: %v", dir, err)
 	}
