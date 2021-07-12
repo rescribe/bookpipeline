@@ -19,6 +19,7 @@ const qidPre = "queuePre"
 const qidWipe = "queueWipe"
 const qidOCR = "queueOCR"
 const qidAnalyse = "queueAnalyse"
+const qidTest = "queueTest"
 const storageId = "storage"
 
 // LocalConn is a simple implementation of the pipeliner interface
@@ -118,6 +119,10 @@ func (a *LocalConn) OCRPageQueueId() string {
 
 func (a *LocalConn) AnalyseQueueId() string {
 	return qidAnalyse
+}
+
+func (a *LocalConn) TestQueueId() string {
+	return qidTest
 }
 
 func (a *LocalConn) WIPStorageId() string {

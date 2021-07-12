@@ -25,6 +25,7 @@ Valid queue names:
 - wipeonly
 - ocrpage
 - analyse
+- test
 `
 
 type QueuePipeliner interface {
@@ -34,6 +35,7 @@ type QueuePipeliner interface {
 	WipeQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
+	TestQueueId() string
 }
 
 func main() {
@@ -63,6 +65,7 @@ func main() {
 		{conn.WipeQueueId(), "wipeonly"},
 		{conn.OCRPageQueueId(), "ocrpage"},
 		{conn.AnalyseQueueId(), "analyse"},
+		{conn.TestQueueId(), "test"},
 	}
 
 	qname := flag.Arg(0)

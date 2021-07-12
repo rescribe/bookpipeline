@@ -30,6 +30,7 @@ const (
 	queueWipeOnly = "rescribewipeonly"
 	queueOcrPage  = "rescribeocrpage"
 	queueAnalyse  = "rescribeanalyse"
+	queueTest     = "rescribetest1"
 )
 
 // Storage bucket names. Can be anything unique in S3.

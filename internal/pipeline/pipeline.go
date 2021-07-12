@@ -48,6 +48,7 @@ type Pipeliner interface {
 	WipeQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
+	TestQueueId() string
 	WIPStorageId() string
 	GetLogger() *log.Logger
 	Log(v ...interface{})
@@ -129,6 +130,12 @@ func up(c chan string, done chan bool, conn Pipeliner, bookname string, errc cha
 	done <- true
 }
 
+// upAndQueue reads file names from a channel and uploads them with
+// the bookname/ prefix, removing the local copy of each file
+// once it has been successfully uploaded. Each done file name is
+// added to the toQueue once it has been uploaded. The done channel
+// is then written to to signal completion. If an error occurs it
+// is sent to the errc channel and the function returns early.
 func upAndQueue(c chan string, done chan bool, toQueue string, conn Pipeliner, bookname string, training string, errc chan error, logger *log.Logger) {
 	for path := range c {
 		name := filepath.Base(path)
