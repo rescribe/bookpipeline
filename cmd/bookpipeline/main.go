@@ -71,6 +71,7 @@ type Pipeliner interface {
 	WipeQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
+	TestQueueId() string
 	WIPStorageId() string
 	GetLogger() *log.Logger
 	Log(v ...interface{})
