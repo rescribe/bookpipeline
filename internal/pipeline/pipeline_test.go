@@ -30,6 +30,7 @@ func (t *StrLog) Write(p []byte) (n int, err error) {
 
 type PipelineTester interface {
 	Pipeliner
+	TestInit() error
 	DeleteObjects(bucket string, keys []string) error
 	TestQueueId() string
 }
@@ -309,6 +310,10 @@ func Test_upAndQueue(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Could not initialise %s connection: %v\nLog: %s", conn.name, err, slog.log)
 				}
+				err = conn.c.TestInit()
+				if err != nil {
+					t.Fatalf("Failed in test initialisation for %s: %v\nLog: %s", conn.name, err, slog.log)
+				}
 				slog.log = ""
 				tempDir := filepath.Join(os.TempDir(), "pipelinetest")
 				err = os.MkdirAll(tempDir, 0700)
@@ -390,11 +395,7 @@ func Test_upAndQueue(t *testing.T) {
 					t.Fatalf("Uploaded file differs from expected, expected: '%s', got '%s'\nLog: %s", c.contents, dled, slog.log)
 				}
 
-				target, err := filepath.Rel(os.TempDir(), filepath.Join(tempDir, c.ul))
-				if err != nil {
-					t.Fatalf("Error removing TempDir prefix: %v", err)
-				}
-				queueExpected := target + " test"
+				queueExpected := "pipelinetest/" + c.ul + " test"
 				if msg.Body != queueExpected {
 					_ = conn.c.DelFromQueue(queueurl, msg.Handle)
 					t.Fatalf("Queue contents not as expected, expected: '%s', got '%s'\nLog: %s", queueExpected, msg.Body, slog.log)

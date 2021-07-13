@@ -64,6 +64,11 @@ func (a *LocalConn) Init() error {
 	return nil
 }
 
+// TestInit does nothing for local connections
+func (a *LocalConn) TestInit() error {
+	return nil
+}
+
 // CheckQueue checks for any messages in a queue
 func (a *LocalConn) CheckQueue(url string, timeout int64) (Qmsg, error) {
 	f, err := os.Open(filepath.Join(a.TempDir, url))

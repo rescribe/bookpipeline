@@ -51,6 +51,7 @@ type AwsConn struct {
 	downloader                                *s3manager.Downloader
 	uploader                                  *s3manager.Uploader
 	wipequrl, prequrl, ocrpgqurl, analysequrl string
+	testqurl                                  string
 	wipstorageid                              string
 }
 
@@ -125,6 +126,19 @@ func (a *AwsConn) Init() error {
 	}
 	a.analysequrl = *result.QueueUrl
 
+	return nil
+}
+
+// TestInit initialises extra aws services needed for running tests.
+func (a *AwsConn) TestInit() error {
+	a.Logger.Println("Getting test queue URL")
+	result, err := a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: aws.String(queueTest),
+	})
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error getting test queue URL: %s\n", err))
+	}
+	a.testqurl = *result.QueueUrl
 	return nil
 }
 
@@ -337,17 +351,7 @@ func (a *AwsConn) WIPStorageId() string {
 }
 
 func (a *AwsConn) TestQueueId() string {
-	// We don't bother saving the queue id in Init(), as it's only
-	// used for testing
-	a.Logger.Println("Getting test queue URL")
-	result, err := a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: aws.String(queueTest),
-	})
-	if err != nil {
-		a.Logger.Printf("Error getting test queue URL: %s\n", err)
-		return ""
-	}
-	return *result.QueueUrl
+	return a.testqurl
 }
 
 func (a *AwsConn) ListObjects(bucket string, prefix string) ([]string, error) {
