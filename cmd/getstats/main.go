@@ -62,16 +62,16 @@ func main() {
 	log.Println("Downloading all best and conf files found")
 	for _, i := range objs {
 		parts := strings.Split(i, "/")
-		if parts[len(parts) - 1] == "best" {
-			fmt.Printf("Downloading %s to %s\n", i, parts[0] + "-best")
-			err = conn.Download(conn.WIPStorageId(), i, parts[0] + "-best")
+		if parts[len(parts)-1] == "best" {
+			fmt.Printf("Downloading %s to %s\n", i, parts[0]+"-best")
+			err = conn.Download(conn.WIPStorageId(), i, parts[0]+"-best")
 			if err != nil {
 				log.Fatalln("Failed to download file", i, err)
 			}
 		}
-		if parts[len(parts) - 1] == "conf" {
-			fmt.Printf("Downloading %s to %s\n", i, parts[0] + "-conf")
-			err = conn.Download(conn.WIPStorageId(), i, parts[0] + "-conf")
+		if parts[len(parts)-1] == "conf" {
+			fmt.Printf("Downloading %s to %s\n", i, parts[0]+"-conf")
+			err = conn.Download(conn.WIPStorageId(), i, parts[0]+"-conf")
 			if err != nil {
 				log.Fatalln("Failed to download file", i, err)
 			}
@@ -99,8 +99,8 @@ func main() {
 		}
 
 		if strings.HasSuffix(parts[1], ".hocr") {
-			fmt.Printf("Downloading %s to %s\n", i, parts[0] + "-hocr")
-			err = conn.Download(conn.WIPStorageId(), i, parts[0] + "-hocr")
+			fmt.Printf("Downloading %s to %s\n", i, parts[0]+"-hocr")
+			err = conn.Download(conn.WIPStorageId(), i, parts[0]+"-hocr")
 			if err != nil {
 				log.Fatalln("Failed to download file", i, err)
 			}

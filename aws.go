@@ -383,8 +383,8 @@ func (a *AwsConn) ListObjectsWithMeta(bucket string, prefix string) ([]ObjMeta, 
 func (a *AwsConn) ListObjectWithMeta(bucket string, prefix string) (ObjMeta, error) {
 	var obj ObjMeta
 	err := a.s3svc.ListObjectsV2Pages(&s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
-		Prefix: aws.String(prefix),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
 		MaxKeys: aws.Int64(1),
 	}, func(page *s3.ListObjectsV2Output, last bool) bool {
 		for _, r := range page.Contents {
@@ -421,12 +421,12 @@ func (a *AwsConn) DeleteObjects(bucket string, keys []string) error {
 		// s3.DeleteObjects can only take up to 1000 keys at a time,
 		// so if necessary delete those collected so far and empty
 		// the objs queue
-		if i % 1000 == 1 {
+		if i%1000 == 1 {
 			_, err := a.s3svc.DeleteObjects(&s3.DeleteObjectsInput{
 				Bucket: aws.String(bucket),
 				Delete: &s3.Delete{
 					Objects: objs,
-					Quiet: aws.Bool(true),
+					Quiet:   aws.Bool(true),
 				},
 			})
 			if err != nil {
@@ -439,7 +439,7 @@ func (a *AwsConn) DeleteObjects(bucket string, keys []string) error {
 		Bucket: aws.String(bucket),
 		Delete: &s3.Delete{
 			Objects: objs,
-			Quiet: aws.Bool(true),
+			Quiet:   aws.Bool(true),
 		},
 	})
 	return err

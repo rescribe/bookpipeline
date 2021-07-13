@@ -26,8 +26,8 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 }
 
 type RmPipeliner interface {
-        MinimalInit() error
-        WIPStorageId() string
+	MinimalInit() error
+	WIPStorageId() string
 	DeleteObjects(bucket string, keys []string) error
 	ListObjects(bucket string, prefix string) ([]string, error)
 }

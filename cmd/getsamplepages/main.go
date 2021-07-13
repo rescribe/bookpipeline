@@ -74,7 +74,7 @@ func main() {
 		err = conn.Download(conn.WIPStorageId(), p+"best", name+"best")
 		if err != nil {
 		}
-		b, err := ioutil.ReadFile(name+"best")
+		b, err := ioutil.ReadFile(name + "best")
 		if err != nil {
 			log.Fatalf("Failed to read file %s\n", name+"best")
 		}
@@ -85,7 +85,7 @@ func main() {
 		}
 		pg := strings.TrimSuffix(lines[0], ".hocr")
 
-		err = os.Remove(name+"best")
+		err = os.Remove(name + "best")
 		if err != nil {
 			log.Fatalf("Failed to remove temporary best file for %s", name)
 		}

@@ -46,6 +46,7 @@ var tessdatazip []byte
 const QueueTimeoutSecs = 2 * 60
 const PauseBetweenChecks = 1 * time.Second
 const LogSaveTime = 1 * time.Minute
+
 var thresholds = []float64{0.1, 0.2, 0.3}
 
 // null writer to enable non-verbose logging to be discarded
@@ -322,8 +323,8 @@ These training files are included in rescribe, and are always available:
 	}
 
 	// For simplicity, remove .binarised.pdf and rename .colour.pdf to .pdf
-	_ = os.Remove(filepath.Join(savedir, bookname + ".binarised.pdf"))
-	_ = os.Rename(filepath.Join(savedir, bookname + ".colour.pdf"), filepath.Join(savedir, bookname + ".pdf"))
+	_ = os.Remove(filepath.Join(savedir, bookname+".binarised.pdf"))
+	_ = os.Rename(filepath.Join(savedir, bookname+".colour.pdf"), filepath.Join(savedir, bookname+".pdf"))
 }
 
 func addTxtVersion(hocrfn string) error {
@@ -342,7 +343,7 @@ func addTxtVersion(hocrfn string) error {
 	for _, v := range thresholds {
 		basefn = strings.TrimSuffix(basefn, fmt.Sprintf("_bin%.1f.hocr", v))
 	}
-	fn := filepath.Join(dir, "text", basefn + ".txt")
+	fn := filepath.Join(dir, "text", basefn+".txt")
 
 	err = ioutil.WriteFile(fn, []byte(t), 0644)
 	if err != nil {

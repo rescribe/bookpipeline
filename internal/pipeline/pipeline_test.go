@@ -36,7 +36,7 @@ type PipelineTester interface {
 
 type connection struct {
 	name string
-	c PipelineTester
+	c    PipelineTester
 }
 
 // Test_download tests the download() function inside the pipeline
@@ -53,11 +53,11 @@ func Test_download(t *testing.T) {
 	}
 
 	cases := []struct {
-		dl string
+		dl       string
 		contents []byte
-		process string
-		errs []error
-	} {
+		process  string
+		errs     []error
+	}{
 		{"notpresent", []byte(""), "", []error{errors.New("no such file or directory"), errors.New("NoSuchKey: The specified key does not exist")}},
 		{"empty", []byte{}, "empty", []error{}},
 		{"justastring", []byte("I am just a basic string"), "justastring", []error{}},
@@ -73,7 +73,7 @@ func Test_download(t *testing.T) {
 				slog.log = ""
 				tempDir := filepath.Join(os.TempDir(), "pipelinetest")
 				err = os.MkdirAll(tempDir, 0700)
-				if err != nil && ! os.IsExist(err) {
+				if err != nil && !os.IsExist(err) {
 					t.Fatalf("Could not create temporary directory %s: %v\nLog: %s", tempDir, err, slog.log)
 				}
 
@@ -174,11 +174,11 @@ func Test_up(t *testing.T) {
 	}
 
 	cases := []struct {
-		ul string
+		ul       string
 		contents []byte
-		process string
-		errs []error
-	} {
+		process  string
+		errs     []error
+	}{
 		{"notpresent", []byte(""), "", []error{errors.New("no such file or directory"), errors.New("NoSuchKey: The specified key does not exist")}},
 		{"empty", []byte{}, "empty", []error{}},
 		{"justastring", []byte("I am just a basic string"), "justastring", []error{}},
@@ -194,7 +194,7 @@ func Test_up(t *testing.T) {
 				slog.log = ""
 				tempDir := filepath.Join(os.TempDir(), "pipelinetest")
 				err = os.MkdirAll(tempDir, 0700)
-				if err != nil && ! os.IsExist(err) {
+				if err != nil && !os.IsExist(err) {
 					t.Fatalf("Could not create temporary directory %s: %v\nLog: %s", tempDir, err, slog.log)
 				}
 
@@ -244,7 +244,7 @@ func Test_up(t *testing.T) {
 					t.Fatalf("Uploaded file not removed as it should have been after uploading %s: %v\nLog: %s", tempFile, err, slog.log)
 				}
 
-				err = conn.c.Download(conn.c.WIPStorageId(), "pipelinetest/" + c.ul, tempFile)
+				err = conn.c.Download(conn.c.WIPStorageId(), "pipelinetest/"+c.ul, tempFile)
 				if err != nil {
 					t.Fatalf("Could not download file %s: %v\nLog: %s", tempFile, err, slog.log)
 				}
@@ -292,11 +292,11 @@ func Test_upAndQueue(t *testing.T) {
 	}
 
 	cases := []struct {
-		ul string
+		ul       string
 		contents []byte
-		process string
-		errs []error
-	} {
+		process  string
+		errs     []error
+	}{
 		{"notpresent", []byte(""), "", []error{errors.New("no such file or directory"), errors.New("NoSuchKey: The specified key does not exist")}},
 		{"empty", []byte{}, "empty", []error{}},
 		{"justastring", []byte("I am just a basic string"), "justastring", []error{}},
@@ -312,7 +312,7 @@ func Test_upAndQueue(t *testing.T) {
 				slog.log = ""
 				tempDir := filepath.Join(os.TempDir(), "pipelinetest")
 				err = os.MkdirAll(tempDir, 0700)
-				if err != nil && ! os.IsExist(err) {
+				if err != nil && !os.IsExist(err) {
 					t.Fatalf("Could not create temporary directory %s: %v\nLog: %s", tempDir, err, slog.log)
 				}
 
@@ -376,7 +376,7 @@ func Test_upAndQueue(t *testing.T) {
 					t.Fatalf("Uploaded file not removed as it should have been after uploading %s: %v\nLog: %s", tempFile, err, slog.log)
 				}
 
-				err = conn.c.Download(conn.c.WIPStorageId(), "pipelinetest/" + c.ul, tempFile)
+				err = conn.c.Download(conn.c.WIPStorageId(), "pipelinetest/"+c.ul, tempFile)
 				if err != nil {
 					t.Fatalf("Could not download file %s: %v\nLog: %s", tempFile, err, slog.log)
 				}

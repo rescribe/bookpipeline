@@ -11,9 +11,9 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path"
-	"net/http"
 )
 
 func dl(url string) error {
@@ -40,7 +40,7 @@ func dl(url string) error {
 }
 
 func main() {
-	urls := []string {
+	urls := []string{
 		"https://rescribe.xyz/rescribe/embeds/tessdata.20210622.zip",
 		"https://rescribe.xyz/rescribe/embeds/tesseract-linux-v5.0.0-alpha.20210510.zip",
 		"https://rescribe.xyz/rescribe/embeds/tesseract-osx-v4.1.1.20191227.zip",
