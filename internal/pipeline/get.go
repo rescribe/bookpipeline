@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func DownloadBestPages(dir string, name string, conn Pipeliner, pluspngs bool) error {
+func DownloadBestPages(dir string, name string, conn Downloader, pluspngs bool) error {
 	key := filepath.Join(name, "best")
 	fn := filepath.Join(dir, "best")
 	err := conn.Download(conn.WIPStorageId(), key, fn)
@@ -54,7 +54,7 @@ func DownloadBestPages(dir string, name string, conn Pipeliner, pluspngs bool) e
 	return nil
 }
 
-func DownloadPdfs(dir string, name string, conn Pipeliner) error {
+func DownloadPdfs(dir string, name string, conn Downloader) error {
 	for _, suffix := range []string{".colour.pdf", ".binarised.pdf"} {
 		key := filepath.Join(name, name+suffix)
 		fn := filepath.Join(dir, name+suffix)
@@ -66,7 +66,7 @@ func DownloadPdfs(dir string, name string, conn Pipeliner) error {
 	return nil
 }
 
-func DownloadAnalyses(dir string, name string, conn Pipeliner) error {
+func DownloadAnalyses(dir string, name string, conn Downloader) error {
 	for _, a := range []string{"conf", "graph.png"} {
 		key := filepath.Join(name, a)
 		fn := filepath.Join(dir, a)
@@ -78,7 +78,7 @@ func DownloadAnalyses(dir string, name string, conn Pipeliner) error {
 	return nil
 }
 
-func DownloadAll(dir string, name string, conn Pipeliner) error {
+func DownloadAll(dir string, name string, conn DownloadLister) error {
 	objs, err := conn.ListObjects(conn.WIPStorageId(), name)
 	if err != nil {
 		return fmt.Errorf("Failed to get list of files for book %s: %v", name, err)

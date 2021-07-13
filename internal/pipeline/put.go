@@ -59,7 +59,7 @@ func CheckImages(dir string) error {
 	return nil
 }
 
-func DetectQueueType(dir string, conn Pipeliner) string {
+func DetectQueueType(dir string, conn Queuer) string {
 	// Auto detect type of queue to send to based on file extension
 	pngdirs, _ := filepath.Glob(dir + "/*.png")
 	jpgdirs, _ := filepath.Glob(dir + "/*.jpg")
@@ -72,7 +72,7 @@ func DetectQueueType(dir string, conn Pipeliner) string {
 	}
 }
 
-func UploadImages(dir string, bookname string, conn Pipeliner) error {
+func UploadImages(dir string, bookname string, conn Uploader) error {
 	walker := make(fileWalk)
 	go func() {
 		_ = filepath.Walk(dir, walker.Walk)

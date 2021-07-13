@@ -28,9 +28,15 @@ func (t *StrLog) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+type PipelineTester interface {
+	Pipeliner
+	DeleteObjects(bucket string, keys []string) error
+	TestQueueId() string
+}
+
 type connection struct {
 	name string
-	c Pipeliner
+	c PipelineTester
 }
 
 // Test_download tests the download() function inside the pipeline
