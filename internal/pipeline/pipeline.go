@@ -30,31 +30,47 @@ import (
 
 const HeartbeatSeconds = 60
 
-type Logger interface {
-	GetLogger() *log.Logger
-	Log(v ...interface{})
-}
-
 type Lister interface {
-	Logger
 	ListObjects(bucket string, prefix string) ([]string, error)
+	Log(v ...interface{})
 	WIPStorageId() string
 }
 
 type Downloader interface {
-	Logger
 	Download(bucket string, key string, fn string) error
+	Log(v ...interface{})
+	WIPStorageId() string
+}
+
+type DownloadLister interface {
+	Download(bucket string, key string, fn string) error
+	ListObjects(bucket string, prefix string) ([]string, error)
+	Log(v ...interface{})
 	WIPStorageId() string
 }
 
 type Uploader interface {
-	Logger
+	Log(v ...interface{})
 	Upload(bucket string, key string, path string) error
 	WIPStorageId() string
 }
 
 type Queuer interface {
-	Logger
+	AddToQueue(url string, msg string) error
+	AnalyseQueueId() string
+	CheckQueue(url string, timeout int64) (bookpipeline.Qmsg, error)
+	DelFromQueue(url string, handle string) error
+	Log(v ...interface{})
+	OCRPageQueueId() string
+	PreQueueId() string
+	QueueHeartbeat(msg bookpipeline.Qmsg, qurl string, duration int64) (bookpipeline.Qmsg, error)
+	WipeQueueId() string
+}
+
+type UploadQueuer interface {
+	Log(v ...interface{})
+	Upload(bucket string, key string, path string) error
+	WIPStorageId() string
 	PreQueueId() string
 	WipeQueueId() string
 	OCRPageQueueId() string
@@ -65,23 +81,22 @@ type Queuer interface {
 	QueueHeartbeat(msg bookpipeline.Qmsg, qurl string, duration int64) (bookpipeline.Qmsg, error)
 }
 
-type UploadQueuer interface {
-	Uploader
-	Queuer
-}
-
-type DownloadLister interface {
-	Downloader
-	Lister
-}
-
 type Pipeliner interface {
+	AddToQueue(url string, msg string) error
+	AnalyseQueueId() string
+	CheckQueue(url string, timeout int64) (bookpipeline.Qmsg, error)
+	DelFromQueue(url string, handle string) error
+	Download(bucket string, key string, fn string) error
+	GetLogger() *log.Logger
 	Init() error
-	Logger
-	Lister
-	Downloader
-	Uploader
-	Queuer
+	ListObjects(bucket string, prefix string) ([]string, error)
+	Log(v ...interface{})
+	OCRPageQueueId() string
+	PreQueueId() string
+	QueueHeartbeat(msg bookpipeline.Qmsg, qurl string, duration int64) (bookpipeline.Qmsg, error)
+	Upload(bucket string, key string, path string) error
+	WipeQueueId() string
+	WIPStorageId() string
 }
 
 type MinPipeliner interface {
