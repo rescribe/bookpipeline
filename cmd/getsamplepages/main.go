@@ -96,7 +96,7 @@ func main() {
 			fn := pg + suffix
 			err = conn.Download(conn.WIPStorageId(), p+fn, name+fn)
 			if err != nil {
-				log.Fatalf("Download of %s%s failed: %v\n", p+fn, err)
+				log.Fatalf("Download of %s%s failed: %v\n", p, fn, err)
 			}
 		}
 	}

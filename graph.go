@@ -104,15 +104,15 @@ func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines
 		xvalues = append(xvalues, c.Pgnum)
 		yvalues = append(yvalues, c.Conf)
 		if i%tickevery == 0 {
-			ticks = append(ticks, chart.Tick{c.Pgnum, fmt.Sprintf("%.0f", c.Pgnum)})
+			ticks = append(ticks, chart.Tick{Value: c.Pgnum, Label: fmt.Sprintf("%.0f", c.Pgnum)})
 		}
 	}
 	// Make last tick the final page
 	final := graphconf[len(graphconf)-1]
-	ticks[len(ticks)-1] = chart.Tick{final.Pgnum, fmt.Sprintf("%.0f", final.Pgnum)}
+	ticks[len(ticks)-1] = chart.Tick{Value: final.Pgnum, Label: fmt.Sprintf("%.0f", final.Pgnum)}
 	for i := 0; i <= yticknum; i++ {
 		n := float64(i*100) / yticknum
-		yticks = append(yticks, chart.Tick{n, fmt.Sprintf("%.1f", n)})
+		yticks = append(yticks, chart.Tick{Value: n, Label: fmt.Sprintf("%.1f", n)})
 	}
 
 	mainSeries := chart.ContinuousSeries{

@@ -228,7 +228,7 @@ These training files are included in rescribe, and are always available:
 
 	abstraining, err := filepath.Abs(trainingPath)
 	if err != nil {
-		log.Fatalf("Error getting absolute path of training %s: %v", err)
+		log.Fatalf("Error getting absolute path of training %s: %v", trainingPath, err)
 	}
 	tessPrefix, trainingName := filepath.Split(abstraining)
 	trainingName = strings.TrimSuffix(trainingName, ".traineddata")
@@ -499,6 +499,4 @@ func processbook(training string, tesscmd string, conn Pipeliner) error {
 			return nil
 		}
 	}
-
-	return fmt.Errorf("Ended unexpectedly") // should never be reached
 }
