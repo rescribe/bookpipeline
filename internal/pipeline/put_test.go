@@ -6,6 +6,7 @@ package pipeline
 
 import (
 	"errors"
+	"os"
 	"testing"
 )
 
@@ -16,11 +17,18 @@ func Test_CheckImages(t *testing.T) {
 	}{
 		{"testdata/good", nil},
 		{"testdata/bad", errors.New("Decoding image testdata/bad/bad.png failed: png: invalid format: invalid checksum")},
-		{"testdata/nonexistent", nil},
+		{"testdata/notreadable", errors.New("Opening image testdata/notreadable/1.png failed: open testdata/notreadable/1.png: permission denied")},
 	}
 
 	for _, c := range cases {
 		t.Run(c.dir, func(t *testing.T) {
+			if c.dir == "testdata/notreadable" {
+				err := os.Chmod("testdata/notreadable/1.png", 0000)
+				if err != nil {
+					t.Fatalf("Error preparing test by setting file to be unreadable: %v", err)
+				}
+			}
+
 			err := CheckImages(c.dir)
 			if err == nil && c.err != nil {
 				t.Fatalf("Expected error '%v', got no error", c.err)
@@ -30,6 +38,13 @@ func Test_CheckImages(t *testing.T) {
 			}
 			if err != nil && c.err != nil && err.Error() != c.err.Error() {
 				t.Fatalf("Got an unexpected error, expected '%v', got '%v'", c.err, err)
+			}
+
+			if c.dir == "testdata/notreadable" {
+				err := os.Chmod("testdata/notreadable/1.png", 0644)
+				if err != nil {
+					t.Fatalf("Error resetting test by setting file to be readable: %v", err)
+				}
 			}
 		})
 	}
