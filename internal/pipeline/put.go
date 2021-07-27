@@ -23,6 +23,8 @@ func (w NullWriter) Write(p []byte) (n int, err error) {
 
 type fileWalk chan string
 
+// Walk sends the path of all files to the channel, with the exception of
+// any file or directory which starts with "."
 func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return err
@@ -38,6 +40,8 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
+// CheckImages checks that all files in a directory are images
+// that can be decoded (skipping dotfiles)
 func CheckImages(dir string) error {
 	checker := make(fileWalk)
 	go func() {
@@ -59,8 +63,9 @@ func CheckImages(dir string) error {
 	return nil
 }
 
+// DetectQueueType detects which queue to use based on the preponderance
+// of files of a particular extension in a directory
 func DetectQueueType(dir string, conn Queuer) string {
-	// Auto detect type of queue to send to based on file extension
 	pngdirs, _ := filepath.Glob(dir + "/*.png")
 	jpgdirs, _ := filepath.Glob(dir + "/*.jpg")
 	pngcount := len(pngdirs)

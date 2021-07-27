@@ -7,6 +7,7 @@ package pipeline
 import (
 	"errors"
 	"os"
+	"rescribe.xyz/bookpipeline"
 	"testing"
 )
 
@@ -45,6 +46,29 @@ func Test_CheckImages(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Error resetting test by setting file to be readable: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func Test_DetectQueueType(t *testing.T) {
+	conn := &bookpipeline.LocalConn{}
+
+	cases := []struct {
+		dir string
+		qid string
+	}{
+		{"testdata/mostlypng", conn.WipeQueueId()},
+		{"testdata/mostlyjpg", conn.PreQueueId()},
+		{"testdata/equalpngandjpg", conn.PreQueueId()},
+		{"testdata/nonexistent", conn.PreQueueId()},
+	}
+
+	for _, c := range cases {
+		t.Run(c.dir, func(t *testing.T) {
+			qid := DetectQueueType(c.dir, conn)
+			if qid != c.qid {
+				t.Fatalf("Error, expected qid %v, got qid %v", qid, c.qid)
 			}
 		})
 	}
