@@ -6,6 +6,7 @@ package pipeline
 
 import (
 	"errors"
+	"log"
 	"os"
 	"rescribe.xyz/bookpipeline"
 	"testing"
@@ -70,6 +71,41 @@ func Test_DetectQueueType(t *testing.T) {
 			if qid != c.qid {
 				t.Fatalf("Error, expected qid %v, got qid %v", qid, c.qid)
 			}
+		})
+	}
+}
+
+func Test_UploadImages(t *testing.T) {
+	var slog StrLog
+        vlog := log.New(&slog, "", 0)
+	var conns []connection
+
+	conns = append(conns, connection{name: "local", c: &bookpipeline.LocalConn{Logger: vlog}})
+
+	if !testing.Short() {
+		conns = append(conns, connection{name: "aws", c: &bookpipeline.AwsConn{Logger: vlog}})
+	}
+
+	for _, conn := range conns {
+		t.Run(conn.name, func(t *testing.T) {
+			err := conn.c.Init()
+			if err != nil {
+				t.Fatalf("Could not initialise %s connection: %v\nLog: %s", conn.name, err, slog.log)
+			}
+			err = conn.c.TestInit()
+			if err != nil {
+				t.Fatalf("Failed in test initialisalisation for %s: %v\nLog: %s", conn.name, err, slog.log)
+			}
+			slog.log = ""
+
+			err = UploadImages("testdata/good", "good", conn.c, conn.c.TestStorageId())
+			if err != nil {
+				t.Fatalf("Error in UploadImages for %s: %v\nLog: %s", conn.name, err, slog.log)
+			}
+
+			// TODO: decide on whether to use TestStorageId or just the WIPStorageId as with other tests, and align other tests to this if needed
+			// TODO: download all files and test that they match
+			// TODO: remove test files from conn storage
 		})
 	}
 }

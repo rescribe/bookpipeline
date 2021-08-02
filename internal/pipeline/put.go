@@ -77,7 +77,10 @@ func DetectQueueType(dir string, conn Queuer) string {
 	}
 }
 
-func UploadImages(dir string, bookname string, conn Uploader) error {
+// UploadImages uploads all files (except those which start with a ".")
+// from a directory (recursively) into a given storage id, prefixed with
+// the given bookname and a slash
+func UploadImages(dir string, bookname string, conn Uploader, storageId string) error {
 	walker := make(fileWalk)
 	go func() {
 		_ = filepath.Walk(dir, walker.Walk)
@@ -86,7 +89,7 @@ func UploadImages(dir string, bookname string, conn Uploader) error {
 
 	for path := range walker {
 		name := filepath.Base(path)
-		err := conn.Upload(conn.WIPStorageId(), filepath.Join(bookname, name), path)
+		err := conn.Upload(storageId, bookname + "/" + name, path)
 		if err != nil {
 			return fmt.Errorf("Failed to upload %s: %v", path, err)
 		}
