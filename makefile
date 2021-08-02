@@ -8,5 +8,8 @@ default:
 rescribe-osx:
 	GOOS=darwin GOARCH=amd64 go build -o $@ ./cmd/rescribe
 
+rescribe-osx-m1:
+	GOOS=darwin GOARCH=arm64 go build -o $@ ./cmd/rescribe
+
 rescribe.exe:
 	GOOS=windows GOARCH=386 go build -o $@ ./cmd/rescribe
