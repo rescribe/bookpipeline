@@ -1,4 +1,4 @@
-// Copyright 2019 Nick White.
+// Copyright 2021 Nick White.
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
@@ -22,7 +22,7 @@ import (
 )
 
 // TODO: maybe set this in Fpdf struct
-const pageWidth = 5    // pageWidth in inches
+const pageWidth = 5.8 // pageWidth in inches - 5.8" is A5
 const scaleSmaller = 3 // amount the width and height are divided by
 
 // pxToPt converts a pixel value into a pt value (72 pts per inch)
@@ -38,7 +38,7 @@ type Fpdf struct {
 
 // Setup creates a new PDF with appropriate settings and fonts
 func (p *Fpdf) Setup() error {
-	p.fpdf = gofpdf.New("P", "pt", "A4", "")
+	p.fpdf = gofpdf.New("P", "pt", "A5", "")
 
 	// Even though it's invisible, we need to add a font which can do
 	// UTF-8 so that text renders correctly.
@@ -108,13 +108,20 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 	p.fpdf.SetTextRenderingMode(3)
 
 	for _, l := range h.Lines {
+		coords, err := hocr.BoxCoords(l.Title)
+		if err != nil {
+			continue
+		}
+		lineheight := coords[3] - coords[1]
 		for _, w := range l.Words {
-			coords, err := hocr.BoxCoords(w.Title)
+			coords, err = hocr.BoxCoords(w.Title)
 			if err != nil {
 				continue
 			}
 			p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
-			p.fpdf.CellFormat(pxToPt(coords[2]), pxToPt(coords[3]), html.UnescapeString(w.Text)+" ", "", 0, "T", false, 0, "")
+			p.fpdf.SetCellMargin(0)
+			p.fpdf.SetFontSize(pxToPt(lineheight))
+			p.fpdf.CellFormat(pxToPt(coords[2] - coords[0]), pxToPt(coords[3] - coords[1]), html.UnescapeString(w.Text)+" ", "", 0, "T", false, 0, "")
 		}
 	}
 	return p.fpdf.Error()
