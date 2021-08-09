@@ -108,20 +108,20 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 	p.fpdf.SetTextRenderingMode(3)
 
 	for _, l := range h.Lines {
-		coords, err := hocr.BoxCoords(l.Title)
+		linecoords, err := hocr.BoxCoords(l.Title)
 		if err != nil {
 			continue
 		}
-		lineheight := coords[3] - coords[1]
+		lineheight := linecoords[3] - linecoords[1]
 		for _, w := range l.Words {
-			coords, err = hocr.BoxCoords(w.Title)
+			coords, err := hocr.BoxCoords(w.Title)
 			if err != nil {
 				continue
 			}
-			p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(coords[1]))
+			p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(linecoords[1]))
 			p.fpdf.SetCellMargin(0)
 			p.fpdf.SetFontSize(pxToPt(lineheight))
-			p.fpdf.CellFormat(pxToPt(coords[2] - coords[0]), pxToPt(coords[3] - coords[1]), html.UnescapeString(w.Text)+" ", "", 0, "T", false, 0, "")
+			p.fpdf.CellFormat(pxToPt(coords[2] - coords[0]), pxToPt(lineheight), html.UnescapeString(w.Text)+" ", "", 0, "T", false, 0, "")
 		}
 	}
 	return p.fpdf.Error()
