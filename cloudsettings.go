@@ -36,5 +36,4 @@ const (
 // Storage bucket names. Can be anything unique in S3.
 const (
 	storageWip = "rescribeinprogress"
-	storageTest = "rescribetest"
 )

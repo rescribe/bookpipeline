@@ -92,18 +92,13 @@ func Test_UploadImages(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Could not initialise %s connection: %v\nLog: %s", conn.name, err, slog.log)
 			}
-			err = conn.c.TestInit()
-			if err != nil {
-				t.Fatalf("Failed in test initialisalisation for %s: %v\nLog: %s", conn.name, err, slog.log)
-			}
 			slog.log = ""
 
-			err = UploadImages("testdata/good", "good", conn.c, conn.c.TestStorageId())
+			err = UploadImages("testdata/good", "good", conn.c)
 			if err != nil {
 				t.Fatalf("Error in UploadImages for %s: %v\nLog: %s", conn.name, err, slog.log)
 			}
 
-			// TODO: decide on whether to use TestStorageId or just the WIPStorageId as with other tests, and align other tests to this if needed
 			// TODO: download all files and test that they match
 			// TODO: remove test files from conn storage
 		})

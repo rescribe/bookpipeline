@@ -21,7 +21,6 @@ const qidOCR = "queueOCR"
 const qidAnalyse = "queueAnalyse"
 const qidTest = "queueTest"
 const storageId = "storage"
-const testStorageId = "test"
 
 // LocalConn is a simple implementation of the pipeliner interface
 // that doesn't rely on any "cloud" services, instead doing everything
@@ -67,11 +66,6 @@ func (a *LocalConn) Init() error {
 
 // TestInit does nothing for local connections
 func (a *LocalConn) TestInit() error {
-	err := os.Mkdir(filepath.Join(a.TempDir, testStorageId), 0700)
-	if err != nil && !os.IsExist(err) {
-		return fmt.Errorf("Error creating test storage directory: %v", err)
-	}
-
 	return nil
 }
 
@@ -139,11 +133,6 @@ func (a *LocalConn) TestQueueId() string {
 func (a *LocalConn) WIPStorageId() string {
 	return storageId
 }
-
-func (a *LocalConn) TestStorageId() string {
-	return testStorageId
-}
-
 
 func prefixwalker(dirpath string, prefix string, list *[]ObjMeta) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {

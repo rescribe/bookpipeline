@@ -362,7 +362,7 @@ func uploadbook(dir string, name string, conn Pipeliner) error {
 	if err != nil {
 		return fmt.Errorf("Error with images in %s: %v", dir, err)
 	}
-	err = pipeline.UploadImages(dir, name, conn, conn.WIPStorageId())
+	err = pipeline.UploadImages(dir, name, conn)
 	if err != nil {
 		return fmt.Errorf("Error saving images to process from %s: %v", dir, err)
 	}

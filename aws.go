@@ -44,16 +44,18 @@ type AwsConn struct {
 	Region string
 	Logger *log.Logger
 
-	sess                                      *session.Session
-	ec2svc                                    *ec2.EC2
-	s3svc                                     *s3.S3
-	sqssvc                                    *sqs.SQS
-	downloader                                *s3manager.Downloader
-	uploader                                  *s3manager.Uploader
-	wipequrl, prequrl, ocrpgqurl, analysequrl string
-	testqurl                                  string
-	teststorageid                             string
-	wipstorageid                              string
+	sess         *session.Session
+	ec2svc       *ec2.EC2
+	s3svc        *s3.S3
+	sqssvc       *sqs.SQS
+	downloader   *s3manager.Downloader
+	uploader     *s3manager.Uploader
+	wipequrl     string
+	prequrl      string
+	ocrpgqurl    string
+	analysequrl  string
+	testqurl     string
+	wipstorageid string
 }
 
 // MinimalInit does the bare minimum to initialise aws services
@@ -140,7 +142,6 @@ func (a *AwsConn) TestInit() error {
 		return errors.New(fmt.Sprintf("Error getting test queue URL: %s\n", err))
 	}
 	a.testqurl = *result.QueueUrl
-	a.teststorageid = storageTest
 	return nil
 }
 
@@ -346,10 +347,6 @@ func (a *AwsConn) OCRPageQueueId() string {
 
 func (a *AwsConn) AnalyseQueueId() string {
 	return a.analysequrl
-}
-
-func (a *AwsConn) TestStorageId() string {
-	return a.teststorageid
 }
 
 func (a *AwsConn) WIPStorageId() string {
@@ -618,7 +615,7 @@ func (a *AwsConn) Log(v ...interface{}) {
 // mkpipeline sets up necessary buckets and queues for the pipeline
 // TODO: also set up the necessary security group and iam stuff
 func (a *AwsConn) MkPipeline() error {
-	buckets := []string{storageTest, storageWip}
+	buckets := []string{storageWip}
 	queues := []string{queuePreProc, queueWipeOnly, queueAnalyse, queueOcrPage, queueTest}
 
 	for _, bucket := range buckets {

@@ -112,7 +112,7 @@ func main() {
 	}
 
 	verboselog.Println("Uploading all images are valid in", bookdir)
-	err = pipeline.UploadImages(bookdir, bookname, conn, conn.WIPStorageId())
+	err = pipeline.UploadImages(bookdir, bookname, conn)
 	if err != nil {
 		log.Fatalln(err)
 	}
