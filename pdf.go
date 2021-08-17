@@ -16,7 +16,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/phpdave11/gofpdf"
+	//"github.com/phpdave11/gofpdf"
+	"github.com/nickjwhite/gofpdf" // adds SetCellStretchToFit function
 	"golang.org/x/image/draw"
 	"rescribe.xyz/utils/pkg/hocr"
 )
@@ -112,7 +113,7 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 		if err != nil {
 			continue
 		}
-		lineheight := linecoords[3] - linecoords[1]
+		lineheight := pxToPt(linecoords[3] - linecoords[1])
 		for _, w := range l.Words {
 			coords, err := hocr.BoxCoords(w.Title)
 			if err != nil {
@@ -120,8 +121,14 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 			}
 			p.fpdf.SetXY(pxToPt(coords[0]), pxToPt(linecoords[1]))
 			p.fpdf.SetCellMargin(0)
-			p.fpdf.SetFontSize(pxToPt(lineheight))
-			p.fpdf.CellFormat(pxToPt(coords[2] - coords[0]), pxToPt(lineheight), html.UnescapeString(w.Text)+" ", "", 0, "T", false, 0, "")
+			p.fpdf.SetFontSize(lineheight)
+			cellW := pxToPt(coords[2] - coords[0])
+			cellText := html.UnescapeString(w.Text)
+			p.fpdf.SetCellStretchToFit(cellW, cellText)
+			// Adding a space after each word causes fewer line breaks to
+			// be erroneously inserted when copy pasting from the PDF, for
+			// some reason.
+			p.fpdf.CellFormat(cellW, lineheight, cellText + " ", "", 0, "T", false, 0, "")
 		}
 	}
 	return p.fpdf.Error()
