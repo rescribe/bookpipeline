@@ -24,6 +24,12 @@ You can find the path names to replace using `otool -L`.
 This is all taken from a great guide on how to do this:
 http://thecourtsofchaos.com/2013/09/16/how-to-copy-and-relink-binaries-on-osx/
 
+Additionally, at least with OSX on arm64 (M1), one needs to re-
+sign the tesseract executable and libraries after changing them,
+or OSX will prevent them from being run. You can do this with
+the codesign tool, like this:
+  codesign -f -s - liblept.5.dylib
+
 The embedded tessdata is much easier to create, it's just a
 standard tessdata from an install on any platform, plus any
 additional .traineddata files you want to include.
