@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"rescribe.xyz/bookpipeline"
@@ -126,9 +127,11 @@ func getBookDetails(conn LsPipeliner, key string) (date time.Time, done bool, er
 // getBookDetailsChan gets the details for a book putting it into either the
 // done or inprogress channels as appropriate, or sending an error to errc
 // on failure.
-func getBookDetailsChan(conn LsPipeliner, key string, done chan bookpipeline.ObjMeta, inprogress chan bookpipeline.ObjMeta, errc chan error) {
+func getBookDetailsChan(conn LsPipeliner, wg *sync.WaitGroup, key string, done chan bookpipeline.ObjMeta, inprogress chan bookpipeline.ObjMeta, errc chan error) {
+	fmt.Printf("getting book details for %s\n", key)
 	date, isdone, err := getBookDetails(conn, key)
 	if err != nil {
+		wg.Done()
 		errc <- err
 		return
 	}
@@ -138,6 +141,7 @@ func getBookDetailsChan(conn LsPipeliner, key string, done chan bookpipeline.Obj
 	} else {
 		inprogress <- meta
 	}
+	wg.Done()
 }
 
 // getBookStatus returns a list of in progress and done books.
@@ -159,9 +163,19 @@ func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err er
 	inprogressc := make(chan bookpipeline.ObjMeta, 100)
 	errc := make(chan error)
 
-	for _, p := range prefixes {
-		go getBookDetailsChan(conn, p, donec, inprogressc, errc)
-	}
+	// This is a bit messy, but it works. We get the book details in blocks of
+	// 30 simultaneous requests, using wait groups to pause once each 20 have
+	// been sent.
+	go func() {
+		var wg sync.WaitGroup
+		for i, p := range prefixes {
+			wg.Add(1)
+			go getBookDetailsChan(conn, &wg, p, donec, inprogressc, errc)
+			if i % 30 == 0 {
+				wg.Wait()
+			}
+		}
+	}()
 
 	var inprogressmeta, donemeta ObjMetas
 
