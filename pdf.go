@@ -12,7 +12,7 @@ import (
 	"html"
 	"image"
 	"image/jpeg"
-	"image/png"
+	_ "image/png"
 	"io/ioutil"
 	"os"
 
@@ -78,7 +78,7 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not open file %s: %v", imgpath, err))
 	}
-	img, imgtype, err := image.Decode(imgf)
+	img, _, err := image.Decode(imgf)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not decode image: %v", err))
 	}
@@ -96,18 +96,14 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 	}
 
 	var buf bytes.Buffer
-	if imgtype == "jpeg" {
-		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: jpeg.DefaultQuality})
-	} else {
-		err = png.Encode(&buf, img)
-	}
+	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: jpeg.DefaultQuality})
 	if err != nil {
 		return err
 	}
 
 	p.fpdf.AddPageFormat("P", gofpdf.SizeType{Wd: pxToPt(b.Dx()), Ht: pxToPt(b.Dy())})
 
-	_ = p.fpdf.RegisterImageOptionsReader(imgpath, gofpdf.ImageOptions{ImageType: imgtype}, &buf)
+	_ = p.fpdf.RegisterImageOptionsReader(imgpath, gofpdf.ImageOptions{ImageType: "jpeg"}, &buf)
 	p.fpdf.ImageOptions(imgpath, 0, 0, pxToPt(b.Dx()), pxToPt(b.Dy()), false, gofpdf.ImageOptions{}, 0, "")
 
 	p.fpdf.SetTextRenderingMode(3)
