@@ -24,7 +24,6 @@ import (
 
 // TODO: maybe set this in Fpdf struct
 const pageWidth = 5.8 // pageWidth in inches - 5.8" is A5
-const scaleSmaller = 3 // amount the width and height are divided by
 
 // pxToPt converts a pixel value into a pt value (72 pts per inch)
 // This uses pageWidth to determine the appropriate value
@@ -83,9 +82,14 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not decode image: %v", err))
 	}
+
+	const smallerImgHeight = 1000
+
 	b := img.Bounds()
+
+	smallerImgWidth := b.Max.X*smallerImgHeight/b.Max.Y
 	if smaller {
-		r := image.Rect(0, 0, b.Max.X/scaleSmaller, b.Max.Y/scaleSmaller)
+		r := image.Rect(0, 0, smallerImgWidth, smallerImgHeight)
 		smimg := image.NewRGBA(r)
 		draw.ApproxBiLinear.Scale(smimg, r, img, b, draw.Over, nil)
 		img = smimg
