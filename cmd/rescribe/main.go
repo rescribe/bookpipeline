@@ -220,7 +220,7 @@ These training files are included in rescribe, and are always available:
 
 	f, err := os.Open(trainingPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Training file %s could not be opened.\n", trainingPath)
+		fmt.Fprintf(os.Stderr, "Error: Training files %s or %s could not be opened.\n", *training, trainingPath)
 		fmt.Fprintf(os.Stderr, "Set the `-t` flag with path to a tesseract .traineddata file.\n")
 		os.Exit(1)
 	}
