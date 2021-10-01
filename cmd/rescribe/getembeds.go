@@ -41,7 +41,7 @@ func dl(url string) error {
 
 func main() {
 	urls := []string{
-		"https://rescribe.xyz/rescribe/embeds/tessdata.20210622.zip",
+		"https://rescribe.xyz/rescribe/embeds/tessdata.20211001.zip",
 		"https://rescribe.xyz/rescribe/embeds/tesseract-linux-v5.0.0-alpha.20210510.zip",
 		"https://rescribe.xyz/rescribe/embeds/tesseract-osx-v4.1.1.20191227.zip",
 		"https://rescribe.xyz/rescribe/embeds/tesseract-osx-m1-v4.1.1.20210802.zip",
