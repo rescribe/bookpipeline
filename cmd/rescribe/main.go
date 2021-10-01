@@ -40,7 +40,7 @@ OCR results are saved into the bookdir directory unless savedir is
 specified.
 `
 
-//go:embed tessdata.20210622.zip
+//go:embed tessdata.20211001.zip
 var tessdatazip []byte
 
 const QueueTimeoutSecs = 2 * 60
@@ -146,6 +146,7 @@ func main() {
 These training files are included in rescribe, and are always available:
 - carolinemsv1_fast.traineddata (Caroline Miniscule)
 - eng.traineddata (Modern English)
+- lat.traineddata (Latin modern printing)
 - rescribefrav2_fast.traineddata (French historic printing)
 - rescribev8_fast.traineddata (Latin historic printing)
 	`)
