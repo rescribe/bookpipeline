@@ -214,7 +214,7 @@ These training files are included in rescribe, and are always available:
 
 	// if trainingPath doesn't exist, set it to the embedded training instead
 	_, err = os.Stat(trainingPath)
-	if !os.IsExist(err) {
+	if err != nil && !os.IsExist(err) {
 		trainingPath = filepath.Base(trainingPath)
 		trainingPath = filepath.Join(tessdatadir, trainingPath)
 	}
