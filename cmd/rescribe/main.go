@@ -11,8 +11,10 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,6 +27,14 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 
 	"rescribe.xyz/bookpipeline"
 	"rescribe.xyz/utils/pkg/hocr"
@@ -158,21 +168,12 @@ These training files are included in rescribe, and are always available:
 	}
 	flag.Parse()
 
-	if flag.NArg() < 1 || flag.NArg() > 2 {
+	if flag.NArg() > 2 {
 		flag.Usage()
 		return
 	}
 
 	var err error
-	bookdir := flag.Arg(0)
-	bookname := filepath.Base(bookdir)
-	savedir := bookdir
-	tessdir := ""
-	if flag.NArg() > 1 {
-		savedir = flag.Arg(1)
-	}
-	trainingPath := *training
-	tessCommand := *tesscmd
 
 	var verboselog *log.Logger
 	if *verbose {
@@ -181,6 +182,10 @@ These training files are included in rescribe, and are always available:
 		var n NullWriter
 		verboselog = log.New(n, "", 0)
 	}
+
+	tessdir := ""
+	trainingPath := *training
+	tessCommand := *tesscmd
 
 	tessdir, err = ioutil.TempDir("", "tesseract")
 	if err != nil {
@@ -238,28 +243,146 @@ These training files are included in rescribe, and are always available:
 		log.Fatalln("Error setting TESSDATA_PREFIX:", err)
 	}
 
-	_, err = exec.Command(tessCommand, "--help").Output()
+	if flag.NArg() < 1 {
+		myApp := app.New()
+		myWindow := myApp.NewWindow("Rescribe OCR")
+
+		var gobtn *widget.Button
+
+		dir := widget.NewEntry()
+		dir.SetPlaceHolder("Folder to process")
+		dir.OnChanged = func(s string) {
+			// TODO: also check if string is a directory, and only enable if so
+			if dir.Text != "" {
+				gobtn.Enable()
+			} else {
+				gobtn.Disable()
+			}
+		}
+
+		openbtn := widget.NewButtonWithIcon("Choose folder", theme.FolderOpenIcon(), func() {
+			dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+				if err == nil && uri != nil {
+					dir.SetText(uri.Path())
+				}
+		}, myWindow)})
+
+		progressBar := widget.NewProgressBar()
+
+		logarea := widget.NewMultiLineEntry()
+		logarea.Disable()
+
+
+		// TODO: have the button be pressed if enter is pressed
+		gobtn = widget.NewButtonWithIcon("Process OCR", theme.UploadIcon(), func() {
+			if dir.Text == "" {
+				return
+			}
+
+			gobtn.Disable()
+			gobtn.SetText("Processing...")
+
+			progressBar.SetValue(0.5)
+
+
+			// https://stackoverflow.com/questions/10473800/in-go-how-do-i-capture-stdout-of-a-function-into-a-string
+			// https://eli.thegreenplace.net/2020/faking-stdin-and-stdout-in-go/
+			origStdout := os.Stdout
+			r, w, err := os.Pipe()
+			if err != nil {
+				log.Fatalln("Error creating pipe for stdout redirection: ", err)
+			}
+			os.Stdout = w
+			defer func() {
+				w.Close()
+				os.Stdout = origStdout
+			}()
+
+			bufReader := bufio.NewReader(r)
+			outC := make(chan rune)
+			go func() {
+				for {
+					r, _, err := bufReader.ReadRune()
+					if err != nil && err != io.EOF {
+						log.Fatalf("Error reading stdout: %v", err)
+						return
+					}
+					outC <- r
+					if err == io.EOF {
+						close(outC)
+						return
+					}
+				}
+			}()
+
+			// update log area with output from outC in a concurrent goroutine
+			go func() {
+				for r := range outC {
+					logarea.SetText(logarea.Text + string(r))
+					logarea.CursorRow = strings.Count(logarea.Text, "\n")
+					// TODO: set text on progress bar, or a label below it, to latest line printed, rather than just using a whole multiline entry like this
+					// TODO: parse the stdout and set progressBar based on that
+				}
+			}()
+
+			err = startProcess(*verboselog, tessCommand, dir.Text, filepath.Base(dir.Text), trainingName, *systess, dir.Text, tessdir)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			progressBar.SetValue(1.0)
+			gobtn.SetText("Process OCR")
+			gobtn.Enable()
+		})
+		gobtn.Disable()
+
+		diropener := container.New(layout.NewGridLayout(2), dir, openbtn)
+
+		content := container.NewVBox(diropener, gobtn, progressBar, logarea)
+
+		myWindow.SetContent(content)
+
+		myWindow.Show()
+		myApp.Run()
+		return
+	}
+
+	bookdir := flag.Arg(0)
+	bookname := filepath.Base(bookdir)
+	savedir := bookdir
+	if flag.NArg() > 1 {
+		savedir = flag.Arg(1)
+	}
+
+	err = startProcess(*verboselog, tessCommand, bookdir, bookname, trainingName, *systess, savedir, tessdir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Can't run Tesseract.\n")
-		fmt.Fprintf(os.Stderr, "Ensure that Tesseract is installed and available, or don't use the -systess flag.\n")
-		fmt.Fprintf(os.Stderr, "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n")
-		fmt.Fprintf(os.Stderr, "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR (x86)\\tesseract.exe' ...\n")
-		fmt.Fprintf(os.Stderr, "Error message: %v\n", err)
-		os.Exit(1)
+		log.Fatalln(err)
+	}
+}
+
+func startProcess(logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, systess bool, savedir string, tessdir string) error {
+	_, err := exec.Command(tessCommand, "--help").Output()
+	if err != nil {
+		errmsg := "Error, Can't run Tesseract\n"
+		errmsg += "Ensure that Tesseract is installed and available, or don't use the -systess flag.\n"
+		errmsg += "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n"
+		errmsg += "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR (x86)\\tesseract.exe' ...\n"
+		errmsg += fmt.Sprintf("Error message: %v", err)
+		return errors.New(errmsg)
 	}
 
 	tempdir, err := ioutil.TempDir("", "bookpipeline")
 	if err != nil {
-		log.Fatalln("Error setting up temporary directory:", err)
+		return errors.New(fmt.Sprintf("Error setting up temporary directory: %v", err))
 	}
 
 	var conn Pipeliner
-	conn = &bookpipeline.LocalConn{Logger: verboselog, TempDir: tempdir}
+	conn = &bookpipeline.LocalConn{Logger: &logger, TempDir: tempdir}
 
 	conn.Log("Setting up session")
 	err = conn.Init()
 	if err != nil {
-		log.Fatalln("Error setting up connection:", err)
+		return errors.New(fmt.Sprintf("Error setting up connection: %v", err))
 	}
 	conn.Log("Finished setting up session")
 
@@ -268,42 +391,42 @@ These training files are included in rescribe, and are always available:
 	err = uploadbook(bookdir, bookname, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
-		log.Fatalln(err)
+		return errors.New(fmt.Sprintf("Error uploading book: %v", err))
 	}
 
 	fmt.Printf("Processing book\n")
 	err = processbook(trainingName, tessCommand, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
-		log.Fatalln(err)
+		return errors.New(fmt.Sprintf("Error processing book: %v", err))
 	}
 
 	fmt.Printf("Saving finished book to %s\n", savedir)
 	err = os.MkdirAll(savedir, 0755)
 	if err != nil {
-		log.Fatalf("Error creating save directory %s: %v", savedir, err)
+		return errors.New(fmt.Sprintf("Error creating save directory %s: %v", savedir, err))
 	}
 	err = downloadbook(savedir, bookname, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
-		log.Fatalln(err)
+		return errors.New(fmt.Sprintf("Error saving book: %v", err))
 	}
 
 	err = os.RemoveAll(tempdir)
 	if err != nil {
-		log.Fatalf("Error removing temporary directory %s: %v", tempdir, err)
+		return errors.New(fmt.Sprintf("Error removing temporary directory %s: %v", tempdir, err))
 	}
 
-	if !*systess {
+	if !systess {
 		err = os.RemoveAll(tessdir)
 		if err != nil {
-			log.Fatalf("Error removing tesseract directory %s: %v", tessdir, err)
+			return errors.New(fmt.Sprintf("Error removing tesseract directory %s: %v", tessdir, err))
 		}
 	}
 
 	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*.hocr", savedir, string(filepath.Separator)))
 	if err != nil {
-		log.Fatalf("Error looking for .hocr files: %v", err)
+		return errors.New(fmt.Sprintf("Error looking for .hocr files: %v", err))
 	}
 
 	for _, v := range hocrs {
@@ -326,6 +449,8 @@ These training files are included in rescribe, and are always available:
 	// For simplicity, remove .binarised.pdf and rename .colour.pdf to .pdf
 	_ = os.Remove(filepath.Join(savedir, bookname+".binarised.pdf"))
 	_ = os.Rename(filepath.Join(savedir, bookname+".colour.pdf"), filepath.Join(savedir, bookname+".pdf"))
+
+	return nil
 }
 
 func addTxtVersion(hocrfn string) error {
