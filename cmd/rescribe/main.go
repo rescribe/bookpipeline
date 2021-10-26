@@ -11,7 +11,6 @@ package main
 
 import (
 	"archive/zip"
-	"bufio"
 	"bytes"
 	_ "embed"
 	"errors"
@@ -28,21 +27,13 @@ import (
 	"strings"
 	"time"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
-
 	"rescribe.xyz/bookpipeline"
 	"rescribe.xyz/utils/pkg/hocr"
 
 	"rescribe.xyz/bookpipeline/internal/pipeline"
 )
 
-const usage = `Usage: rescribe [-v] [-t training] bookdir [savedir]
+const usage = `Usage: rescribe [-v] [-gui] [-systess] [-tesscmd] [-t training] bookdir [savedir]
 
 Process and OCR a book using the Rescribe pipeline on a local machine.
 
@@ -151,6 +142,7 @@ func main() {
 	}
 
 	verbose := flag.Bool("v", false, "verbose")
+	usegui := flag.Bool("gui", false, "Use graphical user interface")
 	systess := flag.Bool("systess", false, "Use the system installed Tesseract, rather than the copy embedded in rescribe.")
 	training := flag.String("t", "rescribev8_fast.traineddata", `Path to the tesseract training file to use.
 These training files are included in rescribe, and are always available:
@@ -243,107 +235,11 @@ These training files are included in rescribe, and are always available:
 		log.Fatalln("Error setting TESSDATA_PREFIX:", err)
 	}
 
-	if flag.NArg() < 1 {
-		myApp := app.New()
-		myWindow := myApp.NewWindow("Rescribe OCR")
-
-		var gobtn *widget.Button
-
-		dir := widget.NewEntry()
-		dir.SetPlaceHolder("Folder to process")
-		dir.OnChanged = func(s string) {
-			// TODO: also check if string is a directory, and only enable if so
-			if dir.Text != "" {
-				gobtn.Enable()
-			} else {
-				gobtn.Disable()
-			}
+	if flag.NArg() < 1 || *usegui {
+		err := startGui(*verboselog, tessCommand, trainingName, *systess, tessdir)
+		if err != nil {
+			log.Fatalln("Error in gui:", err)
 		}
-
-		openbtn := widget.NewButtonWithIcon("Choose folder", theme.FolderOpenIcon(), func() {
-			dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
-				if err == nil && uri != nil {
-					dir.SetText(uri.Path())
-				}
-		}, myWindow)})
-
-		progressBar := widget.NewProgressBar()
-
-		logarea := widget.NewMultiLineEntry()
-		logarea.Disable()
-
-
-		// TODO: have the button be pressed if enter is pressed
-		gobtn = widget.NewButtonWithIcon("Process OCR", theme.UploadIcon(), func() {
-			if dir.Text == "" {
-				return
-			}
-
-			gobtn.Disable()
-			gobtn.SetText("Processing...")
-
-			progressBar.SetValue(0.5)
-
-
-			// https://stackoverflow.com/questions/10473800/in-go-how-do-i-capture-stdout-of-a-function-into-a-string
-			// https://eli.thegreenplace.net/2020/faking-stdin-and-stdout-in-go/
-			origStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				log.Fatalln("Error creating pipe for stdout redirection: ", err)
-			}
-			os.Stdout = w
-			defer func() {
-				w.Close()
-				os.Stdout = origStdout
-			}()
-
-			bufReader := bufio.NewReader(r)
-			outC := make(chan rune)
-			go func() {
-				for {
-					r, _, err := bufReader.ReadRune()
-					if err != nil && err != io.EOF {
-						log.Fatalf("Error reading stdout: %v", err)
-						return
-					}
-					outC <- r
-					if err == io.EOF {
-						close(outC)
-						return
-					}
-				}
-			}()
-
-			// update log area with output from outC in a concurrent goroutine
-			go func() {
-				for r := range outC {
-					logarea.SetText(logarea.Text + string(r))
-					logarea.CursorRow = strings.Count(logarea.Text, "\n")
-					// TODO: set text on progress bar, or a label below it, to latest line printed, rather than just using a whole multiline entry like this
-					// TODO: parse the stdout and set progressBar based on that
-				}
-			}()
-
-			err = startProcess(*verboselog, tessCommand, dir.Text, filepath.Base(dir.Text), trainingName, *systess, dir.Text, tessdir)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			progressBar.SetValue(1.0)
-			gobtn.SetText("Process OCR")
-			gobtn.Enable()
-		})
-		gobtn.Disable()
-
-		diropener := container.New(layout.NewGridLayout(2), dir, openbtn)
-
-		content := container.NewVBox(diropener, gobtn, progressBar, logarea)
-
-		myWindow.SetContent(content)
-
-		myWindow.Show()
-		myApp.Run()
 		return
 	}
 
