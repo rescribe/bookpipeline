@@ -244,7 +244,7 @@ These training files are included in rescribe, and are always available:
 	}
 
 	bookdir := flag.Arg(0)
-	bookname := filepath.Base(bookdir)
+	bookname := strings.ReplaceAll(filepath.Base(bookdir), " ", "_")
 	savedir := bookdir
 	if flag.NArg() > 1 {
 		savedir = flag.Arg(1)
