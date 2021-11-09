@@ -128,7 +128,6 @@ func getBookDetails(conn LsPipeliner, key string) (date time.Time, done bool, er
 // done or inprogress channels as appropriate, or sending an error to errc
 // on failure.
 func getBookDetailsChan(conn LsPipeliner, wg *sync.WaitGroup, key string, done chan bookpipeline.ObjMeta, inprogress chan bookpipeline.ObjMeta, errc chan error) {
-	fmt.Printf("getting book details for %s\n", key)
 	date, isdone, err := getBookDetails(conn, key)
 	if err != nil {
 		wg.Done()
