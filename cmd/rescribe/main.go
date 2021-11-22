@@ -27,12 +27,12 @@ import (
 	"time"
 
 	"rescribe.xyz/bookpipeline"
-	"rescribe.xyz/utils/pkg/hocr"
-
 	"rescribe.xyz/bookpipeline/internal/pipeline"
+	"rescribe.xyz/pdf"
+	"rescribe.xyz/utils/pkg/hocr"
 )
 
-const usage = `Usage: rescribe [-v] [-gui] [-systess] [-tesscmd] [-t training] bookdir [savedir]
+const usage = `Usage: rescribe [-v] [-gui] [-systess] [-tesscmd] [-t training] bookdir/book.pdf [savedir]
 
 Process and OCR a book using the Rescribe pipeline on a local machine.
 
@@ -249,10 +249,102 @@ These training files are included in rescribe, and are always available:
 		savedir = flag.Arg(1)
 	}
 
+	ispdf := false
+
+	fi, err := os.Stat(bookdir)
+	if err != nil {
+		log.Fatalln("Error opening book file/dir:", err)
+	}
+
+	// try opening as a PDF, and extracting
+	if !fi.IsDir() {
+		if flag.NArg() < 2 {
+			savedir = strings.TrimSuffix(bookdir, ".pdf")
+		}
+
+		bookdir, err = extractPdfImgs(bookdir)
+		if err != nil {
+			log.Fatalln("Error opening file as PDF:", err)
+		}
+
+		bookname = strings.TrimSuffix(bookname, ".pdf")
+
+		ispdf = true
+	}
+
 	err = startProcess(*verboselog, tessCommand, bookdir, bookname, trainingName, *systess, savedir, tessdir)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	if ispdf {
+		os.RemoveAll(filepath.Clean(filepath.Join(bookdir, "..")))
+	}
+}
+
+// extractPdfImgs extracts all images embedded in a PDF to a
+// temporary directory, which is returned on success.
+func extractPdfImgs(path string) (string, error) {
+	p, err := pdf.Open(path)
+	if err != nil {
+		return "", err
+	}
+
+	bookname := strings.TrimSuffix(filepath.Base(path), ".pdf")
+
+	tempdir, err := ioutil.TempDir("", "bookpipeline")
+	if err != nil {
+		return "", fmt.Errorf("Error setting up temporary directory: %v", err)
+	}
+	tempdir = filepath.Join(tempdir, bookname)
+	err = os.Mkdir(tempdir, 0755)
+	if err != nil {
+		return "", fmt.Errorf("Error setting up temporary directory: %v", err)
+	}
+
+	for pgnum := 1; pgnum <= p.NumPage(); pgnum++ {
+		if p.Page(pgnum).V.IsNull() {
+			fmt.Printf("Warning: page %d not found, skipping\n", pgnum)
+			continue
+		}
+		res := p.Page(pgnum).Resources()
+		if res.Kind() != pdf.Dict {
+			fmt.Printf("Warning: no resources found on page %d, skipping\n", pgnum)
+			continue
+		}
+		xobj := res.Key("XObject")
+		if xobj.Kind() != pdf.Dict {
+			fmt.Printf("Warning: no resources found on page %d, skipping\n", pgnum)
+			continue
+		}
+		// BUG: for some PDFs this includes images multiple times for each page
+		for _, k := range xobj.Keys() {
+			obj := xobj.Key(k)
+			if obj.Kind() != pdf.Stream {
+				continue
+			}
+
+			fn := fmt.Sprintf("%s-%04d.jpg", k, pgnum)
+			w, err := os.Create(filepath.Join(tempdir, fn))
+			defer w.Close()
+			if err != nil {
+				return tempdir, fmt.Errorf("Error creating file to extract PDF image: %v\n", err)
+			}
+			r := obj.Reader()
+			defer r.Close()
+			_, err = io.Copy(w, r)
+			if err != nil {
+				return tempdir, fmt.Errorf("Error writing extracted image %s from PDF: %v\n", fn, err)
+			}
+			w.Close()
+			r.Close()
+
+			// TODO: check that what we've written is actually a JPEG
+		}
+	}
+	// TODO: check for places where there are multiple images per page, and only keep largest ones where that's the case
+
+	return tempdir, nil
 }
 
 func startProcess(logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, systess bool, savedir string, tessdir string) error {

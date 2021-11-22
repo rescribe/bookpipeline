@@ -9,6 +9,7 @@ require (
 	github.com/wcharczuk/go-chart/v2 v2.1.0
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
 	golang.org/x/sys v0.0.0-20211023085530-d6a326fbbf70 // indirect
+	rescribe.xyz/pdf v0.1.3
 	rescribe.xyz/preproc v0.4.2
 	rescribe.xyz/utils v0.1.3
 )
