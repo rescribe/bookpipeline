@@ -33,7 +33,6 @@ type PipelineTester interface {
 	TestInit() error
 	DeleteObjects(bucket string, keys []string) error
 	TestQueueId() string
-	TestStorageId() string
 }
 
 type connection struct {
