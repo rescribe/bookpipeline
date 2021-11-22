@@ -9,6 +9,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,18 +82,28 @@ func DetectQueueType(dir string, conn Queuer) string {
 // from a directory (recursively) into conn.WIPStorageId(), prefixed with
 // the given bookname and a slash
 func UploadImages(dir string, bookname string, conn Uploader) error {
-	walker := make(fileWalk)
-	go func() {
-		_ = filepath.Walk(dir, walker.Walk)
-		close(walker)
-	}()
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		fmt.Errorf("Failed to read directory %s: %v", dir, err)
+	}
 
-	for path := range walker {
-		name := filepath.Base(path)
-		err := conn.Upload(conn.WIPStorageId(), bookname + "/" + name, path)
-		if err != nil {
-			return fmt.Errorf("Failed to upload %s: %v", path, err)
+	filenum := 0
+	for _, file := range files {
+		if file.IsDir() {
+			continue
 		}
+		origname := file.Name()
+		origsuffix := filepath.Ext(origname)
+		origbase := strings.TrimSuffix(origname, origsuffix)
+		origpath := filepath.Join(dir, origname)
+
+		newname := fmt.Sprintf("%s_%04d%s", origbase, filenum, origsuffix)
+		err = conn.Upload(conn.WIPStorageId(), filepath.Join(bookname, newname), origpath)
+		if err != nil {
+			return fmt.Errorf("Failed to upload %s: %v", origpath, err)
+		}
+
+		filenum++
 	}
 
 	return nil
