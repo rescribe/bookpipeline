@@ -13,7 +13,6 @@ import (
 	"archive/zip"
 	"bytes"
 	_ "embed"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -264,12 +263,12 @@ func startProcess(logger log.Logger, tessCommand string, bookdir string, booknam
 		errmsg += "You may need to -tesscmd to the full path of Tesseract.exe if you're on Windows, like this:\n"
 		errmsg += "  rescribe -tesscmd 'C:\\Program Files\\Tesseract OCR (x86)\\tesseract.exe' ...\n"
 		errmsg += fmt.Sprintf("Error message: %v", err)
-		return errors.New(errmsg)
+		return fmt.Errorf(errmsg)
 	}
 
 	tempdir, err := ioutil.TempDir("", "bookpipeline")
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error setting up temporary directory: %v", err))
+		return fmt.Errorf("Error setting up temporary directory: %v", err)
 	}
 
 	var conn Pipeliner
@@ -278,7 +277,7 @@ func startProcess(logger log.Logger, tessCommand string, bookdir string, booknam
 	conn.Log("Setting up session")
 	err = conn.Init()
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error setting up connection: %v", err))
+		return fmt.Errorf("Error setting up connection: %v", err)
 	}
 	conn.Log("Finished setting up session")
 
@@ -287,42 +286,42 @@ func startProcess(logger log.Logger, tessCommand string, bookdir string, booknam
 	err = uploadbook(bookdir, bookname, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
-		return errors.New(fmt.Sprintf("Error uploading book: %v", err))
+		return fmt.Errorf("Error uploading book: %v", err)
 	}
 
 	fmt.Printf("Processing book\n")
 	err = processbook(trainingName, tessCommand, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
-		return errors.New(fmt.Sprintf("Error processing book: %v", err))
+		return fmt.Errorf("Error processing book: %v", err)
 	}
 
 	fmt.Printf("Saving finished book to %s\n", savedir)
 	err = os.MkdirAll(savedir, 0755)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error creating save directory %s: %v", savedir, err))
+		return fmt.Errorf("Error creating save directory %s: %v", savedir, err)
 	}
 	err = downloadbook(savedir, bookname, conn)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
-		return errors.New(fmt.Sprintf("Error saving book: %v", err))
+		return fmt.Errorf("Error saving book: %v", err)
 	}
 
 	err = os.RemoveAll(tempdir)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error removing temporary directory %s: %v", tempdir, err))
+		return fmt.Errorf("Error removing temporary directory %s: %v", tempdir, err)
 	}
 
 	if !systess {
 		err = os.RemoveAll(tessdir)
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error removing tesseract directory %s: %v", tessdir, err))
+			return fmt.Errorf("Error removing tesseract directory %s: %v", tessdir, err)
 		}
 	}
 
 	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*.hocr", savedir, string(filepath.Separator)))
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error looking for .hocr files: %v", err))
+		return fmt.Errorf("Error looking for .hocr files: %v", err)
 	}
 
 	for _, v := range hocrs {
