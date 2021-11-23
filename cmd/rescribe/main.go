@@ -306,17 +306,14 @@ func extractPdfImgs(path string) (string, error) {
 
 	for pgnum := 1; pgnum <= p.NumPage(); pgnum++ {
 		if p.Page(pgnum).V.IsNull() {
-			fmt.Printf("Warning: page %d not found, skipping\n", pgnum)
 			continue
 		}
 		res := p.Page(pgnum).Resources()
 		if res.Kind() != pdf.Dict {
-			fmt.Printf("Warning: no resources found on page %d, skipping\n", pgnum)
 			continue
 		}
 		xobj := res.Key("XObject")
 		if xobj.Kind() != pdf.Dict {
-			fmt.Printf("Warning: no resources found on page %d, skipping\n", pgnum)
 			continue
 		}
 		// BUG: for some PDFs this includes images multiple times for each page
@@ -366,7 +363,6 @@ func rmIfNotImage(f string) error {
 	r.Close()
 	if err == nil {
 		b := strings.TrimSuffix(f, ".jpg")
-		fmt.Printf("%s is PNG; renaming\n", f)
 		err = os.Rename(f, b + ".png")
 		if err != nil {
 			return fmt.Errorf("Error renaming %s to %s: %v", f, b + ".png", err)
@@ -382,7 +378,6 @@ func rmIfNotImage(f string) error {
 	_, err = jpeg.Decode(r)
 	if err != nil {
 		r.Close()
-		fmt.Printf("%s is not PNG or JPEG; removing\n", f)
 		err = os.Remove(f)
 		if err != nil {
 			return fmt.Errorf("Failed to remove invalid image %s: %v", f, err)
