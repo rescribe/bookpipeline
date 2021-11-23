@@ -15,6 +15,8 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"io/ioutil"
 	"log"
@@ -325,7 +327,8 @@ func extractPdfImgs(path string) (string, error) {
 			}
 
 			fn := fmt.Sprintf("%s-%04d.jpg", k, pgnum)
-			w, err := os.Create(filepath.Join(tempdir, fn))
+			path := filepath.Join(tempdir, fn)
+			w, err := os.Create(path)
 			defer w.Close()
 			if err != nil {
 				return tempdir, fmt.Errorf("Error creating file to extract PDF image: %v\n", err)
@@ -339,12 +342,54 @@ func extractPdfImgs(path string) (string, error) {
 			w.Close()
 			r.Close()
 
-			// TODO: check that what we've written is actually a JPEG
+			err = rmIfNotImage(path)
+			if err != nil {
+				return tempdir, fmt.Errorf("Error removing extracted image %s from PDF: %v\n", fn, err)
+			}
 		}
 	}
 	// TODO: check for places where there are multiple images per page, and only keep largest ones where that's the case
 
 	return tempdir, nil
+}
+
+// rmIfNotImage attempts to decode a given file as an image. If it is
+// decode-able as PNG, then rename file extension from .jpg to .png,
+// if it fails to be read as PNG or JPEG it will be deleted.
+func rmIfNotImage(f string) error {
+	r, err := os.Open(f)
+	defer r.Close()
+	if err != nil {
+		return fmt.Errorf("Failed to open image %s: %v\n", f, err)
+	}
+	_, err = png.Decode(r)
+	r.Close()
+	if err == nil {
+		b := strings.TrimSuffix(f, ".jpg")
+		fmt.Printf("%s is PNG; renaming\n", f)
+		err = os.Rename(f, b + ".png")
+		if err != nil {
+			return fmt.Errorf("Error renaming %s to %s: %v", f, b + ".png", err)
+		}
+		return nil
+	}
+
+	r, err = os.Open(f)
+	defer r.Close()
+	if err != nil {
+		return fmt.Errorf("Failed to open image %s: %v\n", f, err)
+	}
+	_, err = jpeg.Decode(r)
+	if err != nil {
+		r.Close()
+		fmt.Printf("%s is not PNG or JPEG; removing\n", f)
+		err = os.Remove(f)
+		if err != nil {
+			return fmt.Errorf("Failed to remove invalid image %s: %v", f, err)
+		}
+	}
+
+	return nil
 }
 
 func startProcess(logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, systess bool, savedir string, tessdir string) error {
