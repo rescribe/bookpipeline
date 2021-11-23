@@ -87,7 +87,7 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 
 	b := img.Bounds()
 
-	smallerImgWidth := b.Max.X*smallerImgHeight/b.Max.Y
+	smallerImgWidth := b.Max.X * smallerImgHeight / b.Max.Y
 	if smaller {
 		r := image.Rect(0, 0, smallerImgWidth, smallerImgHeight)
 		smimg := image.NewRGBA(r)
@@ -128,7 +128,7 @@ func (p *Fpdf) AddPage(imgpath, hocrpath string, smaller bool) error {
 			// Adding a space after each word causes fewer line breaks to
 			// be erroneously inserted when copy pasting from the PDF, for
 			// some reason.
-			p.fpdf.CellFormat(cellW, lineheight, cellText + " ", "", 0, "T", false, 0, "")
+			p.fpdf.CellFormat(cellW, lineheight, cellText+" ", "", 0, "T", false, 0, "")
 		}
 	}
 	return p.fpdf.Error()

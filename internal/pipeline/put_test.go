@@ -77,7 +77,7 @@ func Test_DetectQueueType(t *testing.T) {
 
 func Test_UploadImages(t *testing.T) {
 	var slog StrLog
-        vlog := log.New(&slog, "", 0)
+	vlog := log.New(&slog, "", 0)
 	var conns []connection
 
 	conns = append(conns, connection{name: "local", c: &bookpipeline.LocalConn{Logger: vlog}})

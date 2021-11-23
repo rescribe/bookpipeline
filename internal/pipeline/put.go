@@ -80,7 +80,9 @@ func DetectQueueType(dir string, conn Queuer) string {
 
 // UploadImages uploads all files (except those which start with a ".")
 // from a directory (recursively) into conn.WIPStorageId(), prefixed with
-// the given bookname and a slash
+// the given bookname and a slash. It also appends all file names with
+// sequential numbers, like 0001, to ensure they are appropriately named
+// for further processing in the pipeline.
 func UploadImages(dir string, bookname string, conn Uploader) error {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {

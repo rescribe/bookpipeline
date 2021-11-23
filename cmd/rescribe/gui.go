@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -80,13 +80,13 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 			if err == nil && uri != nil {
 				dir.SetText(uri.Path())
 			}
-	}, myWindow)})
+		}, myWindow)
+	})
 
 	progressBar := widget.NewProgressBar()
 
 	logarea := widget.NewMultiLineEntry()
 	logarea.Disable()
-
 
 	// TODO: have the button be pressed if enter is pressed
 	gobtn = widget.NewButtonWithIcon("Process OCR", theme.UploadIcon(), func() {

@@ -170,7 +170,7 @@ func getBookStatus(conn LsPipeliner) (inprogress []string, done []string, err er
 		for i, p := range prefixes {
 			wg.Add(1)
 			go getBookDetailsChan(conn, &wg, p, donec, inprogressc, errc)
-			if i % 30 == 0 {
+			if i%30 == 0 {
 				wg.Wait()
 			}
 		}
