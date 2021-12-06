@@ -41,8 +41,8 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
-// CheckImages checks that all files in a directory are images
-// that can be decoded (skipping dotfiles)
+// CheckImages checks that all files with a ".jpg" or ".png" suffix
+// in a directory are images that can be decoded (skipping dotfiles)
 func CheckImages(dir string) error {
 	checker := make(fileWalk)
 	go func() {
@@ -51,6 +51,11 @@ func CheckImages(dir string) error {
 	}()
 
 	for path := range checker {
+		suffix := filepath.Ext(path)
+		lsuffix := strings.ToLower(suffix)
+		if lsuffix != ".jpg" && lsuffix != ".png" {
+			continue
+		}
 		f, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("Opening image %s failed: %v", path, err)
@@ -78,11 +83,12 @@ func DetectQueueType(dir string, conn Queuer) string {
 	}
 }
 
-// UploadImages uploads all files (except those which start with a ".")
-// from a directory (recursively) into conn.WIPStorageId(), prefixed with
-// the given bookname and a slash. It also appends all file names with
-// sequential numbers, like 0001, to ensure they are appropriately named
-// for further processing in the pipeline.
+// UploadImages uploads all files with a suffix of ".jpg" or ".png"
+// (except those which start with a ".") from a directory (recursively)
+// into conn.WIPStorageId(), prefixed with the given bookname and a
+// slash. It also appends all file names with sequential numbers, like
+// 0001, to ensure they are appropriately named for further processing
+// in the pipeline.
 func UploadImages(dir string, bookname string, conn Uploader) error {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -94,8 +100,12 @@ func UploadImages(dir string, bookname string, conn Uploader) error {
 		if file.IsDir() {
 			continue
 		}
+		origsuffix := filepath.Ext(file.Name())
+		lsuffix := strings.ToLower(origsuffix)
+		if lsuffix != ".jpg" && lsuffix != ".png" {
+			continue
+		}
 		origname := file.Name()
-		origsuffix := filepath.Ext(origname)
 		origbase := strings.TrimSuffix(origname, origsuffix)
 		origpath := filepath.Join(dir, origname)
 
