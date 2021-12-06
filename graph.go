@@ -63,14 +63,24 @@ func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines
 	var graphconf []GraphConf
 	for _, conf := range confs {
 		name := filepath.Base(conf.Path)
-		var numend int
-		numend = strings.Index(name, "_")
+		numend := strings.Index(name, "_bin")
 		if numend == -1 {
 			numend = strings.Index(name, ".")
 		}
-		pgnum, err := strconv.ParseFloat(name[0:numend], 64)
+		// cancel this process if and rely on fake number version
+		// below if there can't be a 4 digit number before _bin
+		if numend < 4 {
+			graphconf = []GraphConf{}
+			break
+		}
+		numstart := numend - 4
+
+		pgnum, err := strconv.ParseFloat(name[numstart:numend], 64)
+		// if any page numbers can't be parsed, cancel this
+		// and rely on the fake number version below
 		if err != nil {
-			continue
+			graphconf = []GraphConf{}
+			break
 		}
 		var c GraphConf
 		c.Pgnum = pgnum
@@ -79,7 +89,8 @@ func GraphOpts(confs map[string]*Conf, bookname string, xaxis string, guidelines
 	}
 
 	// If we failed to get any page numbers, just fake the lot
-	if len(graphconf) == 0 {
+	if len(graphconf) < 2 {
+		graphconf = []GraphConf{}
 		i := float64(1)
 		for _, conf := range confs {
 			var c GraphConf
