@@ -550,8 +550,8 @@ func downloadbook(dir string, name string, conn Pipeliner) error {
 }
 
 func processbook(training string, tesscmd string, conn Pipeliner) error {
-	origPattern := regexp.MustCompile(`[0-9]{4}.jpg$`)
-	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
+	origPattern := regexp.MustCompile(`[0-9]{4}.(jpg|png)$`)
+	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.(jpg|png)$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var checkPreQueue <-chan time.Time
