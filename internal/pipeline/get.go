@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func DownloadBestPages(dir string, name string, conn Downloader, pluspngs bool) error {
+func DownloadBestPages(dir string, name string, conn Downloader) error {
 	key := filepath.Join(name, "best")
 	fn := filepath.Join(dir, "best")
 	err := conn.Download(conn.WIPStorageId(), key, fn)
@@ -35,12 +35,25 @@ func DownloadBestPages(dir string, name string, conn Downloader, pluspngs bool) 
 			return fmt.Errorf("Failed to download file %s: %v", key, err)
 		}
 	}
+	return nil
+}
 
-	if !pluspngs {
-		return nil
+func DownloadBestPngs(dir string, name string, conn Downloader) error {
+
+	key := filepath.Join(name, "best")
+	fn := filepath.Join(dir, "best")
+	err := conn.Download(conn.WIPStorageId(), key, fn)
+	if err != nil {
+		return fmt.Errorf("Failed to download 'best' file: %v", err)
 	}
-
-	s = bufio.NewScanner(f)
+	f, err := os.Open(fn)
+	if err != nil {
+		return fmt.Errorf("Failed to open best file: %v", err)
+	}
+	defer f.Close()
+	
+	
+	s := bufio.NewScanner(f)
 	for s.Scan() {
 		imgname := strings.Replace(s.Text(), ".hocr", ".png", 1)
 		key = filepath.Join(name, imgname)
@@ -53,6 +66,7 @@ func DownloadBestPages(dir string, name string, conn Downloader, pluspngs bool) 
 	}
 	return nil
 }
+
 
 func DownloadPdfs(dir string, name string, conn Downloader) error {
 	for _, suffix := range []string{".colour.pdf", ".binarised.pdf"} {

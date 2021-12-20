@@ -471,7 +471,21 @@ func startProcess(logger log.Logger, tessCommand string, bookdir string, booknam
 		if err != nil {
 			log.Fatalf("Error moving hocr %s to hocr directory: %v", v, err)
 		}
+		
+		pngname := strings.Replace(v, ".hocr", ".png", 1)
+		err = os.MkdirAll(filepath.Join(savedir, "png"), 0755)
+		if err != nil {
+			log.Fatalf("Error creating hocr directory: %v", err)
+		}
+		
+		err = os.Rename(pngname, filepath.Join(savedir, "png", filepath.Base(pngname)))
+		if err != nil {
+			log.Fatalf("Error moving png %s to hocr directory: %v", pngname, err)
+		}
+		
 	}
+	
+
 
 	// For simplicity, remove .binarised.pdf and rename .colour.pdf to .pdf
 	_ = os.Remove(filepath.Join(savedir, bookname+".binarised.pdf"))
@@ -531,9 +545,14 @@ func uploadbook(dir string, name string, conn Pipeliner) error {
 }
 
 func downloadbook(dir string, name string, conn Pipeliner) error {
-	err := pipeline.DownloadBestPages(dir, name, conn, false)
+	err := pipeline.DownloadBestPages(dir, name, conn)
 	if err != nil {
 		return fmt.Errorf("Error downloading best pages: %v", err)
+	}
+	
+	err1 := pipeline.DownloadBestPngs(dir, name, conn)
+	if err1 != nil {
+		return fmt.Errorf("Error downloading best pngs: %v", err)
 	}
 
 	err = pipeline.DownloadPdfs(dir, name, conn)

@@ -99,6 +99,8 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Rescribe OCR")
 
+	myWindow.Resize(fyne.NewSize(800, 400))
+
 	var gobtn *widget.Button
 
 	dir := widget.NewEntry()
@@ -126,7 +128,7 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 	logarea.Disable()
 
 	// TODO: have the button be pressed if enter is pressed
-	gobtn = widget.NewButtonWithIcon("Process OCR", theme.UploadIcon(), func() {
+	gobtn = widget.NewButtonWithIcon("Start OCR", theme.UploadIcon(), func() {
 		if dir.Text == "" {
 			return
 		}

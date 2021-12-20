@@ -40,7 +40,7 @@ func main() {
 	binarisedpdf := flag.Bool("binarisedpdf", false, "Only download binarised PDF (can be used alongside -graph)")
 	colourpdf := flag.Bool("colourpdf", false, "Only download colour PDF (can be used alongside -graph)")
 	pdf := flag.Bool("pdf", false, "Only download PDFs (can be used alongside -graph)")
-	png := flag.Bool("png", false, "Only download best binarised png files")
+	png := flag.Bool("png", false, "Should only download best binarised png files")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -124,13 +124,18 @@ func main() {
 		verboselog.Println("Downloading PDFs")
 		pipeline.DownloadPdfs(bookname, bookname, conn)
 	}
+	
+	if *png {
+	verboselog.Println("Downloading best PNGs")
+		pipeline.DownloadBestPngs(bookname, bookname, conn)
+	}
 
 	if *binarisedpdf || *colourpdf || *graph || *pdf {
 		return
 	}
 
 	verboselog.Println("Downloading best pages")
-	err = pipeline.DownloadBestPages(bookname, bookname, conn, *png)
+	err = pipeline.DownloadBestPages(bookname, bookname, conn)
 	if err != nil {
 		log.Fatalln(err)
 	}
