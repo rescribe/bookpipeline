@@ -23,14 +23,14 @@ import (
 )
 
 // copyStdoutToChan creates a pipe to copy anything written
-// to stdout instead to a rune channel
+// to the file also to a rune channel.
 func copyStdoutToChan() (chan rune, error) {
 	c := make(chan rune)
 
-	origStdout := os.Stdout
+	origFile := os.Stdout
 	r, w, err := os.Pipe()
 	if err != nil {
-		return c, fmt.Errorf("Error creating pipe for stdout redirection: %v", err)
+		return c, fmt.Errorf("Error creating pipe for file redirection: %v", err)
 	}
 	os.Stdout = w
 
@@ -40,7 +40,44 @@ func copyStdoutToChan() (chan rune, error) {
 		defer func() {
 			close(c)
 			w.Close()
-			os.Stdout = origStdout
+			os.Stdout = origFile
+		}()
+		for {
+			r, _, err := bufReader.ReadRune()
+			if err != nil && err != io.EOF {
+				return
+			}
+			c <- r
+			if err == io.EOF {
+				return
+			}
+		}
+	}()
+
+	return c, nil
+}
+
+// copyStderrToChan creates a pipe to copy anything written
+// to the file also to a rune channel.
+// TODO: would be nice to merge this with copyStdoutToChan,
+//       but a naive version using *os.File didn't work.
+func copyStderrToChan() (chan rune, error) {
+	c := make(chan rune)
+
+	origFile := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		return c, fmt.Errorf("Error creating pipe for file redirection: %v", err)
+	}
+	os.Stderr = w
+
+	bufReader := bufio.NewReader(r)
+
+	go func() {
+		defer func() {
+			close(c)
+			w.Close()
+			os.Stderr = origFile
 		}()
 		for {
 			r, _, err := bufReader.ReadRune()
@@ -105,19 +142,40 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 			return
 		}
 
-		// update log area with output from outC in a concurrent goroutine
+		// update log area with stdout in a concurrent goroutine
 		go func() {
 			for r := range stdout {
 				logarea.SetText(logarea.Text + string(r))
 				logarea.CursorRow = strings.Count(logarea.Text, "\n")
-				// TODO: set text on progress bar, or a label below it, to latest line printed, rather than just using a whole multiline entry like this
+				// TODO: set text on progress bar to latest line printed using progressBar.TextFormatter, rather than just using a whole multiline entry like this
 				// TODO: parse the stdout and set progressBar based on that
+			}
+		}()
+
+		stderr, err := copyStderrToChan()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error copying stderr to chan: %v\n", err)
+			return
+		}
+
+		// update log area with stderr in a concurrent goroutine
+		go func() {
+			for r := range stderr {
+				logarea.SetText(logarea.Text + string(r))
+				logarea.CursorRow = strings.Count(logarea.Text, "\n")
+				// TODO: set text on progress bar, or a label below it, to latest line printed, rather than just using a whole multiline entry like this
 			}
 		}()
 
 		err = startProcess(log, cmd, dir.Text, filepath.Base(dir.Text), training, systess, dir.Text, tessdir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error executing process: %v\n", err)
+			// add a newline before this printing as another message from stdout
+			// or stderr may well be half way through printing
+			logarea.SetText(logarea.Text + fmt.Sprintf("\nError executing process: %v\n", err))
+			logarea.CursorRow = strings.Count(logarea.Text, "\n")
+			progressBar.SetValue(0.0)
+			gobtn.SetText("Process OCR")
+			gobtn.Enable()
 			return
 		}
 
