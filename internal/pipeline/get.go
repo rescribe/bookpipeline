@@ -39,7 +39,6 @@ func DownloadBestPages(dir string, name string, conn Downloader) error {
 }
 
 func DownloadBestPngs(dir string, name string, conn Downloader) error {
-
 	key := filepath.Join(name, "best")
 	fn := filepath.Join(dir, "best")
 	err := conn.Download(conn.WIPStorageId(), key, fn)
@@ -51,8 +50,7 @@ func DownloadBestPngs(dir string, name string, conn Downloader) error {
 		return fmt.Errorf("Failed to open best file: %v", err)
 	}
 	defer f.Close()
-	
-	
+
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		imgname := strings.Replace(s.Text(), ".hocr", ".png", 1)
@@ -66,7 +64,6 @@ func DownloadBestPngs(dir string, name string, conn Downloader) error {
 	}
 	return nil
 }
-
 
 func DownloadPdfs(dir string, name string, conn Downloader) error {
 	for _, suffix := range []string{".colour.pdf", ".binarised.pdf"} {

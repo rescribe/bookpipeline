@@ -124,9 +124,9 @@ func main() {
 		verboselog.Println("Downloading PDFs")
 		pipeline.DownloadPdfs(bookname, bookname, conn)
 	}
-	
+
 	if *png {
-	verboselog.Println("Downloading best PNGs")
+		verboselog.Println("Downloading best PNGs")
 		pipeline.DownloadBestPngs(bookname, bookname, conn)
 	}
 
