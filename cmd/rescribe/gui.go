@@ -102,6 +102,7 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 	myWindow.Resize(fyne.NewSize(800, 400))
 
 	var gobtn *widget.Button
+	var fullContent *fyne.Container
 
 	dir := widget.NewLabel("")
 
@@ -112,20 +113,26 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 			if err == nil && uri != nil {
 				dir.SetText(uri.Path())
 				dirIcon.SetResource(theme.FolderIcon())
+				myWindow.SetContent(fullContent)
 				gobtn.Enable()
 			}
 		}, myWindow)
 	})
 
-	pdfBtn := widget.NewButtonWithIcon("Choose PDF", theme.FileTextIcon(), func() {
+	pdfBtn := widget.NewButtonWithIcon("Choose PDF", theme.DocumentIcon(), func() {
 		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 			if err == nil && uri != nil {
 				uri.Close()
 				dir.SetText(uri.URI().Path())
-				dirIcon.SetResource(theme.FileTextIcon())
+				dirIcon.SetResource(theme.DocumentIcon())
+				myWindow.SetContent(fullContent)
 				gobtn.Enable()
 			}
 		}, myWindow)
+	})
+
+	gbookBtn := widget.NewButtonWithIcon("Get Google Book", theme.SearchIcon(), func() {
+			// TODO
 	})
 
 	progressBar := widget.NewProgressBar()
@@ -193,13 +200,14 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 	})
 	gobtn.Disable()
 
-	choices := container.New(layout.NewGridLayout(2), folderBtn, pdfBtn)
+	choices := container.New(layout.NewGridLayout(3), folderBtn, pdfBtn, gbookBtn)
 
 	chosen := container.New(layout.NewBorderLayout(nil, nil, dirIcon, nil), dirIcon, dir)
 
-	content := container.NewVBox(choices, chosen, gobtn, progressBar, logarea)
+	fullContent = container.NewVBox(choices, chosen, gobtn, progressBar, logarea)
+	startContent := container.NewVBox(choices, gobtn, progressBar, logarea)
 
-	myWindow.SetContent(content)
+	myWindow.SetContent(startContent)
 
 	myWindow.Show()
 	myApp.Run()
