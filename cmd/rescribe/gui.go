@@ -95,7 +95,7 @@ func copyStderrToChan() (chan rune, error) {
 }
 
 // startGui starts the gui process
-func startGui(log log.Logger, cmd string, training string, systess bool, tessdir string) error {
+func startGui(log log.Logger, cmd string, training string, tessdir string) error {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Rescribe OCR")
 
@@ -182,7 +182,7 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 			}
 		}()
 
-		err = startProcess(log, cmd, dir.Text, filepath.Base(dir.Text), training, systess, dir.Text, tessdir)
+		err = startProcess(log, cmd, dir.Text, filepath.Base(dir.Text), training, dir.Text, tessdir)
 		if err != nil {
 			// add a newline before this printing as another message from stdout
 			// or stderr may well be half way through printing

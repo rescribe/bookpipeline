@@ -237,7 +237,7 @@ These training files are included in rescribe, and are always available:
 	}
 
 	if flag.NArg() < 1 || *usegui {
-		err := startGui(*verboselog, tessCommand, trainingName, *systess, tessdir)
+		err := startGui(*verboselog, tessCommand, trainingName, tessdir)
 		err = os.RemoveAll(tessdir)
 		if err != nil {
 			log.Printf("Error removing tesseract directory %s: %v", tessdir, err)
@@ -279,9 +279,16 @@ These training files are included in rescribe, and are always available:
 		ispdf = true
 	}
 
-	err = startProcess(*verboselog, tessCommand, bookdir, bookname, trainingName, *systess, savedir, tessdir)
+	err = startProcess(*verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir)
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	if !*systess {
+		err = os.RemoveAll(tessdir)
+		if err != nil {
+			log.Printf("Error removing tesseract directory %s: %v", tessdir, err)
+		}
 	}
 
 	if ispdf {
@@ -392,7 +399,7 @@ func rmIfNotImage(f string) error {
 	return nil
 }
 
-func startProcess(logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, systess bool, savedir string, tessdir string) error {
+func startProcess(logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string) error {
 	_, err := exec.Command(tessCommand, "--help").Output()
 	if err != nil {
 		errmsg := "Error, Can't run Tesseract\n"
@@ -447,13 +454,6 @@ func startProcess(logger log.Logger, tessCommand string, bookdir string, booknam
 	err = os.RemoveAll(tempdir)
 	if err != nil {
 		return fmt.Errorf("Error removing temporary directory %s: %v", tempdir, err)
-	}
-
-	if !systess {
-		err = os.RemoveAll(tessdir)
-		if err != nil {
-			return fmt.Errorf("Error removing tesseract directory %s: %v", tessdir, err)
-		}
 	}
 
 	hocrs, err := filepath.Glob(fmt.Sprintf("%s%s*.hocr", savedir, string(filepath.Separator)))
