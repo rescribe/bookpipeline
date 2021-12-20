@@ -103,21 +103,27 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 
 	var gobtn *widget.Button
 
-	dir := widget.NewEntry()
-	dir.SetPlaceHolder("Folder to process")
-	dir.OnChanged = func(s string) {
-		// TODO: also check if string is a directory, and only enable if so
-		if dir.Text != "" {
-			gobtn.Enable()
-		} else {
-			gobtn.Disable()
-		}
-	}
+	dir := widget.NewLabel("")
 
-	openbtn := widget.NewButtonWithIcon("Choose folder", theme.FolderOpenIcon(), func() {
+	dirIcon := widget.NewIcon(theme.FolderIcon())
+
+	folderBtn := widget.NewButtonWithIcon("Choose folder", theme.FolderOpenIcon(), func() {
 		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
 			if err == nil && uri != nil {
 				dir.SetText(uri.Path())
+				dirIcon.SetResource(theme.FolderIcon())
+				gobtn.Enable()
+			}
+		}, myWindow)
+	})
+
+	pdfBtn := widget.NewButtonWithIcon("Choose PDF", theme.FileTextIcon(), func() {
+		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+			if err == nil && uri != nil {
+				uri.Close()
+				dir.SetText(uri.URI().Path())
+				dirIcon.SetResource(theme.FileTextIcon())
+				gobtn.Enable()
 			}
 		}, myWindow)
 	})
@@ -187,9 +193,11 @@ func startGui(log log.Logger, cmd string, training string, systess bool, tessdir
 	})
 	gobtn.Disable()
 
-	diropener := container.New(layout.NewGridLayout(2), dir, openbtn)
+	choices := container.New(layout.NewGridLayout(2), folderBtn, pdfBtn)
 
-	content := container.NewVBox(diropener, gobtn, progressBar, logarea)
+	chosen := container.New(layout.NewBorderLayout(nil, nil, dirIcon, nil), dirIcon, dir)
+
+	content := container.NewVBox(choices, chosen, gobtn, progressBar, logarea)
 
 	myWindow.SetContent(content)
 
