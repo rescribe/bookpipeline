@@ -18,6 +18,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -106,7 +107,7 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 		if str != "Other..." {
 			return
 		}
-		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+		d := dialog.NewFileOpen(func(uri fyne.URIReadCloser, err error) {
 			if err != nil || uri == nil {
 				return
 			}
@@ -130,6 +131,8 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 			sel.Options = opts
 			sel.SetSelectedIndex(0)
 		}, parent)
+		d.SetFilter(storage.NewExtensionFileFilter([]string{".traineddata"}))
+		d.Show()
 	}
 }
 
@@ -181,7 +184,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	})
 
 	pdfBtn := widget.NewButtonWithIcon("Choose PDF", theme.DocumentIcon(), func() {
-		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+		d := dialog.NewFileOpen(func(uri fyne.URIReadCloser, err error) {
 			if err == nil && uri != nil {
 				uri.Close()
 				dir.SetText(uri.URI().Path())
@@ -190,6 +193,8 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				gobtn.Enable()
 			}
 		}, myWindow)
+		d.SetFilter(storage.NewExtensionFileFilter([]string{".pdf"}))
+		d.Show()
 	})
 
 	gbookBtn := widget.NewButtonWithIcon("Get Google Book", theme.SearchIcon(), func() {
