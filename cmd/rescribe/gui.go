@@ -94,6 +94,67 @@ func copyStderrToChan() (chan rune, error) {
 	return c, nil
 }
 
+// trainingSelectOnChange is a closure to handle change of the training
+// select box. It does nothing in most cases, but if "Other..." has been
+// selected, then it pops up a file chooser and adds the result to the
+// list, also copying the file to the TESSDATA_PREFIX, and selects it.
+func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string) {
+	return func(str string) {
+		if sel == nil {
+			return
+		}
+		if str != "Other..." {
+			return
+		}
+		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+			if err != nil || uri == nil {
+				return
+			}
+			defer uri.Close()
+			name := uri.URI().Name()
+			newpath := filepath.Join(os.Getenv("TESSDATA_PREFIX"), name)
+			f, err := os.Create(newpath)
+			if err != nil {
+				// TODO: surface error somewhere, prob with a dialog box
+				return
+			}
+			defer f.Close()
+			_, err = io.Copy(f, uri)
+			if err != nil {
+				// TODO: surface error somewhere, prob with a dialog box
+				return
+			}
+
+			basicname := strings.TrimSuffix(name, ".traineddata")
+			opts := append([]string{basicname}, sel.Options...)
+			sel.Options = opts
+			sel.SetSelectedIndex(0)
+		}, parent)
+	}
+}
+
+// mkTrainingSelect returns a select widget with all training
+// files in TESSDATA_PREFIX/training, any other trainings listed
+// in the extras slice, selecting the first entry.
+func mkTrainingSelect(extras []string, parent fyne.Window) *widget.Select {
+	prefix := os.Getenv("TESSDATA_PREFIX")
+	trainings, err := filepath.Glob(prefix + "/*.traineddata")
+	if err != nil {
+		trainings = []string{}
+	}
+	for i, v := range trainings {
+		trainings[i] = strings.TrimSuffix(strings.TrimPrefix(v, prefix), ".traineddata")
+	}
+
+	opts := append(extras, trainings...)
+	opts = append(opts, "Other...")
+	s := widget.NewSelect(opts, func(string) {})
+	// OnChanged is set outside of NewSelect so the reference to s isn't nil
+	s.OnChanged = trainingSelectOnChange(s, parent)
+	s.SetSelectedIndex(0)
+	return s
+}
+
 // startGui starts the gui process
 func startGui(log log.Logger, cmd string, training string, tessdir string) error {
 	myApp := app.New()
@@ -134,6 +195,10 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	gbookBtn := widget.NewButtonWithIcon("Get Google Book", theme.SearchIcon(), func() {
 			// TODO
 	})
+
+	trainingLabel := widget.NewLabel("Training")
+
+	trainingOpts := mkTrainingSelect([]string{training}, myWindow)
 
 	progressBar := widget.NewProgressBar()
 
@@ -182,7 +247,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			}
 		}()
 
-		err = startProcess(log, cmd, dir.Text, filepath.Base(dir.Text), training, dir.Text, tessdir)
+		err = startProcess(log, cmd, dir.Text, filepath.Base(dir.Text), trainingOpts.Selected, dir.Text, tessdir)
 		if err != nil {
 			// add a newline before this printing as another message from stdout
 			// or stderr may well be half way through printing
@@ -204,8 +269,10 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 	chosen := container.New(layout.NewBorderLayout(nil, nil, dirIcon, nil), dirIcon, dir)
 
-	fullContent = container.NewVBox(choices, chosen, gobtn, progressBar, logarea)
-	startContent := container.NewVBox(choices, gobtn, progressBar, logarea)
+	trainingBits := container.New(layout.NewBorderLayout(nil, nil, trainingLabel, nil), trainingLabel, trainingOpts)
+
+	fullContent = container.NewVBox(choices, chosen, trainingBits, gobtn, progressBar, logarea)
+	startContent := container.NewVBox(choices, trainingBits, gobtn, progressBar, logarea)
 
 	myWindow.SetContent(startContent)
 
