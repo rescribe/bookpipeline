@@ -23,6 +23,13 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+var progressPoints = map[float64]string{
+	0.2: "Preprocessing",
+	0.5: "OCRing",
+	0.9: "Analysing",
+	1.0: "Done",
+}
+
 // copyStdoutToChan creates a pipe to copy anything written
 // to the file also to a rune channel.
 func copyStdoutToChan() (chan rune, error) {
@@ -158,6 +165,26 @@ func mkTrainingSelect(extras []string, parent fyne.Window) *widget.Select {
 	return s
 }
 
+// formatProgressBarText uses the progressPoints map to set the text for the progress bar
+// appropriately
+func formatProgressBarText(bar *widget.ProgressBar) func() string {
+	return func() string {
+		for i, v := range progressPoints {
+			if bar.Value == i {
+				return v
+			}
+		}
+		// OCRing gets special treatment as the bar can be updated within the range
+		if bar.Value >= 0.5 && bar.Value < 0.9 {
+			return progressPoints[0.5]
+		}
+		if bar.Value == 0 {
+			return ""
+		}
+		return "Processing"
+	}
+}
+
 // startGui starts the gui process
 func startGui(log log.Logger, cmd string, training string, tessdir string) error {
 	myApp := app.New()
@@ -206,20 +233,19 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	trainingOpts := mkTrainingSelect([]string{training}, myWindow)
 
 	progressBar := widget.NewProgressBar()
+	progressBar.TextFormatter = formatProgressBarText(progressBar)
 
 	logarea := widget.NewMultiLineEntry()
 	logarea.Disable()
 
-	// TODO: have the button be pressed if enter is pressed
 	gobtn = widget.NewButtonWithIcon("Start OCR", theme.UploadIcon(), func() {
 		if dir.Text == "" {
 			return
 		}
 
 		gobtn.Disable()
-		gobtn.SetText("Processing...")
 
-		progressBar.SetValue(0.5)
+		progressBar.SetValue(0.1)
 
 		stdout, err := copyStdoutToChan()
 		if err != nil {
@@ -227,13 +253,34 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			return
 		}
 
-		// update log area with stdout in a concurrent goroutine
+		// update log area with stdout in a concurrent goroutine, and parse it to update the progress bar
 		go func() {
 			for r := range stdout {
 				logarea.SetText(logarea.Text + string(r))
 				logarea.CursorRow = strings.Count(logarea.Text, "\n")
-				// TODO: set text on progress bar to latest line printed using progressBar.TextFormatter, rather than just using a whole multiline entry like this
-				// TODO: parse the stdout and set progressBar based on that
+
+				lines := strings.Split(logarea.Text, "\n")
+				lastline := lines[len(lines) - 1]
+				for i, v := range progressPoints {
+					if strings.HasPrefix(lastline, "  " + v) {
+						// OCRing has a number of dots after it showing how many pages have been processed,
+						// which we can use to update progress bar more often
+						// TODO: calculate number of pages we expect, so this can be set accurately
+						if v == "OCRing" {
+							if progressBar.Value < 0.5 {
+								progressBar.SetValue(0.5)
+							}
+							numdots := strings.Count(lastline, ".")
+							newval := float64(0.5) + (float64(numdots) * float64(0.01))
+							if newval >= 0.9 {
+								newval = 0.89
+							}
+							progressBar.SetValue(newval)
+							break
+						}
+						progressBar.SetValue(i)
+					}
+				}
 			}
 		}()
 
@@ -248,7 +295,6 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			for r := range stderr {
 				logarea.SetText(logarea.Text + string(r))
 				logarea.CursorRow = strings.Count(logarea.Text, "\n")
-				// TODO: set text on progress bar, or a label below it, to latest line printed, rather than just using a whole multiline entry like this
 			}
 		}()
 
