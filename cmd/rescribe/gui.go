@@ -139,6 +139,7 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 			sel.SetSelectedIndex(0)
 		}, parent)
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".traineddata"}))
+		d.Resize(fyne.NewSize(740, 600))
 		d.Show()
 	}
 }
@@ -200,7 +201,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	dirIcon := widget.NewIcon(theme.FolderIcon())
 
 	folderBtn := widget.NewButtonWithIcon("Choose folder", theme.FolderOpenIcon(), func() {
-		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+		d := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 			if err == nil && uri != nil {
 				dir.SetText(uri.Path())
 				dirIcon.SetResource(theme.FolderIcon())
@@ -208,6 +209,8 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				gobtn.Enable()
 			}
 		}, myWindow)
+		d.Resize(fyne.NewSize(740, 600))
+		d.Show()
 	})
 
 	pdfBtn := widget.NewButtonWithIcon("Choose PDF", theme.DocumentIcon(), func() {
@@ -221,6 +224,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			}
 		}, myWindow)
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".pdf"}))
+		d.Resize(fyne.NewSize(740, 600))
 		d.Show()
 	})
 
