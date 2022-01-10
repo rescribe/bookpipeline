@@ -66,13 +66,21 @@ func DownloadBestPngs(dir string, name string, conn Downloader) error {
 }
 
 func DownloadPdfs(dir string, name string, conn Downloader) error {
+	anydone := false
+	errmsg := ""
 	for _, suffix := range []string{".colour.pdf", ".binarised.pdf"} {
 		key := filepath.Join(name, name+suffix)
 		fn := filepath.Join(dir, name+suffix)
 		err := conn.Download(conn.WIPStorageId(), key, fn)
 		if err != nil {
-			return fmt.Errorf("Failed to download PDF %s: %v", key, err)
+			_ = os.Remove(fn)
+			errmsg += fmt.Sprintf("Failed to download PDF %s: %v\n", key, err)
+		} else {
+			anydone = true
 		}
+	}
+	if anydone == false {
+		return fmt.Errorf("No PDFs could be downloaded, error(s): %v", errmsg)
 	}
 	return nil
 }
