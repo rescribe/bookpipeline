@@ -505,8 +505,25 @@ func startProcess(logger log.Logger, tessCommand string, bookdir string, booknam
 	}
 
 	// For simplicity, remove .binarised.pdf and rename .colour.pdf to .pdf
-	_ = os.Remove(filepath.Join(savedir, bookname+".binarised.pdf"))
-	_ = os.Rename(filepath.Join(savedir, bookname+".colour.pdf"), filepath.Join(savedir, bookname+".pdf"))
+	// providing they both exist, otherwise just rename whichever exists
+	// to .pdf.
+	binpath := filepath.Join(savedir, bookname+".binarised.pdf")
+	colourpath := filepath.Join(savedir, bookname+".colour.pdf")
+	pdfpath := filepath.Join(savedir, bookname+".pdf")
+
+	_, err = os.Stat(binpath)
+	binexists := err == nil || os.IsExist(err)
+	_, err = os.Stat(colourpath)
+	colourexists := err == nil || os.IsExist(err)
+
+	if binexists && colourexists {
+		_ = os.Remove(binpath)
+		_ = os.Rename(colourpath, pdfpath)
+	} else if binexists {
+		_ = os.Rename(binpath, pdfpath)
+	} else if colourexists {
+		_ = os.Rename(colourpath, pdfpath)
+	}
 
 	return nil
 }
