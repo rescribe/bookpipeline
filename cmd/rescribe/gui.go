@@ -300,7 +300,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 		bookdir := dir.Text
 		savedir := dir.Text
-		bookname := filepath.Base(dir.Text)
+		bookname := strings.ReplaceAll(filepath.Base(dir.Text), " ", "_")
 
 		f, err := os.Stat(bookdir)
 		if err != nil {
