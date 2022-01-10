@@ -273,6 +273,11 @@ These training files are included in rescribe, and are always available:
 		if err != nil {
 			log.Fatalln("Error opening file as PDF:", err)
 		}
+		// if this occurs then extractPdfImgs() will have recovered from
+		// a panic in the pdf package
+		if bookdir == "" {
+			log.Fatalln("Error opening file as PDF: image type not supported, you will need to extract images manually.")
+		}
 
 		bookname = strings.TrimSuffix(bookname, ".pdf")
 
@@ -299,6 +304,15 @@ These training files are included in rescribe, and are always available:
 // extractPdfImgs extracts all images embedded in a PDF to a
 // temporary directory, which is returned on success.
 func extractPdfImgs(path string) (string, error) {
+	defer func() {
+		// unfortunately the pdf library will panic if it sees an encoding
+		// it can't decode, so recover from that and give a warning
+		r := recover()
+		if r != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Error extracting from PDF: %v\n", r)
+		}
+	}()
+
 	p, err := pdf.Open(path)
 	if err != nil {
 		return "", err

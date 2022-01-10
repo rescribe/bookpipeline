@@ -298,7 +298,38 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			}
 		}()
 
-		err = startProcess(log, cmd, dir.Text, filepath.Base(dir.Text), trainingOpts.Selected, dir.Text, tessdir)
+		bookdir := dir.Text
+		savedir := dir.Text
+		bookname := filepath.Base(dir.Text)
+
+		f, err := os.Stat(bookdir)
+		if err != nil {
+			// TODO: surface error and cancel process better
+			fmt.Fprintf(os.Stderr, "Error opening file as PDF: %v\n", err)
+			return
+		}
+
+		if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
+			bookdir, err = extractPdfImgs(bookdir)
+			if err != nil {
+				// TODO: surface error and cancel process better
+				fmt.Fprintf(os.Stderr, "Error opening file as PDF: %v\n", err)
+				return
+			}
+
+			// happens if extractPdfImgs recovers from a PDF panic,
+			// which will occur if we encounter an image we can't decode
+			if bookdir == "" {
+				// TODO: surface error and cancel process better
+				fmt.Fprintf(os.Stderr, "Error opening PDF\nThe format of this PDF is not supported, extract the images manually into a folder first.\n")
+				return
+			}
+
+			savedir = strings.TrimSuffix(savedir, ".pdf")
+			bookname = strings.TrimSuffix(bookname, ".pdf")
+		}
+
+		err = startProcess(log, cmd, bookdir, bookname, trainingOpts.Selected, savedir, tessdir)
 		if err != nil {
 			// add a newline before this printing as another message from stdout
 			// or stderr may well be half way through printing
