@@ -238,14 +238,12 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	logarea := widget.NewMultiLineEntry()
 	logarea.Disable()
 
+	detail := widget.NewAccordion(widget.NewAccordionItem("Log", logarea))
+
 	gobtn = widget.NewButtonWithIcon("Start OCR", theme.UploadIcon(), func() {
 		if dir.Text == "" {
 			return
 		}
-
-		gobtn.Disable()
-
-		progressBar.SetValue(0.1)
 
 		stdout, err := copyStdoutToChan()
 		if err != nil {
@@ -309,41 +307,53 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			return
 		}
 
-		if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
-			bookdir, err = extractPdfImgs(bookdir)
+		// Do this in a goroutine so the GUI remains responsive
+		go func() {
+			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+				v.Disable()
+			}
+
+			progressBar.SetValue(0.1)
+
+			if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
+				bookdir, err = extractPdfImgs(bookdir)
+				if err != nil {
+					// TODO: surface error and cancel process better
+					fmt.Fprintf(os.Stderr, "Error opening file as PDF: %v\n", err)
+					return
+				}
+
+				// happens if extractPdfImgs recovers from a PDF panic,
+				// which will occur if we encounter an image we can't decode
+				if bookdir == "" {
+					// TODO: surface error and cancel process better
+					fmt.Fprintf(os.Stderr, "Error opening PDF\nThe format of this PDF is not supported, extract the images manually into a folder first.\n")
+					return
+				}
+
+				savedir = strings.TrimSuffix(savedir, ".pdf")
+				bookname = strings.TrimSuffix(bookname, ".pdf")
+			}
+
+			err = startProcess(log, cmd, bookdir, bookname, trainingOpts.Selected, savedir, tessdir)
 			if err != nil {
-				// TODO: surface error and cancel process better
-				fmt.Fprintf(os.Stderr, "Error opening file as PDF: %v\n", err)
+				// add a newline before this printing as another message from stdout
+				// or stderr may well be half way through printing
+				logarea.SetText(logarea.Text + fmt.Sprintf("\nError executing process: %v\n", err))
+				logarea.CursorRow = strings.Count(logarea.Text, "\n")
+				progressBar.SetValue(0.0)
+				gobtn.SetText("Process OCR")
+				gobtn.Enable()
 				return
 			}
 
-			// happens if extractPdfImgs recovers from a PDF panic,
-			// which will occur if we encounter an image we can't decode
-			if bookdir == "" {
-				// TODO: surface error and cancel process better
-				fmt.Fprintf(os.Stderr, "Error opening PDF\nThe format of this PDF is not supported, extract the images manually into a folder first.\n")
-				return
-			}
-
-			savedir = strings.TrimSuffix(savedir, ".pdf")
-			bookname = strings.TrimSuffix(bookname, ".pdf")
-		}
-
-		err = startProcess(log, cmd, bookdir, bookname, trainingOpts.Selected, savedir, tessdir)
-		if err != nil {
-			// add a newline before this printing as another message from stdout
-			// or stderr may well be half way through printing
-			logarea.SetText(logarea.Text + fmt.Sprintf("\nError executing process: %v\n", err))
-			logarea.CursorRow = strings.Count(logarea.Text, "\n")
-			progressBar.SetValue(0.0)
+			progressBar.SetValue(1.0)
 			gobtn.SetText("Process OCR")
-			gobtn.Enable()
-			return
-		}
 
-		progressBar.SetValue(1.0)
-		gobtn.SetText("Process OCR")
-		gobtn.Enable()
+			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+				v.Enable()
+			}
+		}()
 	})
 	gobtn.Disable()
 
@@ -353,8 +363,8 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 	trainingBits := container.New(layout.NewBorderLayout(nil, nil, trainingLabel, nil), trainingLabel, trainingOpts)
 
-	fullContent = container.NewVBox(choices, chosen, trainingBits, gobtn, progressBar, logarea)
-	startContent := container.NewVBox(choices, trainingBits, gobtn, progressBar, logarea)
+	fullContent = container.NewVBox(choices, chosen, trainingBits, gobtn, progressBar, detail)
+	startContent := container.NewVBox(choices, trainingBits, gobtn, progressBar, detail)
 
 	myWindow.SetContent(startContent)
 
