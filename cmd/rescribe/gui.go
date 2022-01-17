@@ -30,6 +30,14 @@ var progressPoints = map[float64]string{
 	1.0: "Done",
 }
 
+var trainingNames = map[string]string{
+	"carolinemsv1_fast": "Caroline Miniscule",
+	"eng": "English",
+	"lat": "Latin (modern printing)",
+	"rescribefrav2_fast": "French (early printing)",
+	"rescribev8_fast": "Latin (early printing)",
+}
+
 // copyStdoutToChan creates a pipe to copy anything written
 // to the file also to a rune channel.
 func copyStdoutToChan() (chan rune, error) {
@@ -149,15 +157,34 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 // in the extras slice, selecting the first entry.
 func mkTrainingSelect(extras []string, parent fyne.Window) *widget.Select {
 	prefix := os.Getenv("TESSDATA_PREFIX")
-	trainings, err := filepath.Glob(prefix + "/*.traineddata")
+	fn, err := filepath.Glob(prefix + "/*.traineddata")
 	if err != nil {
-		trainings = []string{}
+		fn = []string{}
 	}
-	for i, v := range trainings {
-		trainings[i] = strings.TrimSuffix(strings.TrimPrefix(v, prefix), ".traineddata")
+	var opts []string
+	for _, v := range append(extras, fn...) {
+		t := strings.TrimSuffix(strings.TrimPrefix(v, prefix), ".traineddata")
+		if t == "osd" {
+			continue
+		}
+		for code, name := range trainingNames {
+			if t == code {
+				t = fmt.Sprintf("%s [%s]", name, code)
+				break
+			}
+		}
+		alreadythere := 0
+		for _, opt := range opts {
+			if t == opt {
+				alreadythere = 1
+				break
+			}
+		}
+		if alreadythere == 0 {
+			opts = append(opts, t)
+		}
 	}
 
-	opts := append(extras, trainings...)
 	opts = append(opts, "Other...")
 	s := widget.NewSelect(opts, func(string) {})
 	// OnChanged is set outside of NewSelect so the reference to s isn't nil
@@ -339,7 +366,14 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				bookname = strings.TrimSuffix(bookname, ".pdf")
 			}
 
-			err = startProcess(log, cmd, bookdir, bookname, trainingOpts.Selected, savedir, tessdir)
+			training := trainingOpts.Selected
+			if strings.Contains(training, "[") {
+				start := strings.Index(training, "[") + 1
+				end := strings.Index(training, "]")
+				training = training[start:end]
+			}
+
+			err = startProcess(log, cmd, bookdir, bookname, training, savedir, tessdir)
 			if err != nil {
 				// add a newline before this printing as another message from stdout
 				// or stderr may well be half way through printing
