@@ -467,11 +467,16 @@ func Analyse(conn Downloader) func(chan string, chan string, chan error, *log.Lo
 		}
 		defer f.Close()
 		err = bookpipeline.Graph(bestconfs, filepath.Base(savedir), f)
+		if err != nil {
+			_ = os.Remove(fn)
+		}
 		if err != nil && err.Error() != "Not enough valid confidences" {
 			errc <- fmt.Errorf("Error rendering graph: %s", err)
 			return
 		}
-		up <- fn
+		if err == nil {
+			up <- fn
+		}
 
 		close(up)
 	}

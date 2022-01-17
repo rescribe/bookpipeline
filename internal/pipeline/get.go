@@ -90,7 +90,8 @@ func DownloadAnalyses(dir string, name string, conn Downloader) error {
 		key := filepath.Join(name, a)
 		fn := filepath.Join(dir, a)
 		err := conn.Download(conn.WIPStorageId(), key, fn)
-		if err != nil {
+		// ignore errors with graph.png, as it will not exist in the case of a 1 page book
+		if err != nil && a != "graph.png" {
 			return fmt.Errorf("Failed to download analysis file %s: %v", key, err)
 		}
 	}
