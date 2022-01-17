@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -278,7 +279,9 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 		stdout, err := copyStdoutToChan()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error copying stdout to chan: %v\n", err)
+			msg := fmt.Sprintf("Internal error\n\nError copying stdout to chan: %v\n", err)
+			dialog.ShowError(errors.New(msg), myWindow)
+			fmt.Fprintf(os.Stderr, msg)
 			return
 		}
 
@@ -315,7 +318,9 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 		stderr, err := copyStderrToChan()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error copying stderr to chan: %v\n", err)
+			msg := fmt.Sprintf("Internal error\n\nError copying stdout to chan: %v\n", err)
+			dialog.ShowError(errors.New(msg), myWindow)
+			fmt.Fprintf(os.Stderr, msg)
 			return
 		}
 
@@ -333,8 +338,15 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 		f, err := os.Stat(bookdir)
 		if err != nil {
-			// TODO: surface error and cancel process better
-			fmt.Fprintf(os.Stderr, "Error opening file as PDF: %v\n", err)
+			msg := fmt.Sprintf("Error opening %s: %v", bookdir, err)
+			dialog.ShowError(errors.New(msg), myWindow)
+			fmt.Fprintf(os.Stderr, msg)
+
+			progressBar.SetValue(0.0)
+			gobtn.SetText("Process OCR")
+			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+				v.Enable()
+			}
 			return
 		}
 
@@ -349,16 +361,30 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
 				bookdir, err = extractPdfImgs(bookdir)
 				if err != nil {
-					// TODO: surface error and cancel process better
-					fmt.Fprintf(os.Stderr, "Error opening file as PDF: %v\n", err)
+					msg := fmt.Sprintf("Error opening PDF: %v\n", bookdir, err)
+					dialog.ShowError(errors.New(msg), myWindow)
+					fmt.Fprintf(os.Stderr, msg)
+
+					progressBar.SetValue(0.0)
+					gobtn.SetText("Process OCR")
+					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+						v.Enable()
+					}
 					return
 				}
 
 				// happens if extractPdfImgs recovers from a PDF panic,
 				// which will occur if we encounter an image we can't decode
 				if bookdir == "" {
-					// TODO: surface error and cancel process better
-					fmt.Fprintf(os.Stderr, "Error opening PDF\nThe format of this PDF is not supported, extract the images manually into a folder first.\n")
+					msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images manually into a folder first.\n")
+					dialog.ShowError(errors.New(msg), myWindow)
+					fmt.Fprintf(os.Stderr, msg)
+
+					progressBar.SetValue(0.0)
+					gobtn.SetText("Process OCR")
+					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+						v.Enable()
+					}
 					return
 				}
 
@@ -375,13 +401,15 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 			err = startProcess(log, cmd, bookdir, bookname, training, savedir, tessdir)
 			if err != nil {
-				// add a newline before this printing as another message from stdout
-				// or stderr may well be half way through printing
-				logarea.SetText(logarea.Text + fmt.Sprintf("\nError executing process: %v\n", err))
-				logarea.CursorRow = strings.Count(logarea.Text, "\n")
+				msg := fmt.Sprintf("Error during processing: %v\n", err)
+				dialog.ShowError(errors.New(msg), myWindow)
+				fmt.Fprintf(os.Stderr, msg)
+
 				progressBar.SetValue(0.0)
 				gobtn.SetText("Process OCR")
-				gobtn.Enable()
+				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+					v.Enable()
+				}
 				return
 			}
 
