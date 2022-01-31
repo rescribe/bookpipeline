@@ -386,8 +386,6 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 						fmt.Fprintf(os.Stderr, msg)
 					}
 
-					cancel()
-					ctx, cancel = context.WithCancel(context.Background())
 					progressBar.SetValue(0.0)
 					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 						v.Enable()
@@ -403,8 +401,6 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 					dialog.ShowError(errors.New(msg), myWindow)
 					fmt.Fprintf(os.Stderr, msg)
 
-					cancel()
-					ctx, cancel = context.WithCancel(context.Background())
 					progressBar.SetValue(0.0)
 					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 						v.Enable()
@@ -430,8 +426,6 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				return
 			}
 			if err != nil {
-				cancel()
-				ctx, cancel = context.WithCancel(context.Background())
 				msg := fmt.Sprintf("Error during processing: %v\n", err)
 				dialog.ShowError(errors.New(msg), myWindow)
 				fmt.Fprintf(os.Stderr, msg)
