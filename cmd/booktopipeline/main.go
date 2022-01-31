@@ -7,6 +7,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -65,6 +66,8 @@ func main() {
 		bookname = filepath.Base(bookdir)
 	}
 
+	var ctx context.Context
+
 	if *verbose {
 		verboselog = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
@@ -97,7 +100,7 @@ func main() {
 	}
 
 	verboselog.Println("Checking that all images are valid in", bookdir)
-	err = pipeline.CheckImages(bookdir)
+	err = pipeline.CheckImages(ctx, bookdir)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -112,7 +115,7 @@ func main() {
 	}
 
 	verboselog.Println("Uploading all images are valid in", bookdir)
-	err = pipeline.UploadImages(bookdir, bookname, conn)
+	err = pipeline.UploadImages(ctx, bookdir, bookname, conn)
 	if err != nil {
 		log.Fatalln(err)
 	}

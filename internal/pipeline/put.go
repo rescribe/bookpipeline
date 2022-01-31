@@ -5,6 +5,7 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"image"
 	_ "image/jpeg"
@@ -43,7 +44,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 
 // CheckImages checks that all files with a ".jpg" or ".png" suffix
 // in a directory are images that can be decoded (skipping dotfiles)
-func CheckImages(dir string) error {
+func CheckImages(ctx context.Context, dir string) error {
 	checker := make(fileWalk)
 	go func() {
 		_ = filepath.Walk(dir, checker.Walk)
@@ -51,6 +52,11 @@ func CheckImages(dir string) error {
 	}()
 
 	for path := range checker {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		suffix := filepath.Ext(path)
 		lsuffix := strings.ToLower(suffix)
 		if lsuffix != ".jpg" && lsuffix != ".png" {
@@ -89,7 +95,7 @@ func DetectQueueType(dir string, conn Queuer) string {
 // slash. It also appends all file names with sequential numbers, like
 // 0001, to ensure they are appropriately named for further processing
 // in the pipeline.
-func UploadImages(dir string, bookname string, conn Uploader) error {
+func UploadImages(ctx context.Context, dir string, bookname string, conn Uploader) error {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		fmt.Errorf("Failed to read directory %s: %v", dir, err)
@@ -97,6 +103,11 @@ func UploadImages(dir string, bookname string, conn Uploader) error {
 
 	filenum := 0
 	for _, file := range files {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		if file.IsDir() {
 			continue
 		}

@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -221,7 +222,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 	myWindow.Resize(fyne.NewSize(800, 400))
 
-	var gobtn *widget.Button
+	var abortbtn, gobtn *widget.Button
 	var fullContent *fyne.Container
 
 	dir := widget.NewLabel("")
@@ -271,6 +272,23 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	logarea.Disable()
 
 	detail := widget.NewAccordion(widget.NewAccordionItem("Log", logarea))
+
+	var ctx context.Context
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(context.Background())
+
+	abortbtn = widget.NewButtonWithIcon("Abort", theme.CancelIcon(), func() {
+		fmt.Printf("\nAbort\n")
+		cancel()
+		progressBar.SetValue(0.0)
+		gobtn.SetText("Process OCR")
+		for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+			v.Enable()
+		}
+		abortbtn.Disable()
+		ctx, cancel = context.WithCancel(context.Background())
+	})
+	abortbtn.Disable()
 
 	gobtn = widget.NewButtonWithIcon("Start OCR", theme.UploadIcon(), func() {
 		if dir.Text == "" {
@@ -347,6 +365,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 				v.Enable()
 			}
+			abortbtn.Disable()
 			return
 		}
 
@@ -355,6 +374,8 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 				v.Disable()
 			}
+
+			abortbtn.Enable()
 
 			progressBar.SetValue(0.1)
 
@@ -370,6 +391,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 						v.Enable()
 					}
+					abortbtn.Disable()
 					return
 				}
 
@@ -385,6 +407,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 						v.Enable()
 					}
+					abortbtn.Disable()
 					return
 				}
 
@@ -399,7 +422,11 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				training = training[start:end]
 			}
 
-			err = startProcess(log, cmd, bookdir, bookname, training, savedir, tessdir)
+			err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir)
+			if strings.HasSuffix(err.Error(), "context canceled") {
+				progressBar.SetValue(0.0)
+				return
+			}
 			if err != nil {
 				msg := fmt.Sprintf("Error during processing: %v\n", err)
 				dialog.ShowError(errors.New(msg), myWindow)
@@ -410,6 +437,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 					v.Enable()
 				}
+				abortbtn.Disable()
 				return
 			}
 
@@ -419,6 +447,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
 				v.Enable()
 			}
+			abortbtn.Disable()
 		}()
 	})
 	gobtn.Disable()
@@ -429,8 +458,8 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 	trainingBits := container.New(layout.NewBorderLayout(nil, nil, trainingLabel, nil), trainingLabel, trainingOpts)
 
-	fullContent = container.NewVBox(choices, chosen, trainingBits, gobtn, progressBar, detail)
-	startContent := container.NewVBox(choices, trainingBits, gobtn, progressBar, detail)
+	fullContent = container.NewVBox(choices, chosen, trainingBits, gobtn, abortbtn, progressBar, detail)
+	startContent := container.NewVBox(choices, trainingBits, gobtn, abortbtn, progressBar, detail)
 
 	myWindow.SetContent(startContent)
 

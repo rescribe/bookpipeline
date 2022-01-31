@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -118,6 +119,8 @@ func main() {
 	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.png$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
+	var ctx context.Context
+
 	var conn Pipeliner
 	switch *conntype {
 	case "aws":
@@ -190,7 +193,7 @@ func main() {
 			}
 			conn.Log("Message received on preprocess queue, processing", msg.Body)
 			stopTimer(stopIfQuiet)
-			err = pipeline.ProcessBook(msg, conn, pipeline.Preprocess([]float64{0.1, 0.2, 0.4, 0.5}), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Preprocess([]float64{0.1, 0.2, 0.4, 0.5}), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during preprocess", err)
@@ -208,7 +211,7 @@ func main() {
 			}
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on wipeonly queue, processing", msg.Body)
-			err = pipeline.ProcessBook(msg, conn, pipeline.Wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during wipe", err)
@@ -228,7 +231,7 @@ func main() {
 			checkOCRPageQueue = time.After(0)
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on OCR Page queue, processing", msg.Body)
-			err = pipeline.OcrPage(msg, conn, pipeline.Ocr(*training, ""), conn.OCRPageQueueId(), conn.AnalyseQueueId())
+			err = pipeline.OcrPage(ctx, msg, conn, pipeline.Ocr(*training, ""), conn.OCRPageQueueId(), conn.AnalyseQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during OCR Page process", err)
@@ -246,7 +249,7 @@ func main() {
 			}
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on analyse queue, processing", msg.Body)
-			err = pipeline.ProcessBook(msg, conn, pipeline.Analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during analysis", err)
