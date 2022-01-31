@@ -423,7 +423,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			}
 
 			err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir)
-			if strings.HasSuffix(err.Error(), "context canceled") {
+			if err != nil && strings.HasSuffix(err.Error(), "context canceled") {
 				progressBar.SetValue(0.0)
 				return
 			}
