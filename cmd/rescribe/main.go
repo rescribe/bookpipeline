@@ -662,11 +662,11 @@ func processbook(ctx context.Context, training string, tesscmd string, conn Pipe
 			conn.Log("Message received on wipeonly queue, processing", msg.Body)
 			fmt.Printf("  Preprocessing book (wiping only)\n")
 			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Wipe, wipePattern, conn.WipeQueueId(), conn.OCRPageQueueId())
-			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				return fmt.Errorf("Error during wipe: %v", err)
 			}
+			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 		case <-checkOCRPageQueue:
 			msg, err := conn.CheckQueue(conn.OCRPageQueueId(), QueueTimeoutSecs)
 			checkOCRPageQueue = time.After(PauseBetweenChecks)
