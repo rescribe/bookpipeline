@@ -51,6 +51,7 @@ func CheckImages(ctx context.Context, dir string) error {
 		close(checker)
 	}()
 
+	n := 0
 	for path := range checker {
 		select {
 		case <-ctx.Done():
@@ -70,6 +71,11 @@ func CheckImages(ctx context.Context, dir string) error {
 		if err != nil {
 			return fmt.Errorf("Decoding image %s failed: %v", path, err)
 		}
+		n++
+	}
+
+	if n == 0 {
+		return fmt.Errorf("No images found")
 	}
 
 	return nil
