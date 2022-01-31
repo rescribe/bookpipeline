@@ -380,11 +380,13 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			progressBar.SetValue(0.1)
 
 			if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
-				bookdir, err = extractPdfImgs(bookdir)
+				bookdir, err = extractPdfImgs(ctx, bookdir)
 				if err != nil {
-					msg := fmt.Sprintf("Error opening PDF: %v\n", bookdir, err)
-					dialog.ShowError(errors.New(msg), myWindow)
-					fmt.Fprintf(os.Stderr, msg)
+					if !strings.HasSuffix(err.Error(), "context canceled") {
+						msg := fmt.Sprintf("Error opening PDF %s: %v\n", bookdir, err)
+						dialog.ShowError(errors.New(msg), myWindow)
+						fmt.Fprintf(os.Stderr, msg)
+					}
 
 					progressBar.SetValue(0.0)
 					gobtn.SetText("Process OCR")

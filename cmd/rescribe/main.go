@@ -264,13 +264,15 @@ These training files are included in rescribe, and are always available:
 		log.Fatalln("Error opening book file/dir:", err)
 	}
 
+	var ctx context.Context
+
 	// try opening as a PDF, and extracting
 	if !fi.IsDir() {
 		if flag.NArg() < 2 {
 			savedir = strings.TrimSuffix(bookdir, ".pdf")
 		}
 
-		bookdir, err = extractPdfImgs(bookdir)
+		bookdir, err = extractPdfImgs(ctx, bookdir)
 		if err != nil {
 			log.Fatalln("Error opening file as PDF:", err)
 		}
@@ -284,8 +286,6 @@ These training files are included in rescribe, and are always available:
 
 		ispdf = true
 	}
-
-	var ctx context.Context
 
 	err = startProcess(ctx, *verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir)
 	if err != nil {
@@ -306,7 +306,7 @@ These training files are included in rescribe, and are always available:
 
 // extractPdfImgs extracts all images embedded in a PDF to a
 // temporary directory, which is returned on success.
-func extractPdfImgs(path string) (string, error) {
+func extractPdfImgs(ctx context.Context, path string) (string, error) {
 	defer func() {
 		// unfortunately the pdf library will panic if it sees an encoding
 		// it can't decode, so recover from that and give a warning
@@ -334,6 +334,11 @@ func extractPdfImgs(path string) (string, error) {
 	}
 
 	for pgnum := 1; pgnum <= p.NumPage(); pgnum++ {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
+		}
 		if p.Page(pgnum).V.IsNull() {
 			continue
 		}
@@ -375,6 +380,12 @@ func extractPdfImgs(path string) (string, error) {
 		}
 	}
 	// TODO: check for places where there are multiple images per page, and only keep largest ones where that's the case
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
 
 	return tempdir, nil
 }
