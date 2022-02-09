@@ -42,25 +42,13 @@ dist/darwin_universal/rescribe: dist/darwin_amd64/rescribe dist/darwin_arm64/res
 	mkdir -p dist/darwin_universal
 	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe -output $@
 
-# TODO: remove this, once universal is confirmed working
-dist/darwin_amd64/Rescribe.app: dist/darwin_amd64/rescribe
-	go install fyne.io/fyne/v2/cmd/fyne@latest
-	fyne package --name Rescribe --exe dist/darwin_amd64/rescribe --os darwin --icon icon.png
-	mv Rescribe.app $@
-
-# TODO: remove this, once universal is confirmed working
-dist/darwin_arm64/Rescribe.app: dist/darwin_arm64/rescribe
-	go install fyne.io/fyne/v2/cmd/fyne@latest
-	fyne package --name Rescribe --exe dist/darwin_arm64/rescribe --os darwin --icon icon.png
-	mv Rescribe.app $@
-
 dist/darwin_universal/Rescribe.app: dist/darwin_universal/rescribe
 	go install fyne.io/fyne/v2/cmd/fyne@latest
 	fyne package --name Rescribe --exe dist/darwin_universal/rescribe --os darwin --icon icon.png
 	mv Rescribe.app $@
 
 dist/windows/rescribe-bin.exe: $(GODEPS)
-	#go generate
+	go generate
 	mkdir -p dist/windows
 	CC="x86_64-w64-mingw32-gcc" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o $@ .
 
