@@ -40,6 +40,33 @@ var trainingNames = map[string]string{
 	"rescribev8_fast": "Latin (early printing)",
 }
 
+// getBookIdFromUrl returns a 12 character Google Book ID from
+// a Google URL, or an error if one can't be found.
+func getBookIdFromUrl(url string) (string, error) {
+	lurl := strings.ToLower(url)
+	if len(url) == 12 && !strings.ContainsAny(url, "?/:") {
+		return url, nil
+	}
+	if !strings.HasPrefix(lurl, "https://books.google") {
+		return "", fmt.Errorf("Not a Google Books URL")
+	}
+
+	start := strings.Index(lurl, "?id=")
+	if start == -1 {
+		start = strings.Index(lurl, "&id=")
+	}
+
+	if start >= 0 {
+		start += 4
+		if len(url[start:]) < 12 {
+			return "", fmt.Errorf("Could not find book ID in URL")
+		}
+		return url[start:start+12], nil
+	}
+
+	return "", fmt.Errorf("Could not find book ID in URL")
+}
+
 // copyStdoutToChan creates a pipe to copy anything written
 // to the file also to a rune channel.
 func copyStdoutToChan() (chan rune, error) {
@@ -231,12 +258,13 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 	folderBtn := widget.NewButtonWithIcon("Choose folder", theme.FolderOpenIcon(), func() {
 		d := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
-			if err == nil && uri != nil {
-				dir.SetText(uri.Path())
-				dirIcon.SetResource(theme.FolderIcon())
-				myWindow.SetContent(fullContent)
-				gobtn.Enable()
+			if err != nil || uri == nil {
+				return
 			}
+			dir.SetText(uri.Path())
+			dirIcon.SetResource(theme.FolderIcon())
+			myWindow.SetContent(fullContent)
+			gobtn.Enable()
 		}, myWindow)
 		d.Resize(fyne.NewSize(740, 600))
 		d.Show()
@@ -244,13 +272,14 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 	pdfBtn := widget.NewButtonWithIcon("Choose PDF", theme.DocumentIcon(), func() {
 		d := dialog.NewFileOpen(func(uri fyne.URIReadCloser, err error) {
-			if err == nil && uri != nil {
-				uri.Close()
-				dir.SetText(uri.URI().Path())
-				dirIcon.SetResource(theme.DocumentIcon())
-				myWindow.SetContent(fullContent)
-				gobtn.Enable()
+			if err != nil || uri == nil {
+				return
 			}
+			uri.Close()
+			dir.SetText(uri.URI().Path())
+			dirIcon.SetResource(theme.DocumentIcon())
+			myWindow.SetContent(fullContent)
+			gobtn.Enable()
 		}, myWindow)
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".pdf"}))
 		d.Resize(fyne.NewSize(740, 600))
@@ -258,7 +287,53 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 	})
 
 	gbookBtn := widget.NewButtonWithIcon("Get Google Book", theme.SearchIcon(), func() {
-			// TODO
+		dirEntry := widget.NewEntry()
+		bookId := widget.NewEntry()
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			dirEntry.SetText(homeDir)
+		}
+		dirEntry.Validator = func(s string) error {
+			if s == "" {
+				return fmt.Errorf("No save directory set")
+			}
+			return nil
+		}
+		dirBtn := widget.NewButtonWithIcon("Browse", theme.FolderIcon(), func() {
+			d := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+				if err != nil || uri == nil {
+					return
+				}
+				dirEntry.SetText(uri.Path())
+			}, myWindow)
+			d.Resize(fyne.NewSize(740, 600))
+			d.Show()
+		})
+		bookId.Validator = func(s string) error {
+			_, err := getBookIdFromUrl(s)
+			return err
+		}
+		f1 := widget.NewFormItem("Book ID / URL", bookId)
+		saveDir := container.New(layout.NewBorderLayout(nil, nil, nil, dirBtn), dirEntry, dirBtn)
+		f2 := widget.NewFormItem("Save Directory", saveDir)
+		d := dialog.NewForm("Enter Google Book ID or URL", "OK", "Cancel", []*widget.FormItem{f1, f2}, func(b bool) {
+			if b != true {
+				return
+			}
+			id, err := getBookIdFromUrl(bookId.Text)
+			if err != nil {
+				return
+			}
+			if dirEntry.Text == "" {
+				dirEntry.SetText(homeDir)
+			}
+			dir.SetText(fmt.Sprintf("Google Book: %s Savedir: %s", id, dirEntry.Text))
+			dirIcon.SetResource(theme.SearchIcon())
+			myWindow.SetContent(fullContent)
+			gobtn.Enable()
+		}, myWindow)
+		d.Resize(fyne.NewSize(600, 200))
+		d.Show()
 	})
 
 	trainingLabel := widget.NewLabel("Training")
@@ -354,7 +429,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 		bookname := strings.ReplaceAll(filepath.Base(dir.Text), " ", "_")
 
 		f, err := os.Stat(bookdir)
-		if err != nil {
+		if err != nil && !strings.HasPrefix(bookdir, "Google Book: ") {
 			msg := fmt.Sprintf("Error opening %s: %v", bookdir, err)
 			dialog.ShowError(errors.New(msg), myWindow)
 			fmt.Fprintf(os.Stderr, msg)
@@ -376,6 +451,17 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			abortbtn.Enable()
 
 			progressBar.SetValue(0.1)
+
+			if strings.HasPrefix(dir.Text, "Google Book:") {
+				// TODO
+				dialog.ShowError(errors.New("Coming soon"), myWindow)
+				progressBar.SetValue(0.0)
+				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+					v.Enable()
+				}
+				abortbtn.Disable()
+				return
+			}
 
 			if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
 				bookdir, err = extractPdfImgs(ctx, bookdir)
