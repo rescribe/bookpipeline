@@ -428,7 +428,9 @@ func rmIfNotImage(f string) error {
 }
 
 func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string) error {
-	_, err := exec.Command(tessCommand, "--help").Output()
+	cmd := exec.Command(tessCommand, "--help")
+	pipeline.HideCmd(cmd)
+	_, err := cmd.Output()
 	if err != nil {
 		errmsg := "Error, Can't run Tesseract\n"
 		errmsg += "Ensure that Tesseract is installed and available, or don't use the -systess flag.\n"

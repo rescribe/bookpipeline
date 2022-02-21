@@ -310,6 +310,7 @@ func Ocr(training string, tesscmd string) func(context.Context, chan string, cha
 			logger.Println("OCRing", path)
 			name := strings.Replace(path, ".png", "", 1)
 			cmd := exec.Command(tesscmd, "-l", training, path, name, "-c", "tessedit_create_hocr=1", "-c", "hocr_font_info=0")
+			HideCmd(cmd)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
