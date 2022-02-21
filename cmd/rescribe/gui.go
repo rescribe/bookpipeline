@@ -26,6 +26,8 @@ import (
 )
 
 var progressPoints = map[float64]string{
+	0.11: "Downloading",
+	0.12: "Processing PDF",
 	0.2: "Preprocessing",
 	0.5: "OCRing",
 	0.9: "Analysing",
@@ -327,7 +329,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 			if dirEntry.Text == "" {
 				dirEntry.SetText(homeDir)
 			}
-			dir.SetText(fmt.Sprintf("Google Book: %s Savedir: %s", id, dirEntry.Text))
+			dir.SetText(fmt.Sprintf("Google Book: %s Save to: %s", id, dirEntry.Text))
 			dirIcon.SetResource(theme.SearchIcon())
 			myWindow.SetContent(fullContent)
 			gobtn.Enable()
@@ -452,18 +454,37 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 
 			progressBar.SetValue(0.1)
 
-			if strings.HasPrefix(dir.Text, "Google Book:") {
-				// TODO
-				dialog.ShowError(errors.New("Coming soon"), myWindow)
-				progressBar.SetValue(0.0)
-				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
-					v.Enable()
+			if strings.HasPrefix(dir.Text, "Google Book: ") {
+				progressBar.SetValue(0.11)
+				start := len("Google Book: ")
+				bookname = dir.Text[start:start+12]
+
+				start = start + 12 + len(" Save to: ")
+				bookdir = dir.Text[start:]
+				savedir = bookdir
+
+				fmt.Printf("Downloading Google Book\n")
+				d, err := getGoogleBook(ctx, bookname, bookdir)
+				if err != nil {
+					if !strings.HasSuffix(err.Error(), "signal: killed") {
+						msg := fmt.Sprintf("Error downloading Google Book %s: %v\n", bookname, err)
+						dialog.ShowError(errors.New(msg), myWindow)
+						fmt.Fprintf(os.Stderr, msg)
+					}
+					progressBar.SetValue(0.0)
+					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+						v.Enable()
+					}
+					abortbtn.Disable()
+					return
 				}
-				abortbtn.Disable()
-				return
+				bookdir = d
+				savedir = d
+				bookname = filepath.Base(d)
 			}
 
 			if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
+				progressBar.SetValue(0.12)
 				bookdir, err = extractPdfImgs(ctx, bookdir)
 				if err != nil {
 					if !strings.HasSuffix(err.Error(), "context canceled") {
