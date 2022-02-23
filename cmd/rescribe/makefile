@@ -43,7 +43,7 @@ dist/darwin_universal/rescribe: dist/darwin_amd64/rescribe dist/darwin_arm64/res
 	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe -output $@
 
 dist/darwin_universal/Rescribe.app: dist/darwin_universal/rescribe
-	go install fyne.io/fyne/v2/cmd/fyne@latest
+	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
 	fyne package --name Rescribe --exe dist/darwin_universal/rescribe --os darwin --icon icon.png
 	mv Rescribe.app $@
 

@@ -87,6 +87,7 @@ func main() {
 		{"https://rescribe.xyz/rescribe/embeds/tesseract-osx-v4.1.1.20191227.zip", "5f567b95f1dea9d0581ad42ada4d1f1160a38ea22ae338f9efe190015265636b"},
 		{"https://rescribe.xyz/rescribe/embeds/tesseract-osx-m1-v4.1.1.20210802.zip", "c9a454633f7e5175e2d50dd939d30a6e5bdfb3b8c78590a08b5aa21edbf32ca4"},
 		{"https://rescribe.xyz/rescribe/embeds/tesseract-w32-v5.0.0-alpha.20210506.zip", "96734f3db4bb7c3b9a241ab6d89ab3e8436cea43b1cbbcfb13999497982f63e3"},
+		{"https://rescribe.xyz/rescribe/embeds/getgbook-darwin-cac42fb.zip", "b41fd429be53cdce13ecc7991fe6f8913428657ad70a7790cfcc776e56060887"},
 		{"https://rescribe.xyz/rescribe/embeds/getgbook-linux-cac42fb.zip", "c3b40a1c13da613d383f990bda5dd72425a7f26b89102d272a3388eb3d05ddb6"},
 	}
 	for _, v := range urls {
