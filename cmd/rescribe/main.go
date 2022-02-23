@@ -201,6 +201,20 @@ These training files are included in rescribe, and are always available:
 		}
 	}
 
+	err = unpackZip(gbookzip, tessdir)
+	if err != nil {
+		log.Fatalln("Error unpacking embedded getgbook zip:", err)
+	}
+	var gbookCommand string
+	switch runtime.GOOS {
+	case "darwin":
+		tessCommand = filepath.Join(tessdir, "getgbook")
+	case "linux":
+		gbookCommand = filepath.Join(tessdir, "getgbook")
+	case "windows":
+		tessCommand = filepath.Join(tessdir, "getgbook.exe")
+	}
+
 	tessdatadir := filepath.Join(tessdir, "tessdata")
 	err = os.MkdirAll(tessdatadir, 0755)
 	if err != nil {
@@ -238,7 +252,7 @@ These training files are included in rescribe, and are always available:
 	}
 
 	if flag.NArg() < 1 || *usegui {
-		err := startGui(*verboselog, tessCommand, trainingName, tessdir)
+		err := startGui(*verboselog, tessCommand, gbookCommand, trainingName, tessdir)
 		err = os.RemoveAll(tessdir)
 		if err != nil {
 			log.Printf("Error removing tesseract directory %s: %v", tessdir, err)
@@ -266,12 +280,16 @@ These training files are included in rescribe, and are always available:
 
 	var ctx context.Context
 
+	// TODO: support google book downloading, as done with the GUI
+
 	// try opening as a PDF, and extracting
 	if !fi.IsDir() {
 		if flag.NArg() < 2 {
 			savedir = strings.TrimSuffix(bookdir, ".pdf")
 		}
 
+		// BUG: this seems to fail from command line, yet works from GUI
+		// (used to work)
 		bookdir, err = extractPdfImgs(ctx, bookdir)
 		if err != nil {
 			log.Fatalln("Error opening file as PDF:", err)

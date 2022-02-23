@@ -245,7 +245,7 @@ func formatProgressBarText(bar *widget.ProgressBar) func() string {
 }
 
 // startGui starts the gui process
-func startGui(log log.Logger, cmd string, training string, tessdir string) error {
+func startGui(log log.Logger, cmd string, gbookcmd string, training string, tessdir string) error {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Rescribe OCR")
 
@@ -464,7 +464,7 @@ func startGui(log log.Logger, cmd string, training string, tessdir string) error
 				savedir = bookdir
 
 				fmt.Printf("Downloading Google Book\n")
-				d, err := getGoogleBook(ctx, bookname, bookdir)
+				d, err := getGoogleBook(ctx, gbookcmd, bookname, bookdir)
 				if err != nil {
 					if !strings.HasSuffix(err.Error(), "signal: killed") {
 						msg := fmt.Sprintf("Error downloading Google Book %s: %v\n", bookname, err)

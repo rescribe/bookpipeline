@@ -143,7 +143,7 @@ func moveFile(from string, to string) error {
 // getGoogleBook downloads all images of a book to a directory
 // named YEAR_AUTHORSURNAME_Title_bookid inside basedir, returning
 // the directory path
-func getGoogleBook(ctx context.Context, id string, basedir string) (string, error) {
+func getGoogleBook(ctx context.Context, gbookcmd string, id string, basedir string) (string, error) {
 	author, title, year, err := getMetadata(id)
 	if err != nil {
 		return "", err
@@ -154,8 +154,7 @@ func getGoogleBook(ctx context.Context, id string, basedir string) (string, erro
 		return "", fmt.Errorf("Error setting up temporary directory: %v", err)
 	}
 
-	// TODO: use embedded version if necessary
-	cmd := exec.CommandContext(ctx, "getgbook", id)
+	cmd := exec.CommandContext(ctx, gbookcmd, id)
 	pipeline.HideCmd(cmd)
 	cmd.Dir = tmpdir
 	cmd.Stdout = os.Stdout

@@ -11,3 +11,4 @@ package main
 // if not one of the above platforms, we won't embed anything, so
 // just create an empty byte slice
 var tesszip []byte
+var gbookzip []byte

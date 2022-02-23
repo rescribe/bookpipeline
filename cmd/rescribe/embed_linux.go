@@ -8,3 +8,6 @@ import _ "embed"
 
 //go:embed tesseract-linux-v5.0.0-alpha.20210510.zip
 var tesszip []byte
+
+//go:embed getgbook-linux-cac42fb.zip
+var gbookzip []byte
