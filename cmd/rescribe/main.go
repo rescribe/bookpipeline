@@ -208,11 +208,11 @@ These training files are included in rescribe, and are always available:
 	var gbookCommand string
 	switch runtime.GOOS {
 	case "darwin":
-		tessCommand = filepath.Join(tessdir, "getgbook")
+		gbookCommand = filepath.Join(tessdir, "getgbook")
 	case "linux":
 		gbookCommand = filepath.Join(tessdir, "getgbook")
 	case "windows":
-		tessCommand = filepath.Join(tessdir, "getgbook.exe")
+		gbookCommand = filepath.Join(tessdir, "getgbook.exe")
 	}
 
 	tessdatadir := filepath.Join(tessdir, "tessdata")
