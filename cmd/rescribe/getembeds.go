@@ -89,6 +89,7 @@ func main() {
 		{"https://rescribe.xyz/rescribe/embeds/tesseract-w32-v5.0.0-alpha.20210506.zip", "96734f3db4bb7c3b9a241ab6d89ab3e8436cea43b1cbbcfb13999497982f63e3"},
 		{"https://rescribe.xyz/rescribe/embeds/getgbook-darwin-cac42fb.zip", "b41fd429be53cdce13ecc7991fe6f8913428657ad70a7790cfcc776e56060887"},
 		{"https://rescribe.xyz/rescribe/embeds/getgbook-linux-cac42fb.zip", "c3b40a1c13da613d383f990bda5dd72425a7f26b89102d272a3388eb3d05ddb6"},
+		{"https://rescribe.xyz/rescribe/embeds/getgbook-w32-c2824685.zip", "1c258a77a47d6515718fbbd7e54d5c2b516291682a878d122add55901c9f2914"},
 	}
 	for _, v := range urls {
 		if present(v.url, v.sum) {
