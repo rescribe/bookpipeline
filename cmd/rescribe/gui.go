@@ -467,7 +467,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 				d, err := getGoogleBook(ctx, gbookcmd, bookname, bookdir)
 				if err != nil {
 					if !strings.HasSuffix(err.Error(), "signal: killed") {
-						msg := fmt.Sprintf("Error downloading Google Book %s: %v\n", bookname, err)
+						msg := fmt.Sprintf("Error downloading Google Book %s\n", bookname)
 						dialog.ShowError(errors.New(msg), myWindow)
 						fmt.Fprintf(os.Stderr, msg)
 					}
