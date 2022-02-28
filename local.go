@@ -16,6 +16,7 @@ import (
 )
 
 const qidPre = "queuePre"
+const qidPreNoWipe = "queuePreNoWipe"
 const qidWipe = "queueWipe"
 const qidOCR = "queueOCR"
 const qidAnalyse = "queueAnalyse"
@@ -112,6 +113,10 @@ func (a *LocalConn) GetQueueDetails(url string) (string, string, error) {
 
 func (a *LocalConn) PreQueueId() string {
 	return qidPre
+}
+
+func (a *LocalConn) PreNoWipeQueueId() string {
+	return qidPreNoWipe
 }
 
 func (a *LocalConn) WipeQueueId() string {

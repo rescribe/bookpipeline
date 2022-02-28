@@ -338,6 +338,8 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 		d.Show()
 	})
 
+	wipe := widget.NewCheck("Automatically clean image sides", func(bool) {})
+
 	trainingLabel := widget.NewLabel("Training")
 
 	trainingOpts := mkTrainingSelect([]string{training}, myWindow)
@@ -527,7 +529,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 				training = training[start:end]
 			}
 
-			err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir)
+			err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir, !wipe.Checked)
 			if err != nil && strings.HasSuffix(err.Error(), "context canceled") {
 				progressBar.SetValue(0.0)
 				return
@@ -561,8 +563,8 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 
 	trainingBits := container.New(layout.NewBorderLayout(nil, nil, trainingLabel, nil), trainingLabel, trainingOpts)
 
-	fullContent = container.NewVBox(choices, chosen, trainingBits, gobtn, abortbtn, progressBar, detail)
-	startContent := container.NewVBox(choices, trainingBits, gobtn, abortbtn, progressBar, detail)
+	fullContent = container.NewVBox(choices, chosen, trainingBits, wipe, gobtn, abortbtn, progressBar, detail)
+	startContent := container.NewVBox(choices, trainingBits, wipe, gobtn, abortbtn, progressBar, detail)
 
 	myWindow.SetContent(startContent)
 

@@ -26,11 +26,12 @@ const (
 
 // Queue names. Can be anything unique in SQS.
 const (
-	queuePreProc  = "rescribepreprocess"
-	queueWipeOnly = "rescribewipeonly"
-	queueOcrPage  = "rescribeocrpage"
-	queueAnalyse  = "rescribeanalyse"
-	queueTest     = "rescribetest1"
+	queuePreProc   = "rescribepreprocess"
+	queuePreNoWipe = "rescribeprenowipe"
+	queueWipeOnly  = "rescribewipeonly"
+	queueOcrPage   = "rescribeocrpage"
+	queueAnalyse   = "rescribeanalyse"
+	queueTest      = "rescribetest1"
 )
 
 // Storage bucket names. Can be anything unique in S3.

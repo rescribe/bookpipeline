@@ -52,6 +52,7 @@ type AwsConn struct {
 	uploader     *s3manager.Uploader
 	wipequrl     string
 	prequrl      string
+	prenwqurl    string
 	ocrpgqurl    string
 	analysequrl  string
 	testqurl     string
@@ -101,6 +102,15 @@ func (a *AwsConn) Init() error {
 		return errors.New(fmt.Sprintf("Error getting preprocess queue URL: %s", err))
 	}
 	a.prequrl = *result.QueueUrl
+
+	a.Logger.Println("Getting preprocess no wipe queue URL")
+	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		QueueName: aws.String(queuePreNoWipe),
+	})
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error getting preprocess no wipe queue URL: %s", err))
+	}
+	a.prenwqurl = *result.QueueUrl
 
 	a.Logger.Println("Getting wipeonly queue URL")
 	result, err = a.sqssvc.GetQueueUrl(&sqs.GetQueueUrlInput{
@@ -335,6 +345,10 @@ func (a *AwsConn) GetQueueDetails(url string) (string, string, error) {
 
 func (a *AwsConn) PreQueueId() string {
 	return a.prequrl
+}
+
+func (a *AwsConn) PreNoWipeQueueId() string {
+	return a.prenwqurl
 }
 
 func (a *AwsConn) WipeQueueId() string {
@@ -616,7 +630,7 @@ func (a *AwsConn) Log(v ...interface{}) {
 // TODO: also set up the necessary security group and iam stuff
 func (a *AwsConn) MkPipeline() error {
 	buckets := []string{storageWip}
-	queues := []string{queuePreProc, queueWipeOnly, queueAnalyse, queueOcrPage, queueTest}
+	queues := []string{queuePreProc, queuePreNoWipe, queueWipeOnly, queueAnalyse, queueOcrPage, queueTest}
 
 	for _, bucket := range buckets {
 		err := a.CreateBucket(bucket)

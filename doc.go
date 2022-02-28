@@ -131,6 +131,17 @@ which have been prebinarised.
   example message: APolishGentleman_MemoirByAdamKruczkiewicz
   example message: APolishGentleman_MemoirByAdamKruczkiewicz rescribefrav2
 
+queuePreNoWipe
+
+This queue works the same as queuePreProc, except that it doesn'T
+wipe the pages, only runs the binarisation. It is designed for books
+which don't have tricky gutters or similar noise around the edges, but
+do have marginal content which might be inadventently removed by the
+wiper.
+
+  example message: APolishGentleman_MemoirByAdamKruczkiewicz
+  example message: APolishGentleman_MemoirByAdamKruczkiewicz rescribefrav2
+
 queueOcrPage
 
 This queue contains the path of individual pages, optionally followed by

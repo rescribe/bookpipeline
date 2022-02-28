@@ -83,7 +83,10 @@ func CheckImages(ctx context.Context, dir string) error {
 
 // DetectQueueType detects which queue to use based on the preponderance
 // of files of a particular extension in a directory
-func DetectQueueType(dir string, conn Queuer) string {
+func DetectQueueType(dir string, conn Queuer, nowipe bool) string {
+	if nowipe {
+		return conn.PreNoWipeQueueId()
+	}
 	pngdirs, _ := filepath.Glob(dir + "/*.png")
 	jpgdirs, _ := filepath.Glob(dir + "/*.jpg")
 	pngcount := len(pngdirs)

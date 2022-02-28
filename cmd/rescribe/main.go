@@ -74,6 +74,7 @@ type Clouder interface {
 type Pipeliner interface {
 	Clouder
 	PreQueueId() string
+	PreNoWipeQueueId() string
 	WipeQueueId() string
 	OCRPageQueueId() string
 	AnalyseQueueId() string
@@ -155,6 +156,7 @@ These training files are included in rescribe, and are always available:
 - rescribev8_fast.traineddata (Latin historic printing)
 	`)
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
+	wipe := flag.Bool("wipe", false, "Use wiper tool to remove noise like gutters from page before processing.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -279,6 +281,7 @@ These training files are included in rescribe, and are always available:
 	}
 
 	var ctx context.Context
+	ctx = context.Background()
 
 	// TODO: support google book downloading, as done with the GUI
 
@@ -288,8 +291,6 @@ These training files are included in rescribe, and are always available:
 			savedir = strings.TrimSuffix(bookdir, ".pdf")
 		}
 
-		// BUG: this seems to fail from command line, yet works from GUI
-		// (used to work)
 		bookdir, err = extractPdfImgs(ctx, bookdir)
 		if err != nil {
 			log.Fatalln("Error opening file as PDF:", err)
@@ -305,7 +306,7 @@ These training files are included in rescribe, and are always available:
 		ispdf = true
 	}
 
-	err = startProcess(ctx, *verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir)
+	err = startProcess(ctx, *verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir, !*wipe)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -445,7 +446,7 @@ func rmIfNotImage(f string) error {
 	return nil
 }
 
-func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string) error {
+func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string, nowipe bool) error {
 	cmd := exec.Command(tessCommand, "--help")
 	pipeline.HideCmd(cmd)
 	_, err := cmd.Output()
@@ -475,7 +476,7 @@ func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bo
 
 	fmt.Printf("Copying book to pipeline\n")
 
-	err = uploadbook(ctx, bookdir, bookname, conn)
+	err = uploadbook(ctx, bookdir, bookname, conn, nowipe)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		return fmt.Errorf("Error uploading book: %v", err)
@@ -588,7 +589,7 @@ func addTxtVersion(hocrfn string) error {
 	return nil
 }
 
-func uploadbook(ctx context.Context, dir string, name string, conn Pipeliner) error {
+func uploadbook(ctx context.Context, dir string, name string, conn Pipeliner, nowipe bool) error {
 	_, err := os.Stat(dir)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("Error: directory %s not found", dir)
@@ -602,7 +603,8 @@ func uploadbook(ctx context.Context, dir string, name string, conn Pipeliner) er
 		return fmt.Errorf("Error saving images to process from %s: %v", dir, err)
 	}
 
-	qid := pipeline.DetectQueueType(dir, conn)
+	qid := pipeline.DetectQueueType(dir, conn, nowipe)
+	fmt.Printf("Uploading to queue %s\n", qid)
 
 	err = conn.AddToQueue(qid, name)
 	if err != nil {
@@ -642,11 +644,13 @@ func processbook(ctx context.Context, training string, tesscmd string, conn Pipe
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var checkPreQueue <-chan time.Time
+	var checkPreNoWipeQueue <-chan time.Time
 	var checkWipeQueue <-chan time.Time
 	var checkOCRPageQueue <-chan time.Time
 	var checkAnalyseQueue <-chan time.Time
 	var stopIfQuiet *time.Timer
 	checkPreQueue = time.After(0)
+	checkPreNoWipeQueue = time.After(0)
 	checkWipeQueue = time.After(0)
 	checkOCRPageQueue = time.After(0)
 	checkAnalyseQueue = time.After(0)
@@ -660,6 +664,25 @@ func processbook(ctx context.Context, training string, tesscmd string, conn Pipe
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-checkPreNoWipeQueue:
+			msg, err := conn.CheckQueue(conn.PreNoWipeQueueId(), QueueTimeoutSecs)
+			checkPreNoWipeQueue = time.After(PauseBetweenChecks)
+			if err != nil {
+				return fmt.Errorf("Error checking preprocess no wipe queue: %v", err)
+			}
+			if msg.Handle == "" {
+				conn.Log("No message received on preprocess no wipe queue, sleeping")
+				continue
+			}
+			stopTimer(stopIfQuiet)
+			conn.Log("Message received on preprocess no wipe queue, processing", msg.Body)
+			fmt.Printf("  Preprocessing book (binarising only, no wiping)\n")
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Preprocess(thresholds, true), origPattern, conn.PreNoWipeQueueId(), conn.OCRPageQueueId())
+			resetTimer(stopIfQuiet, quietTime)
+			if err != nil {
+				return fmt.Errorf("Error during preprocess (no wipe): %v", err)
+			}
+			fmt.Printf("  OCRing pages ") // this is expected to be added to with dots by OCRPage output
 		case <-checkPreQueue:
 			msg, err := conn.CheckQueue(conn.PreQueueId(), QueueTimeoutSecs)
 			checkPreQueue = time.After(PauseBetweenChecks)
@@ -673,7 +696,7 @@ func processbook(ctx context.Context, training string, tesscmd string, conn Pipe
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on preprocess queue, processing", msg.Body)
 			fmt.Printf("  Preprocessing book (binarising and wiping)\n")
-			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Preprocess(thresholds), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Preprocess(thresholds, false), origPattern, conn.PreQueueId(), conn.OCRPageQueueId())
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				return fmt.Errorf("Error during preprocess: %v", err)

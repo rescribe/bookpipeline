@@ -19,7 +19,7 @@ import (
 	"rescribe.xyz/bookpipeline/internal/pipeline"
 )
 
-const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-notbinarised] [-v] bookdir [bookname]
+const usage = `Usage: booktopipeline [-c conn] [-t training] [-prebinarised] [-notbinarised] [-nowipe] [-v] bookdir [bookname]
 
 Uploads the book in bookdir to the S3 'inprogress' bucket and adds it
 to the 'preprocess' or 'wipeonly' SQS queue. The queue to send to is
@@ -46,6 +46,7 @@ func main() {
 	conntype := flag.String("c", "aws", "connection type ('aws' or 'local')")
 	wipeonly := flag.Bool("prebinarised", false, "Prebinarised: only preprocessing will be to wipe")
 	dobinarise := flag.Bool("notbinarised", false, "Not binarised: all preprocessing will be done including binarisation")
+	nowipe := flag.Bool("nowipe", false, "No wipe: Disable wiping as part of preprocessing")
 	training := flag.String("t", "", "Training to use (training filename without the .traineddata part)")
 
 	flag.Usage = func() {
@@ -89,7 +90,7 @@ func main() {
 		log.Fatalln("Failed to set up cloud connection:", err)
 	}
 
-	qid := pipeline.DetectQueueType(bookdir, conn)
+	qid := pipeline.DetectQueueType(bookdir, conn, false)
 
 	// Flags set override the queue selection
 	if *wipeonly {
@@ -97,6 +98,9 @@ func main() {
 	}
 	if *dobinarise {
 		qid = conn.PreQueueId()
+	}
+	if *nowipe {
+		qid = conn.PreNoWipeQueueId()
 	}
 
 	verboselog.Println("Checking that all images are valid in", bookdir)
@@ -131,8 +135,10 @@ func main() {
 	var qname string
 	if qid == conn.PreQueueId() {
 		qname = "preprocess"
-	} else {
+	} else if qid == conn.WipeQueueId() {
 		qname = "wipeonly"
+	} else {
+		qname = "nowipe"
 	}
 
 	fmt.Println("Uploaded book to queue", qname)
