@@ -34,6 +34,9 @@ func dl(url string) error {
 		return fmt.Errorf("Error getting url %s: %v", url, err)
 	}
 	defer r.Body.Close()
+	if r.StatusCode != 200 {
+		return fmt.Errorf("Error getting url %s: got code %v", url, r.StatusCode)
+	}
 
 	_, err = io.Copy(f, r.Body)
 	if err != nil {
@@ -105,7 +108,7 @@ func main() {
 		}
 
 		if !present(v.url, v.sum) {
-			fmt.Fprintf(os.Stderr, "Error: downloaded %s does not match expected checksum: %v\n", v.url, v.sum, err)
+			fmt.Fprintf(os.Stderr, "Error: downloaded %s does not match expected checksum\n", v.url)
 			os.Exit(1)
 		}
 	}
