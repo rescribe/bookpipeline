@@ -36,7 +36,7 @@ var progressPoints = map[float64]string{
 
 var trainingNames = map[string]string{
 	"carolinemsv1_fast": "Caroline Miniscule",
-	"eng": "English",
+	"eng": "English (modern printing)",
 	"lat": "Latin (modern printing)",
 	"rescribefrav2_fast": "French (early printing)",
 	"rescribev8_fast": "Latin (early printing)",
@@ -340,7 +340,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 
 	wipe := widget.NewCheck("Automatically clean image sides", func(bool) {})
 
-	trainingLabel := widget.NewLabel("Training")
+	trainingLabel := widget.NewLabel("Language / Script")
 
 	trainingOpts := mkTrainingSelect([]string{training}, myWindow)
 
