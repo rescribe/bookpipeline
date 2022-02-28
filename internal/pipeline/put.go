@@ -60,6 +60,9 @@ func CheckImages(ctx context.Context, dir string) error {
 		}
 		suffix := filepath.Ext(path)
 		lsuffix := strings.ToLower(suffix)
+		if lsuffix == ".jpeg" {
+			lsuffix = ".jpg"
+		}
 		if lsuffix != ".jpg" && lsuffix != ".png" {
 			continue
 		}
@@ -122,6 +125,9 @@ func UploadImages(ctx context.Context, dir string, bookname string, conn Uploade
 		}
 		origsuffix := filepath.Ext(file.Name())
 		lsuffix := strings.ToLower(origsuffix)
+		if lsuffix == ".jpeg" {
+			lsuffix = ".jpg"
+		}
 		if lsuffix != ".jpg" && lsuffix != ".png" {
 			continue
 		}
@@ -129,7 +135,7 @@ func UploadImages(ctx context.Context, dir string, bookname string, conn Uploade
 		origbase := strings.TrimSuffix(origname, origsuffix)
 		origpath := filepath.Join(dir, origname)
 
-		newname := fmt.Sprintf("%s_%04d%s", origbase, filenum, origsuffix)
+		newname := fmt.Sprintf("%s_%04d%s", origbase, filenum, lsuffix)
 		err = conn.Upload(conn.WIPStorageId(), filepath.Join(bookname, newname), origpath)
 		if err != nil {
 			return fmt.Errorf("Failed to upload %s: %v", origpath, err)
