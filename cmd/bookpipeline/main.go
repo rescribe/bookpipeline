@@ -120,6 +120,7 @@ func main() {
 	ocredPattern := regexp.MustCompile(`.hocr$`)
 
 	var ctx context.Context
+	ctx = context.Background()
 
 	var conn Pipeliner
 	switch *conntype {
