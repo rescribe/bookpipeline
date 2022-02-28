@@ -544,7 +544,7 @@ func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bo
 	// to .pdf.
 	binpath := filepath.Join(savedir, bookname+".binarised.pdf")
 	colourpath := filepath.Join(savedir, bookname+".colour.pdf")
-	pdfpath := filepath.Join(savedir, bookname+".pdf")
+	pdfpath := filepath.Join(savedir, bookname+" searchable.pdf")
 
 	_, err = os.Stat(binpath)
 	binexists := err == nil || os.IsExist(err)
