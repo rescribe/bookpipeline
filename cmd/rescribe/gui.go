@@ -554,7 +554,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 			}
 			abortbtn.Disable()
 
-			msg := fmt.Sprintf("OCR process finished successfully.\n\nYour completed files have been saved in %s", savedir)
+			msg := fmt.Sprintf("OCR process finished successfully.\n\nYour completed files have been saved in:\n%s", savedir)
 			dialog.ShowInformation("OCR Complete", msg, myWindow)
 		}()
 	})
