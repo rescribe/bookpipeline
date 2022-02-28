@@ -92,7 +92,7 @@ func resetTimer(t *time.Timer, d time.Duration) {
 
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
-	training := flag.String("t", "rescribealphav5", "default tesseract training file to use (without the .traineddata part)")
+	training := flag.String("t", "rescribev9", "default tesseract training file to use (without the .traineddata part)")
 	nopreproc := flag.Bool("np", false, "disable preprocessing")
 	nowipe := flag.Bool("nw", false, "disable wipeonly")
 	noocrpg := flag.Bool("nop", false, "disable ocr on individual pages")
