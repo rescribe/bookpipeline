@@ -105,7 +105,7 @@ func main() {
 		}
 
 		if !present(v.url, v.sum) {
-			fmt.Fprintf(os.Stderr, "Error: downloaded %s does not match expected checksum: %v\n", v.url, err)
+			fmt.Fprintf(os.Stderr, "Error: downloaded %s does not match expected checksum: %v\n", v.url, v.sum, err)
 			os.Exit(1)
 		}
 	}
