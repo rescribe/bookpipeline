@@ -68,7 +68,7 @@ func DownloadBestPngs(dir string, name string, conn Downloader) error {
 func DownloadPdfs(dir string, name string, conn Downloader) error {
 	anydone := false
 	errmsg := ""
-	for _, suffix := range []string{".colour.pdf", ".binarised.pdf"} {
+	for _, suffix := range []string{".colour.pdf", ".binarised.pdf", ".original.pdf"} {
 		key := filepath.Join(name, name+suffix)
 		fn := filepath.Join(dir, name+suffix)
 		err := conn.Download(conn.WIPStorageId(), key, fn)

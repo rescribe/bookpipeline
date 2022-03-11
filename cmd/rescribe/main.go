@@ -157,6 +157,7 @@ These training files are included in rescribe, and are always available:
 	`)
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 	wipe := flag.Bool("wipe", false, "Use wiper tool to remove noise like gutters from page before processing.")
+	fullpdf := flag.Bool("fullpdf", false, "Create a full-size searchable PDF (rather than a reduced size one).")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -306,7 +307,7 @@ These training files are included in rescribe, and are always available:
 		ispdf = true
 	}
 
-	err = startProcess(ctx, *verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir, !*wipe)
+	err = startProcess(ctx, *verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir, !*wipe, *fullpdf)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -446,7 +447,7 @@ func rmIfNotImage(f string) error {
 	return nil
 }
 
-func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string, nowipe bool) error {
+func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string, nowipe bool, fullpdf bool) error {
 	cmd := exec.Command(tessCommand, "--help")
 	pipeline.HideCmd(cmd)
 	_, err := cmd.Output()
@@ -544,7 +545,16 @@ func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bo
 	// to .pdf.
 	binpath := filepath.Join(savedir, bookname+".binarised.pdf")
 	colourpath := filepath.Join(savedir, bookname+".colour.pdf")
+	fullsizepath := filepath.Join(savedir, bookname+".original.pdf")
 	pdfpath := filepath.Join(savedir, bookname+" searchable.pdf")
+
+	// If full size pdf is requested, replace colour.pdf with it,
+	// otherwise just remove it
+	if fullpdf {
+		_ = os.Rename(fullsizepath, colourpath)
+	} else {
+		_ = os.Remove(fullsizepath)
+	}
 
 	_, err = os.Stat(binpath)
 	binexists := err == nil || os.IsExist(err)

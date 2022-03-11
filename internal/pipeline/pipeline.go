@@ -455,6 +455,12 @@ func Analyse(conn Downloader) func(context.Context, chan string, chan string, ch
 			errc <- fmt.Errorf("Failed to set up PDF: %s", err)
 			return
 		}
+		fullsizepdf := new(bookpipeline.Fpdf)
+		err = fullsizepdf.Setup()
+		if err != nil {
+			errc <- fmt.Errorf("Failed to set up PDF: %s", err)
+			return
+		}
 		binhascontent, colourhascontent := false, false
 
 		select {
@@ -551,6 +557,11 @@ func Analyse(conn Downloader) func(context.Context, chan string, chan string, ch
 					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
 				}
+				err = fullsizepdf.AddPage(filepath.Join(savedir, colourfn), filepath.Join(savedir, pg.hocr), false)
+				if err != nil {
+					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
+					return
+				}
 				colourhascontent = true
 				err = os.Remove(filepath.Join(savedir, colourfn))
 				if err != nil {
@@ -572,6 +583,14 @@ func Analyse(conn Downloader) func(context.Context, chan string, chan string, ch
 			err = colourpdf.Save(fn)
 			if err != nil {
 				errc <- fmt.Errorf("Failed to save colour pdf: %s", err)
+				return
+			}
+			up <- fn
+
+			fn = filepath.Join(savedir, bookname+".original.pdf")
+			err = fullsizepdf.Save(fn)
+			if err != nil {
+				errc <- fmt.Errorf("Failed to save full size pdf: %s", err)
 				return
 			}
 			up <- fn
