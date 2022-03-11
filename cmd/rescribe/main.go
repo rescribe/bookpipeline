@@ -376,7 +376,7 @@ func extractPdfImgs(ctx context.Context, path string) (string, error) {
 				continue
 			}
 
-			fn := fmt.Sprintf("%s-%04d.jpg", k, pgnum)
+			fn := fmt.Sprintf("%04d-%s.jpg", pgnum, k)
 			path := filepath.Join(tempdir, fn)
 			w, err := os.Create(path)
 			defer w.Close()
