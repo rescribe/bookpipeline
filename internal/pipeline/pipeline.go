@@ -557,11 +557,6 @@ func Analyse(conn Downloader) func(context.Context, chan string, chan string, ch
 					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
 					return
 				}
-				err = fullsizepdf.AddPage(filepath.Join(savedir, colourfn), filepath.Join(savedir, pg.hocr), false)
-				if err != nil {
-					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
-					return
-				}
 				colourhascontent = true
 				err = os.Remove(filepath.Join(savedir, colourfn))
 				if err != nil {
@@ -586,7 +581,49 @@ func Analyse(conn Downloader) func(context.Context, chan string, chan string, ch
 				return
 			}
 			up <- fn
+		}
 
+		for _, pg := range colourimgs {
+			select {
+			case <-ctx.Done():
+				errc <- ctx.Err()
+				return
+			default:
+			}
+
+			logger.Println("Downloading colour page to add to PDF", pg.img)
+			colourfn := pg.img
+			err = conn.Download(conn.WIPStorageId(), bookname+"/"+colourfn, filepath.Join(savedir, colourfn))
+			if err != nil {
+				colourfn = strings.Replace(pg.img, ".jpg", ".png", 1)
+				logger.Println("Download failed; trying", colourfn)
+				err = conn.Download(conn.WIPStorageId(), bookname+"/"+colourfn, filepath.Join(savedir, colourfn))
+				if err != nil {
+					logger.Println("Download failed; skipping page", pg.img)
+				}
+			}
+			if err == nil {
+				err = fullsizepdf.AddPage(filepath.Join(savedir, colourfn), filepath.Join(savedir, pg.hocr), false)
+				if err != nil {
+					errc <- fmt.Errorf("Failed to add page %s to PDF: %s", pg.img, err)
+					return
+				}
+				err = os.Remove(filepath.Join(savedir, colourfn))
+				if err != nil {
+					errc <- err
+					return
+				}
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			errc <- ctx.Err()
+			return
+		default:
+		}
+
+		if colourhascontent {
 			fn = filepath.Join(savedir, bookname+".original.pdf")
 			err = fullsizepdf.Save(fn)
 			if err != nil {
