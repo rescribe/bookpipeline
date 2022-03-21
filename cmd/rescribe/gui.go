@@ -128,6 +128,7 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 		}
 		d := dialog.NewFileOpen(func(uri fyne.URIReadCloser, err error) {
 			if err != nil || uri == nil {
+				sel.SetSelectedIndex(0)
 				return
 			}
 			defer uri.Close()
@@ -136,12 +137,14 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 			f, err := os.Create(newpath)
 			if err != nil {
 				// TODO: surface error somewhere, prob with a dialog box
+				sel.SetSelectedIndex(0)
 				return
 			}
 			defer f.Close()
 			_, err = io.Copy(f, uri)
 			if err != nil {
 				// TODO: surface error somewhere, prob with a dialog box
+				sel.SetSelectedIndex(0)
 				return
 			}
 
