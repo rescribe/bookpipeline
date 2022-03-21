@@ -85,7 +85,6 @@ func main() {
 		url string
 		sum string
 	}{
-		{"https://rescribe.xyz/rescribe/embeds/tessdata.20211001.zip", "5c90ae69b9e449d85e84b4806a54d6739b572730525010483e512a62a527b030"},
 		{"https://rescribe.xyz/rescribe/embeds/tessdata.20220321.zip", "c6dddf99ad719b29fd6bde1a416a51674bd1834d2df8e519313d584e759a8e0e"},
 		{"https://rescribe.xyz/rescribe/embeds/tesseract-linux-v5.0.0-alpha.20210510.zip", "81cfba632b8aaf0a00180b1aa62d357d50f343b0e9bd51b941ee14c289ccd889"},
 		{"https://rescribe.xyz/rescribe/embeds/tesseract-osx-v4.1.1.20191227.zip", "5f567b95f1dea9d0581ad42ada4d1f1160a38ea22ae338f9efe190015265636b"},
