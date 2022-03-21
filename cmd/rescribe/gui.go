@@ -363,7 +363,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 		fmt.Printf("\nAbort\n")
 		cancel()
 		progressBar.SetValue(0.0)
-		for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+		for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 			v.Enable()
 		}
 		abortbtn.Disable()
@@ -442,7 +442,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 			fmt.Fprintf(os.Stderr, msg)
 
 			progressBar.SetValue(0.0)
-			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 				v.Enable()
 			}
 			abortbtn.Disable()
@@ -451,7 +451,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 
 		// Do this in a goroutine so the GUI remains responsive
 		go func() {
-			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 				v.Disable()
 			}
 
@@ -477,7 +477,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 						fmt.Fprintf(os.Stderr, msg)
 					}
 					progressBar.SetValue(0.0)
-					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 						v.Enable()
 					}
 					abortbtn.Disable()
@@ -499,7 +499,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 					}
 
 					progressBar.SetValue(0.0)
-					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 						v.Enable()
 					}
 					abortbtn.Disable()
@@ -514,7 +514,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 					fmt.Fprintf(os.Stderr, msg)
 
 					progressBar.SetValue(0.0)
-					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 						v.Enable()
 					}
 					abortbtn.Disable()
@@ -543,7 +543,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 				fmt.Fprintf(os.Stderr, msg)
 
 				progressBar.SetValue(0.0)
-				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 					v.Enable()
 				}
 				abortbtn.Disable()
@@ -552,7 +552,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 
 			progressBar.SetValue(1.0)
 
-			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, trainingOpts, gobtn} {
+			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
 				v.Enable()
 			}
 			abortbtn.Disable()
