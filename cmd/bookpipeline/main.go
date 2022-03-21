@@ -271,7 +271,7 @@ func main() {
 			}
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on analyse queue, processing", msg.Body)
-			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Analyse(conn, false), ocredPattern, conn.AnalyseQueueId(), "")
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				conn.Log("Error during analysis", err)

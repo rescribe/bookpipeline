@@ -484,7 +484,7 @@ func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bo
 	}
 
 	fmt.Printf("Processing book\n")
-	err = processbook(ctx, trainingName, tessCommand, conn)
+	err = processbook(ctx, trainingName, tessCommand, conn, fullpdf)
 	if err != nil {
 		_ = os.RemoveAll(tempdir)
 		return fmt.Errorf("Error processing book: %v", err)
@@ -648,7 +648,7 @@ func downloadbook(dir string, name string, conn Pipeliner) error {
 	return nil
 }
 
-func processbook(ctx context.Context, training string, tesscmd string, conn Pipeliner) error {
+func processbook(ctx context.Context, training string, tesscmd string, conn Pipeliner, fullpdf bool) error {
 	origPattern := regexp.MustCompile(`[0-9]{4}.(jpg|png)$`)
 	wipePattern := regexp.MustCompile(`[0-9]{4,6}(.bin)?.(jpg|png)$`)
 	ocredPattern := regexp.MustCompile(`.hocr$`)
@@ -764,7 +764,7 @@ func processbook(ctx context.Context, training string, tesscmd string, conn Pipe
 			stopTimer(stopIfQuiet)
 			conn.Log("Message received on analyse queue, processing", msg.Body)
 			fmt.Printf("\n  Analysing OCR and compiling PDFs\n")
-			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Analyse(conn), ocredPattern, conn.AnalyseQueueId(), "")
+			err = pipeline.ProcessBook(ctx, msg, conn, pipeline.Analyse(conn, fullpdf), ocredPattern, conn.AnalyseQueueId(), "")
 			resetTimer(stopIfQuiet, quietTime)
 			if err != nil {
 				return fmt.Errorf("Error during analysis: %v", err)
