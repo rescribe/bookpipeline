@@ -4,4 +4,6 @@ Write to PDF as we go along, so memory requirements are reduced. Would require f
 
 We had reported (with video) a bug with permissions requests repeatedly being displayed on a new Mac, may be related to this: https://github.com/fyne-io/fyne/issues/2799
 
-Maybe pay apple $100 for a certificate to avoid their security warnings (can be easily included in 'fyne deploy')
+Maybe pay apple $100 for a certificate to avoid their security warnings (can be easily included in 'fyne package')
+
+Add more tests.
