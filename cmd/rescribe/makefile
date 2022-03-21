@@ -21,7 +21,7 @@ OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
 EMBEDS=embed_darwin_amd64.go embed_linux.go embed_windows.go gui.go embed_darwin_arm64.go embed_other.go
 GODEPS=gui.go main.go $(EMBEDS)
 
-all: dist/linux/rescribe dist/darwin_universal/rescribe.zip dist/windows/rescribe.exe
+all: dist/linux/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
 
 dist/linux/rescribe: $(GODEPS)
 	go generate
@@ -38,17 +38,17 @@ dist/darwin_arm64/rescribe: $(GODEPS)
 	mkdir -p dist/darwin_arm64
 	PATH="$(PATH):$(OSXCROSSBIN)" CC="oa64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o $@ .
 
-dist/darwin_universal/rescribe: dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe
-	mkdir -p dist/darwin_universal
+dist/darwin/rescribe: dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe
+	mkdir -p dist/darwin
 	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe -output $@
 
-dist/darwin_universal/Rescribe.app: dist/darwin_universal/rescribe
+dist/darwin/Rescribe.app: dist/darwin/rescribe
 	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
-	fyne package --name Rescribe --exe dist/darwin_universal/rescribe --os darwin --icon icon.png
+	fyne package --name Rescribe --exe dist/darwin/rescribe --os darwin --icon icon.png
 	mv Rescribe.app $@
 
-dist/darwin_universal/rescribe.zip: dist/darwin_universal/Rescribe.app
-	cd dist/darwin_universal; zip -r rescribe.zip Rescribe.app
+dist/darwin/rescribe.zip: dist/darwin/Rescribe.app
+	cd dist/darwin; zip -r rescribe.zip Rescribe.app
 
 dist/windows/rescribe-bin.exe: $(GODEPS)
 	go generate
