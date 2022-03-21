@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -28,18 +29,18 @@ import (
 var progressPoints = map[float64]string{
 	0.11: "Downloading",
 	0.12: "Processing PDF",
-	0.2: "Preprocessing",
-	0.5: "OCRing",
-	0.9: "Analysing",
-	1.0: "Done",
+	0.2:  "Preprocessing",
+	0.5:  "OCRing",
+	0.9:  "Analysing",
+	1.0:  "Done",
 }
 
 var trainingNames = map[string]string{
-	"carolinemsv1_fast": "Caroline Miniscule",
-	"eng": "English (modern printing)",
-	"lat": "Latin (modern printing)",
+	"carolinemsv1_fast":  "Caroline Miniscule",
+	"eng":                "English (modern printing)",
+	"lat":                "Latin (modern printing)",
 	"rescribefrav2_fast": "French (early printing)",
-	"rescribev8_fast": "Latin (early printing)",
+	"rescribev8_fast":    "Latin (early printing)",
 }
 
 // getBookIdFromUrl returns a 12 character Google Book ID from
@@ -49,23 +50,43 @@ func getBookIdFromUrl(url string) (string, error) {
 	if len(url) == 12 && !strings.ContainsAny(url, "?/:") {
 		return url, nil
 	}
-	if !strings.HasPrefix(lurl, "https://books.google") {
+
+	matchUrl, err := regexp.MatchString("https://www.google.[^\\/]*/books/", url)
+	if err != nil {
+		return "", err
+	}
+
+	if matchUrl == false && !strings.HasPrefix(lurl, "https://books.google") {
 		return "", fmt.Errorf("Not a Google Books URL")
 	}
 
-	start := strings.Index(lurl, "?id=")
-	if start == -1 {
-		start = strings.Index(lurl, "&id=")
-	}
-
-	if start >= 0 {
-		start += 4
-		if len(url[start:]) < 12 {
-			return "", fmt.Errorf("Could not find book ID in URL")
+	if strings.HasPrefix(lurl, "https://books.google") {
+		start := strings.Index(lurl, "?id=")
+		if start == -1 {
+			start = strings.Index(lurl, "&id=")
 		}
-		return url[start:start+12], nil
-	}
 
+		if start >= 0 {
+			start += 4
+			if len(url[start:]) < 12 {
+				return "", fmt.Errorf("Could not find book ID in URL")
+			}
+			return url[start : start+12], nil
+		}
+
+		return "", fmt.Errorf("Could not find book ID in URL")
+	}
+	if matchUrl == true {
+		start := strings.Index(lurl, "edition/_/")
+
+		if start >= 0 {
+			start += 10
+			if len(url[start:]) < 12 {
+				return "", fmt.Errorf("Could not find book ID in URL")
+			}
+			return url[start : start+12], nil
+		}
+	}
 	return "", fmt.Errorf("Could not find book ID in URL")
 }
 
@@ -395,9 +416,9 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 				logarea.CursorRow = strings.Count(logarea.Text, "\n")
 
 				lines := strings.Split(logarea.Text, "\n")
-				lastline := lines[len(lines) - 1]
+				lastline := lines[len(lines)-1]
 				for i, v := range progressPoints {
-					if strings.HasPrefix(lastline, "  " + v) {
+					if strings.HasPrefix(lastline, "  "+v) {
 						// OCRing has a number of dots after it showing how many pages have been processed,
 						// which we can use to update progress bar more often
 						// TODO: calculate number of pages we expect, so this can be set accurately
@@ -466,7 +487,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 			if strings.HasPrefix(dir.Text, "Google Book: ") {
 				progressBar.SetValue(0.11)
 				start := len("Google Book: ")
-				bookname = dir.Text[start:start+12]
+				bookname = dir.Text[start : start+12]
 
 				start = start + 12 + len(" Save to: ")
 				bookdir = dir.Text[start:]
