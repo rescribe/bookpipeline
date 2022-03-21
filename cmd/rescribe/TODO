@@ -1,0 +1,7 @@
+Add option to choose multiple languages (easy on tesseract level, slightly tricky on GUI level)
+
+Write to PDF as we go along, so memory requirements are reduced. Would require further modifying fpdf: https://github.com/jung-kurt/gofpdf/issues/110
+
+We had reported (with video) a bug with permissions requests repeatedly being displayed on a new Mac, may be related to this: https://github.com/fyne-io/fyne/issues/2799
+
+Maybe pay apple $100 for a certificate to avoid their security warnings (can be easily included in 'fyne deploy')
