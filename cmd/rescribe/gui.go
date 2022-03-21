@@ -359,11 +359,15 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(context.Background())
 
+	gobtn = widget.NewButtonWithIcon("Start OCR", theme.UploadIcon(), func() {})
+
+	disableWidgets := []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn}
+
 	abortbtn = widget.NewButtonWithIcon("Abort", theme.CancelIcon(), func() {
 		fmt.Printf("\nAbort\n")
 		cancel()
 		progressBar.SetValue(0.0)
-		for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+		for _, v := range disableWidgets {
 			v.Enable()
 		}
 		abortbtn.Disable()
@@ -371,7 +375,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 	})
 	abortbtn.Disable()
 
-	gobtn = widget.NewButtonWithIcon("Start OCR", theme.UploadIcon(), func() {
+	gobtn.OnTapped = func() {
 		if dir.Text == "" {
 			return
 		}
@@ -442,7 +446,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 			fmt.Fprintf(os.Stderr, msg)
 
 			progressBar.SetValue(0.0)
-			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+			for _, v := range disableWidgets {
 				v.Enable()
 			}
 			abortbtn.Disable()
@@ -451,7 +455,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 
 		// Do this in a goroutine so the GUI remains responsive
 		go func() {
-			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+			for _, v := range disableWidgets {
 				v.Disable()
 			}
 
@@ -477,7 +481,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 						fmt.Fprintf(os.Stderr, msg)
 					}
 					progressBar.SetValue(0.0)
-					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+					for _, v := range disableWidgets {
 						v.Enable()
 					}
 					abortbtn.Disable()
@@ -499,7 +503,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 					}
 
 					progressBar.SetValue(0.0)
-					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+					for _, v := range disableWidgets {
 						v.Enable()
 					}
 					abortbtn.Disable()
@@ -514,7 +518,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 					fmt.Fprintf(os.Stderr, msg)
 
 					progressBar.SetValue(0.0)
-					for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+					for _, v := range disableWidgets {
 						v.Enable()
 					}
 					abortbtn.Disable()
@@ -543,7 +547,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 				fmt.Fprintf(os.Stderr, msg)
 
 				progressBar.SetValue(0.0)
-				for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+				for _, v := range disableWidgets {
 					v.Enable()
 				}
 				abortbtn.Disable()
@@ -552,7 +556,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 
 			progressBar.SetValue(1.0)
 
-			for _, v := range []fyne.Disableable{folderBtn, pdfBtn, gbookBtn, wipe, bigpdf, trainingOpts, gobtn} {
+			for _, v := range disableWidgets {
 				v.Enable()
 			}
 			abortbtn.Disable()
@@ -560,7 +564,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 			msg := fmt.Sprintf("OCR process finished successfully.\n\nYour completed files have been saved in:\n%s", savedir)
 			dialog.ShowInformation("OCR Complete", msg, myWindow)
 		}()
-	})
+	}
 	gobtn.Disable()
 
 	choices := container.New(layout.NewGridLayout(3), folderBtn, pdfBtn, gbookBtn)
