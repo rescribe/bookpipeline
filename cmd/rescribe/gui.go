@@ -45,6 +45,9 @@ var trainingNames = map[string]string{
 
 // getBookIdFromUrl returns a 12 character Google Book ID from
 // a Google URL, or an error if one can't be found.
+// Example URLs:
+// https://books.google.it/books?id=QjQepCuN8JYC
+// https://www.google.it/books/edition/_/VJbr-Oe2au0C
 func getBookIdFromUrl(url string) (string, error) {
 	lurl := strings.ToLower(url)
 	if len(url) == 12 && !strings.ContainsAny(url, "?/:") {
@@ -54,10 +57,6 @@ func getBookIdFromUrl(url string) (string, error) {
 	matchUrl, err := regexp.MatchString("https://www.google.[^\\/]*/books/", url)
 	if err != nil {
 		return "", err
-	}
-
-	if matchUrl == false && !strings.HasPrefix(lurl, "https://books.google") {
-		return "", fmt.Errorf("Not a Google Books URL")
 	}
 
 	if strings.HasPrefix(lurl, "https://books.google") {
