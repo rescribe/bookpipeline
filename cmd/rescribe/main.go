@@ -157,7 +157,7 @@ These training files are included in rescribe, and are always available:
 	`)
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 	wipe := flag.Bool("wipe", false, "Use wiper tool to remove noise like gutters from page before processing.")
-	fullpdf := flag.Bool("fullpdf", false, "Create a full-size searchable PDF (rather than a reduced size one).")
+	fullpdf := flag.Bool("fullpdf", false, "Use highest image quality for searchable PDF (requires lots of RAM).")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), usage)
@@ -548,12 +548,9 @@ func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bo
 	fullsizepath := filepath.Join(savedir, bookname+".original.pdf")
 	pdfpath := filepath.Join(savedir, bookname+" searchable.pdf")
 
-	// If full size pdf is requested, replace colour.pdf with it,
-	// otherwise just remove it
+	// If full size pdf is requested, replace colour.pdf with it
 	if fullpdf {
 		_ = os.Rename(fullsizepath, colourpath)
-	} else {
-		_ = os.Remove(fullsizepath)
 	}
 
 	_, err = os.Stat(binpath)
