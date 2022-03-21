@@ -13,7 +13,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -41,52 +40,6 @@ var trainingNames = map[string]string{
 	"lat":                "Latin (modern printing)",
 	"rescribefrav2_fast": "French (early printing)",
 	"rescribev8_fast":    "Latin (early printing)",
-}
-
-// getBookIdFromUrl returns a 12 character Google Book ID from
-// a Google URL, or an error if one can't be found.
-// Example URLs:
-// https://books.google.it/books?id=QjQepCuN8JYC
-// https://www.google.it/books/edition/_/VJbr-Oe2au0C
-func getBookIdFromUrl(url string) (string, error) {
-	lurl := strings.ToLower(url)
-	if len(url) == 12 && !strings.ContainsAny(url, "?/:") {
-		return url, nil
-	}
-
-	matchUrl, err := regexp.MatchString("https://www.google.[^\\/]*/books/", url)
-	if err != nil {
-		return "", err
-	}
-
-	if strings.HasPrefix(lurl, "https://books.google") {
-		start := strings.Index(lurl, "?id=")
-		if start == -1 {
-			start = strings.Index(lurl, "&id=")
-		}
-
-		if start >= 0 {
-			start += 4
-			if len(url[start:]) < 12 {
-				return "", fmt.Errorf("Could not find book ID in URL")
-			}
-			return url[start : start+12], nil
-		}
-
-		return "", fmt.Errorf("Could not find book ID in URL")
-	}
-	if matchUrl == true {
-		start := strings.Index(lurl, "edition/_/")
-
-		if start >= 0 {
-			start += 10
-			if len(url[start:]) < 12 {
-				return "", fmt.Errorf("Could not find book ID in URL")
-			}
-			return url[start : start+12], nil
-		}
-	}
-	return "", fmt.Errorf("Could not find book ID in URL")
 }
 
 // copyStdoutToChan creates a pipe to copy anything written
