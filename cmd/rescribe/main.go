@@ -622,12 +622,12 @@ func uploadbook(ctx context.Context, dir string, name string, conn Pipeliner, no
 func downloadbook(dir string, name string, conn Pipeliner) error {
 	err := pipeline.DownloadBestPages(dir, name, conn)
 	if err != nil {
-		return fmt.Errorf("Error downloading best pages: %v", err)
+		return fmt.Errorf("No images found")
 	}
 
-	err1 := pipeline.DownloadBestPngs(dir, name, conn)
-	if err1 != nil {
-		return fmt.Errorf("Error downloading best pngs: %v", err)
+	err = pipeline.DownloadBestPngs(dir, name, conn)
+	if err != nil {
+		return fmt.Errorf("No images found")
 	}
 
 	err = pipeline.DownloadPdfs(dir, name, conn)
