@@ -35,11 +35,9 @@ var progressPoints = map[float64]string{
 }
 
 var trainingNames = map[string]string{
-	"carolinemsv1_fast":  "Caroline Miniscule",
-	"eng":                "English (modern printing)",
-	"lat":                "Latin (modern printing)",
-	"rescribefrav2_fast": "French (early printing)",
-	"rescribev8_fast":    "Latin (early printing)",
+	"eng":                "English (modern print)",
+	"lat":                "Latin (modern print)",
+	"rescribev8_fast":    "Latin/English/French (printed ca 1500-1800)",
 }
 
 // copyStdoutToChan creates a pipe to copy anything written
@@ -489,7 +487,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 				// happens if extractPdfImgs recovers from a PDF panic,
 				// which will occur if we encounter an image we can't decode
 				if bookdir == "" {
-					msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images manually into a folder first.\n")
+					msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images to .jpg manually into a folder first.\n")
 					dialog.ShowError(errors.New(msg), myWindow)
 					fmt.Fprintf(os.Stderr, msg)
 

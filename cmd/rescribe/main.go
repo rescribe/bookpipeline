@@ -43,7 +43,7 @@ OCR results are saved into the bookdir directory unless savedir is
 specified.
 `
 
-//go:embed tessdata.20211001.zip
+//go:embed tessdata.20220321.zip
 var tessdatazip []byte
 
 const QueueTimeoutSecs = 2 * 60
