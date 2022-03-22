@@ -37,7 +37,7 @@ var progressPoints = map[float64]string{
 var trainingNames = map[string]string{
 	"eng":                "English (modern print)",
 	"lat":                "Latin (modern print)",
-	"rescribev8_fast":    "Latin/English/French (printed ca 1500-1800)",
+	"rescribev9_fast":    "Latin/English/French (printed ca 1500-1800)",
 }
 
 // copyStdoutToChan creates a pipe to copy anything written

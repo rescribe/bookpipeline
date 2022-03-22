@@ -43,7 +43,7 @@ OCR results are saved into the bookdir directory unless savedir is
 specified.
 `
 
-//go:embed tessdata.20220321.zip
+//go:embed tessdata.20220322.zip
 var tessdatazip []byte
 
 const QueueTimeoutSecs = 2 * 60
@@ -147,11 +147,11 @@ func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	usegui := flag.Bool("gui", false, "Use graphical user interface")
 	systess := flag.Bool("systess", false, "Use the system installed Tesseract, rather than the copy embedded in rescribe.")
-	training := flag.String("t", "rescribev8_fast.traineddata", `Path to the tesseract training file to use.
+	training := flag.String("t", "rescribev9_fast.traineddata", `Path to the tesseract training file to use.
 These training files are included in rescribe, and are always available:
 - eng.traineddata (English, modern print)
 - lat.traineddata (Latin, modern print)
-- rescribev8_fast.traineddata (Latin/English/French, printed ca 1500-1800)
+- rescribev9_fast.traineddata (Latin/English/French, printed ca 1500-1800)
 	`)
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 	wipe := flag.Bool("wipe", false, "Use wiper tool to remove noise like gutters from page before processing.")
