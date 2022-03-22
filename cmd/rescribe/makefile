@@ -28,33 +28,35 @@ dist/linux/rescribe: $(GODEPS)
 	mkdir -p dist/linux
 	GOOS=linux GOARCH=amd64 go build -o $@ .
 
-dist/darwin_amd64/rescribe: $(GODEPS)
+build/darwin_amd64/rescribe: $(GODEPS)
 	go generate
-	mkdir -p dist/darwin_amd64
+	mkdir -p build/darwin_amd64
 	PATH="$(PATH):$(OSXCROSSBIN)" CC="o64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o $@ .
 
-dist/darwin_arm64/rescribe: $(GODEPS)
+build/darwin_arm64/rescribe: $(GODEPS)
 	go generate
-	mkdir -p dist/darwin_arm64
+	mkdir -p build/darwin_arm64
 	PATH="$(PATH):$(OSXCROSSBIN)" CC="oa64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o $@ .
 
-dist/darwin/rescribe: dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe
-	mkdir -p dist/darwin
-	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create dist/darwin_amd64/rescribe dist/darwin_arm64/rescribe -output $@
+build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
+	mkdir -p build/darwin
+	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create build/darwin_amd64/rescribe build/darwin_arm64/rescribe -output $@
 
-dist/darwin/Rescribe.app: dist/darwin/rescribe
+build/darwin/Rescribe.app: build/darwin/rescribe
 	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
-	fyne package --name Rescribe --exe dist/darwin/rescribe --os darwin --icon icon.png
+	fyne package --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png
 	mv Rescribe.app $@
 
-dist/darwin/rescribe.zip: dist/darwin/Rescribe.app
-	cd dist/darwin; zip -r rescribe.zip Rescribe.app
+dist/darwin/rescribe.zip: build/darwin/Rescribe.app
+	mkdir -p dist/darwin
+	cd build/darwin; zip -r ../../dist/darwin/rescribe.zip Rescribe.app
 
-dist/windows/rescribe-bin.exe: $(GODEPS)
+build/windows/rescribe-bin.exe: $(GODEPS)
 	go generate
-	mkdir -p dist/windows
+	mkdir -p build/windows
 	CC="x86_64-w64-mingw32-gcc" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o $@ .
 
-dist/windows/rescribe.exe: dist/windows/rescribe-bin.exe
-	CC="x86_64-w64-mingw32-gcc" fyne package --name Rescribe --exe dist/windows/rescribe-bin.exe --os windows --icon icon.png
+dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
+	mkdir -p dist/windows
+	CC="x86_64-w64-mingw32-gcc" fyne package --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png
 	mv rescribe.exe $@
