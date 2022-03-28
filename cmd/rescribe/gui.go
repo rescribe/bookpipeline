@@ -271,7 +271,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 		}
 		dirEntry.Validator = func(s string) error {
 			if s == "" {
-				return fmt.Errorf("No save directory set")
+				return fmt.Errorf("No save folder set")
 			}
 			return nil
 		}
@@ -291,7 +291,7 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 		}
 		f1 := widget.NewFormItem("Book ID / URL", bookId)
 		saveDir := container.New(layout.NewBorderLayout(nil, nil, nil, dirBtn), dirEntry, dirBtn)
-		f2 := widget.NewFormItem("Save Directory", saveDir)
+		f2 := widget.NewFormItem("Save in folder", saveDir)
 		d := dialog.NewForm("Enter Google Book ID or URL", "OK", "Cancel", []*widget.FormItem{f1, f2}, func(b bool) {
 			if b != true {
 				return
