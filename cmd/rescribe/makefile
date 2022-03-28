@@ -60,3 +60,6 @@ dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
 	mkdir -p dist/windows
 	CC="x86_64-w64-mingw32-gcc" fyne package --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png
 	mv rescribe.exe $@
+
+clean:
+	rm -rf dist build
