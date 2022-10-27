@@ -435,9 +435,9 @@ func rmIfNotImage(f string) error {
 	r.Close()
 	if err == nil {
 		b := strings.TrimSuffix(f, ".jpg")
-		err = os.Rename(f, b + ".png")
+		err = os.Rename(f, b+".png")
 		if err != nil {
-			return fmt.Errorf("Error renaming %s to %s: %v", f, b + ".png", err)
+			return fmt.Errorf("Error renaming %s to %s: %v", f, b+".png", err)
 		}
 		return nil
 	}

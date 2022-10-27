@@ -2,7 +2,7 @@
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
-// +build ignore
+//go:build ignore
 
 // this downloads the needed files to embed into the binary,
 // and is run by `go generate`
@@ -81,7 +81,7 @@ func present(url string, sum string) bool {
 }
 
 func main() {
-	urls := []struct{
+	urls := []struct {
 		url string
 		sum string
 	}{

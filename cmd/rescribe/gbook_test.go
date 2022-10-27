@@ -11,7 +11,7 @@ import (
 func Test_getBookIdFromUrl(t *testing.T) {
 	cases := []struct {
 		url string
-		id string
+		id  string
 	}{
 		{"https://books.google.it/books?id=QjQepCuN8JYC", "QjQepCuN8JYC"},
 		{"https://www.google.it/books/edition/_/VJbr-Oe2au0C", "VJbr-Oe2au0C"},

@@ -77,8 +77,8 @@ func getMetadata(id string) (string, string, string, error) {
 	// designed to be unmarshalled by encoding/json's Unmarshal()
 	type bookInfo struct {
 		VolumeInfo struct {
-			Title		 string
-			Authors	   []string
+			Title         string
+			Authors       []string
 			PublishedDate string
 		}
 	}
