@@ -1,4 +1,4 @@
-// Copyright 2021 Nick White.
+// Copyright 2022 Nick White.
 // Use of this source code is governed by the GPLv3
 // license that can be found in the LICENSE file.
 
@@ -8,5 +8,5 @@ package main
 
 import _ "embed"
 
-//go:embed tesseract-osx-v4.1.1.20191227.zip
-var tesszip []byte
+//go:embed tessdata.20220322.zip
+var tessdatazip []byte

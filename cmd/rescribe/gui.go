@@ -438,6 +438,17 @@ func startGui(log log.Logger, cmd string, gbookcmd string, training string, tess
 			progressBar.SetValue(0.1)
 
 			if strings.HasPrefix(dir.Text, "Google Book: ") {
+				if gbookcmd == "" {
+					msg := fmt.Sprintf("No getgbook found, can't download Google Book. Either set -gbookcmd on the command line, or use the official build which includes an embedded copy of getgbook.\n")
+					dialog.ShowError(errors.New(msg), myWindow)
+					fmt.Fprintf(os.Stderr, msg)
+					progressBar.SetValue(0.0)
+					for _, v := range disableWidgets {
+						v.Enable()
+					}
+					abortbtn.Disable()
+					return
+				}
 				progressBar.SetValue(0.11)
 				start := len("Google Book: ")
 				bookname = dir.Text[start : start+12]

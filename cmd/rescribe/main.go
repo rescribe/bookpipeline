@@ -13,7 +13,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	_ "embed"
 	"flag"
 	"fmt"
 	"image/jpeg"
@@ -35,16 +34,13 @@ import (
 	"rescribe.xyz/utils/pkg/hocr"
 )
 
-const usage = `Usage: rescribe [-v] [-gui] [-systess] [-tesscmd] [-t training] bookdir/book.pdf [savedir]
+const usage = `Usage: rescribe [-v] [-gui] [-systess] [-tesscmd cmd] [-gbookcmd cmd] [-t training] bookdir/book.pdf [savedir]
 
 Process and OCR a book using the Rescribe pipeline on a local machine.
 
 OCR results are saved into the bookdir directory unless savedir is
 specified.
 `
-
-//go:embed tessdata.20220322.zip
-var tessdatazip []byte
 
 const QueueTimeoutSecs = 2 * 60
 const PauseBetweenChecks = 1 * time.Second
@@ -95,7 +91,7 @@ func resetTimer(t *time.Timer, d time.Duration) {
 	}
 }
 
-// unpackTessZip unpacks a byte array of a zip file into a directory
+// unpackZip unpacks a byte array of a zip file into a directory
 func unpackZip(b []byte, dir string) error {
 	br := bytes.NewReader(b)
 	zr, err := zip.NewReader(br, br.Size())
@@ -140,8 +136,10 @@ func unpackZip(b []byte, dir string) error {
 
 func main() {
 	deftesscmd := "tesseract"
+	defgbookcmd := "getgbook"
 	if runtime.GOOS == "windows" {
 		deftesscmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+		defgbookcmd = "getgbook.exe"
 	}
 
 	verbose := flag.Bool("v", false, "verbose")
@@ -153,6 +151,7 @@ These training files are included in rescribe, and are always available:
 - lat.traineddata (Latin, modern print)
 - rescribev9_fast.traineddata (Latin/English/French, printed ca 1500-1800)
 	`)
+	gbookcmd := flag.String("gbookcmd", defgbookcmd, "The getgbook executable to run. You may need to set this to the full path of getgbook.exe if you're on Windows.")
 	tesscmd := flag.String("tesscmd", deftesscmd, "The Tesseract executable to run. You may need to set this to the full path of Tesseract.exe if you're on Windows.")
 	wipe := flag.Bool("wipe", false, "Use wiper tool to remove noise like gutters from page before processing.")
 	fullpdf := flag.Bool("fullpdf", false, "Use highest image quality for searchable PDF (requires lots of RAM).")
@@ -187,7 +186,7 @@ These training files are included in rescribe, and are always available:
 		log.Fatalln("Error setting up tesseract directory:", err)
 	}
 
-	if !*systess {
+	if !*systess && len(tesszip) > 0 {
 		err = unpackZip(tesszip, tessdir)
 		if err != nil {
 			log.Fatalln("Error unpacking embedded Tesseract zip:", err)
@@ -202,18 +201,31 @@ These training files are included in rescribe, and are always available:
 		}
 	}
 
-	err = unpackZip(gbookzip, tessdir)
+	_, err = exec.LookPath(tessCommand)
 	if err != nil {
-		log.Fatalln("Error unpacking embedded getgbook zip:", err)
+		log.Fatalf("No tesseract executable found [tried %s], either set -tesscmd and -systess on the command line or use the official build which includes an embedded copy of Tesseract.", tessCommand)
 	}
-	var gbookCommand string
-	switch runtime.GOOS {
-	case "darwin":
-		gbookCommand = filepath.Join(tessdir, "getgbook")
-	case "linux":
-		gbookCommand = filepath.Join(tessdir, "getgbook")
-	case "windows":
-		gbookCommand = filepath.Join(tessdir, "getgbook.exe")
+
+	gbookCommand := *gbookcmd
+	if len(gbookzip) > 0 {
+		err = unpackZip(gbookzip, tessdir)
+		if err != nil {
+			log.Fatalln("Error unpacking embedded getgbook zip:", err)
+		}
+		switch runtime.GOOS {
+		case "darwin":
+			gbookCommand = filepath.Join(tessdir, "getgbook")
+		case "linux":
+			gbookCommand = filepath.Join(tessdir, "getgbook")
+		case "windows":
+			gbookCommand = filepath.Join(tessdir, "getgbook.exe")
+		}
+	}
+
+	_, err = exec.LookPath(gbookCommand)
+	if err != nil {
+		log.Printf("No getgbook found [tried %s], google book downloading will be disabled, either set -gbookcmd on the command line or use the official build which includes an embedded getgbook.", gbookCommand)
+		gbookCommand = ""
 	}
 
 	tessdatadir := filepath.Join(tessdir, "tessdata")
@@ -221,9 +233,11 @@ These training files are included in rescribe, and are always available:
 	if err != nil {
 		log.Fatalln("Error setting up tessdata directory:", err)
 	}
-	err = unpackZip(tessdatazip, tessdatadir)
-	if err != nil {
-		log.Fatalln("Error unpacking embedded tessdata zip:", err)
+	if len(tessdatazip) > 0 {
+		err = unpackZip(tessdatazip, tessdatadir)
+		if err != nil {
+			log.Fatalln("Error unpacking embedded tessdata zip:", err)
+		}
 	}
 
 	// if trainingPath doesn't exist, set it to the embedded training instead
@@ -232,14 +246,6 @@ These training files are included in rescribe, and are always available:
 		trainingPath = filepath.Base(trainingPath)
 		trainingPath = filepath.Join(tessdatadir, trainingPath)
 	}
-
-	f, err := os.Open(trainingPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Training files %s or %s could not be opened.\n", *training, trainingPath)
-		fmt.Fprintf(os.Stderr, "Set the `-t` flag with path to a tesseract .traineddata file.\n")
-		os.Exit(1)
-	}
-	f.Close()
 
 	abstraining, err := filepath.Abs(trainingPath)
 	if err != nil {
@@ -264,6 +270,14 @@ These training files are included in rescribe, and are always available:
 		}
 		return
 	}
+
+	f, err := os.Open(trainingPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Training files %s or %s could not be opened.\n", *training, trainingPath)
+		fmt.Fprintf(os.Stderr, "Set the `-t` flag with path to a tesseract .traineddata file.\n")
+		os.Exit(1)
+	}
+	f.Close()
 
 	bookdir := flag.Arg(0)
 	bookname := strings.ReplaceAll(filepath.Base(bookdir), " ", "_")

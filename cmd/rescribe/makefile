@@ -26,17 +26,17 @@ all: dist/linux/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
 dist/linux/rescribe: $(GODEPS)
 	go generate
 	mkdir -p dist/linux
-	GOOS=linux GOARCH=amd64 go build -o $@ .
+	GOOS=linux GOARCH=amd64 go build -tags embed -o $@ .
 
 build/darwin_amd64/rescribe: $(GODEPS)
 	go generate
 	mkdir -p build/darwin_amd64
-	PATH="$(PATH):$(OSXCROSSBIN)" CC="o64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o $@ .
+	PATH="$(PATH):$(OSXCROSSBIN)" CC="o64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -tags embed -o $@ .
 
 build/darwin_arm64/rescribe: $(GODEPS)
 	go generate
 	mkdir -p build/darwin_arm64
-	PATH="$(PATH):$(OSXCROSSBIN)" CC="oa64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o $@ .
+	PATH="$(PATH):$(OSXCROSSBIN)" CC="oa64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -tags embed -o $@ .
 
 build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 	mkdir -p build/darwin
@@ -54,7 +54,7 @@ dist/darwin/rescribe.zip: build/darwin/Rescribe.app
 build/windows/rescribe-bin.exe: $(GODEPS)
 	go generate
 	mkdir -p build/windows
-	CC="x86_64-w64-mingw32-gcc" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o $@ .
+	CC="x86_64-w64-mingw32-gcc" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -tags embed -o $@ .
 
 dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
 	mkdir -p dist/windows
