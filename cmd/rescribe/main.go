@@ -259,7 +259,7 @@ These training files are included in rescribe, and are always available:
 	}
 
 	if flag.NArg() < 1 || *usegui {
-		err := startGui(*verboselog, tessCommand, gbookCommand, trainingName, tessdir)
+		err := startGui(verboselog, tessCommand, gbookCommand, trainingName, tessdir)
 		err = os.RemoveAll(tessdir)
 		if err != nil {
 			log.Printf("Error removing tesseract directory %s: %v", tessdir, err)
@@ -319,7 +319,7 @@ These training files are included in rescribe, and are always available:
 		ispdf = true
 	}
 
-	err = startProcess(ctx, *verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir, !*wipe, *fullpdf)
+	err = startProcess(ctx, verboselog, tessCommand, bookdir, bookname, trainingName, savedir, tessdir, !*wipe, *fullpdf)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -459,7 +459,7 @@ func rmIfNotImage(f string) error {
 	return nil
 }
 
-func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string, nowipe bool, fullpdf bool) error {
+func startProcess(ctx context.Context, logger *log.Logger, tessCommand string, bookdir string, bookname string, trainingName string, savedir string, tessdir string, nowipe bool, fullpdf bool) error {
 	cmd := exec.Command(tessCommand, "--help")
 	pipeline.HideCmd(cmd)
 	_, err := cmd.Output()
@@ -478,7 +478,7 @@ func startProcess(ctx context.Context, logger log.Logger, tessCommand string, bo
 	}
 
 	var conn Pipeliner
-	conn = &bookpipeline.LocalConn{Logger: &logger, TempDir: tempdir}
+	conn = &bookpipeline.LocalConn{Logger: logger, TempDir: tempdir}
 
 	conn.Log("Setting up session")
 	err = conn.Init()

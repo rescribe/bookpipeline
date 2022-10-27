@@ -219,7 +219,7 @@ func formatProgressBarText(bar *widget.ProgressBar) func() string {
 }
 
 // startGui starts the gui process
-func startGui(log log.Logger, cmd string, gbookcmd string, training string, tessdir string) error {
+func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tessdir string) error {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Rescribe OCR")
 
