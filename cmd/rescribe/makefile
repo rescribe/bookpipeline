@@ -18,7 +18,7 @@
 # perfectly for us.
 OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
 
-EMBEDS=embed_darwin_amd64.go embed_linux.go embed_windows.go gui.go embed_darwin_arm64.go embed_other.go
+EMBEDS=embed_darwin.go embed_darwin_amd64.go embed_darwin_arm64.go embed_linux.go embed_windows.go embed_other.go
 GODEPS=gui.go main.go $(EMBEDS)
 
 all: dist/linux/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
