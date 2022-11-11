@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>xyz.rescribe.rescribe</id>
+  
+  <name>Rescribe</name>
+  <developer_name>Rescribe Ltd</developer_name>
+  <summary>An easy-to-use desktop tool for performing OCR on image files, PDFs and Google Books.</summary>
+  
+  <description><p>An easy-to-use desktop tool for performing OCR on image files, PDFs and Google Books. It uses the Tesseract OCR engine, combined with modern and efficient preprocessing and analysis pipelines, to produce high quality output. The tool has been built with a focus on OCR of historical printed works, but it includes modern language options and also works well on modern printed works.</p></description>
+
+  <screenshots>
+    <screenshot type="default"><image>https://rescribe.xyz/rescribe/screenshot-02.png</image></screenshot>
+  </screenshots>
+
+  <url type="homepage">https://rescribe.xyz/rescribe</url>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>GPL-3.0</project_license>
+
+  <launchable type="desktop-id">xyz.rescribe.rescribe.desktop</launchable>
+
+  <releases>
+    <release version="1.0.0" date="2022-03-22" type="stable">
+      <description>
+        <p>Thanks to our fabulous Kickstarter backers, lots of improvements! Added GUI, added PDF extractor, added Google Book downloader, created a single binary for OSX for M1 and amd64, added file renamer so page files no longer need a particular naming format, added option to disable page wiping, added option to create full size PDF.</p>
+      </description>
+    </release>
+  </releases>
+
+</component>

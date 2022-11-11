@@ -28,6 +28,10 @@ dist/linux/rescribe: $(GODEPS)
 	mkdir -p dist/linux
 	GOOS=linux GOARCH=amd64 go build -tags embed -o $@ .
 
+dist/linux/rescribe-nogenerate: $(GODEPS)
+	mkdir -p dist/linux
+	GOOS=linux GOARCH=amd64 go build -tags embed -o $@ .
+
 build/darwin_amd64/rescribe: $(GODEPS)
 	go generate
 	mkdir -p build/darwin_amd64
@@ -61,5 +65,11 @@ dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
 	CC="x86_64-w64-mingw32-gcc" fyne package --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png
 	mv rescribe.exe $@
 
+# used for flatpak building
+modules.tar.xz: ../../go.mod
+	go mod vendor
+	cd ../.. && tar c vendor | xz > cmd/rescribe/$@
+
 clean:
 	rm -rf dist build
+	rm -rf ../../vendor
