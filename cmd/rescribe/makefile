@@ -28,10 +28,6 @@ dist/linux/rescribe: $(GODEPS)
 	mkdir -p dist/linux
 	GOOS=linux GOARCH=amd64 go build -tags embed -o $@ .
 
-dist/linux/rescribe-nogenerate: $(GODEPS)
-	mkdir -p dist/linux
-	GOOS=linux GOARCH=amd64 go build -tags embed -o $@ .
-
 build/darwin_amd64/rescribe: $(GODEPS)
 	go generate
 	mkdir -p build/darwin_amd64

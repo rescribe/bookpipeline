@@ -17,8 +17,8 @@ modules:
   - name: rescribe
     buildsystem: simple
     build-commands:
-      - cd cmd/rescribe && make dist/linux/rescribe-nogenerate
-      - install -Dm00755 cmd/rescribe/dist/linux/rescribe-nogenerate $FLATPAK_DEST/bin/rescribe-bin
+      - cd cmd/rescribe && GOOS=linux GOARCH=amd64 go build -tags embed .
+      - install -Dm00755 cmd/rescribe/rescribe $FLATPAK_DEST/bin/rescribe-bin
       - install -Dm00644 cmd/rescribe/icon.256.png $FLATPAK_DEST/share/icons/hicolor/256x256/apps/xyz.rescribe.rescribe.png
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.desktop $FLATPAK_DEST/share/applications/xyz.rescribe.rescribe.desktop
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.appdata.xml $FLATPAK_DEST/share/appdata/xyz.rescribe.rescribe.appdata.xml
