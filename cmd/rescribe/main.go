@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/image/tiff"
 	"rescribe.xyz/bookpipeline"
 	"rescribe.xyz/bookpipeline/internal/pipeline"
 	"rescribe.xyz/pdf"
@@ -424,7 +425,9 @@ func extractPdfImgs(ctx context.Context, path string) (string, error) {
 
 // rmIfNotImage attempts to decode a given file as an image. If it is
 // decode-able as PNG, then rename file extension from .jpg to .png,
-// if it fails to be read as PNG or JPEG it will be deleted.
+// if it is decode-able as TIFF then convert to PNG and rename file
+// extension appropriately, if it fails to be read as PNG, TIFF or
+// JPEG it will just be deleted.
 func rmIfNotImage(f string) error {
 	r, err := os.Open(f)
 	defer r.Close()
@@ -448,12 +451,39 @@ func rmIfNotImage(f string) error {
 		return fmt.Errorf("Failed to open image %s: %v\n", f, err)
 	}
 	_, err = jpeg.Decode(r)
+	if err == nil {
+		return nil
+	}
+
+	r, err = os.Open(f)
+	defer r.Close()
 	if err != nil {
+		return fmt.Errorf("Failed to open image %s: %v\n", f, err)
+	}
+	t, err := tiff.Decode(r)
+	if err == nil {
+		b := strings.TrimSuffix(f, ".jpg")
+		n, err := os.Create(b+".png")
+		defer n.Close()
+		if err != nil {
+			return fmt.Errorf("Failed to create file to store new png %s from tiff %s: %v\n", b+".png", f, err)
+		}
+		err = png.Encode(n, t)
+		if err != nil {
+			return fmt.Errorf("Failed to encode tiff as png for %s: %v\n", f, err)
+		}
 		r.Close()
 		err = os.Remove(f)
 		if err != nil {
-			return fmt.Errorf("Failed to remove invalid image %s: %v", f, err)
+			return fmt.Errorf("Failed to remove original tiff %s: %v\n", f, err)
 		}
+		return nil
+	}
+
+	r.Close()
+	err = os.Remove(f)
+	if err != nil {
+		return fmt.Errorf("Failed to remove invalid image %s: %v", f, err)
 	}
 
 	return nil
