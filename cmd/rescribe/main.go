@@ -463,7 +463,7 @@ func rmIfNotImage(f string) error {
 	t, err := tiff.Decode(r)
 	if err == nil {
 		b := strings.TrimSuffix(f, ".jpg")
-		n, err := os.Create(b+".png")
+		n, err := os.Create(b + ".png")
 		defer n.Close()
 		if err != nil {
 			return fmt.Errorf("Failed to create file to store new png %s from tiff %s: %v\n", b+".png", f, err)
