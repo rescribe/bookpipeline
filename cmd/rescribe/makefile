@@ -44,7 +44,7 @@ build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 
 build/darwin/Rescribe.app: build/darwin/rescribe
 	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
-	fyne package --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png
+	fyne package --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png
 	mv Rescribe.app $@
 
 dist/darwin/rescribe.zip: build/darwin/Rescribe.app
@@ -58,7 +58,7 @@ build/windows/rescribe-bin.exe: $(GODEPS)
 
 dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
 	mkdir -p dist/windows
-	CC="x86_64-w64-mingw32-gcc" fyne package --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png
+	CC="x86_64-w64-mingw32-gcc" fyne package --tags embed --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png
 	mv rescribe.exe $@
 
 # used for flatpak building
