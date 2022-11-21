@@ -218,6 +218,36 @@ func formatProgressBar(bar *widget.ProgressBar) func() string {
 	}
 }
 
+// updateProgress adds a rune to a log area and parses the latest line
+// of the log area to set the progress bar.
+func updateProgress(r rune, logarea *widget.Entry, progressBar *widget.ProgressBar) {
+	logarea.SetText(logarea.Text + string(r))
+	logarea.CursorRow = strings.Count(logarea.Text, "\n")
+
+	lines := strings.Split(logarea.Text, "\n")
+	lastline := lines[len(lines)-1]
+	for i, v := range progressPoints {
+		if strings.HasPrefix(lastline, "  "+v) {
+			// OCRing has a number of dots after it showing how many pages have been processed,
+			// which we can use to update progress bar more often
+			// TODO: calculate number of pages we expect, so this can be set accurately
+			if v == "OCRing" {
+				if progressBar.Value < 0.5 {
+					progressBar.SetValue(0.5)
+				}
+				numdots := strings.Count(lastline, ".")
+				newval := float64(0.5) + (float64(numdots) * float64(0.01))
+				if newval >= 0.9 {
+					newval = 0.89
+				}
+				progressBar.SetValue(newval)
+				break
+			}
+			progressBar.SetValue(i)
+		}
+	}
+}
+
 // process starts the core preprocessing/ocr/postprocessing/analysis process
 func process(ctx context.Context, log *log.Logger, cmd string, tessdir string, gbookcmd string, dir string, training string, win fyne.Window, logarea *widget.Entry, progressBar *widget.ProgressBar, abortbtn *widget.Button, wipe *widget.Check, bigpdf *widget.Check, disableWidgets []fyne.Disableable) {
 	if dir == "" {
@@ -231,35 +261,9 @@ func process(ctx context.Context, log *log.Logger, cmd string, tessdir string, g
 		fmt.Fprintf(os.Stderr, msg)
 		return
 	}
-
-	// update log area with stdout in a concurrent goroutine, and parse it to update the progress bar
 	go func() {
 		for r := range stdout {
-			logarea.SetText(logarea.Text + string(r))
-			logarea.CursorRow = strings.Count(logarea.Text, "\n")
-
-			lines := strings.Split(logarea.Text, "\n")
-			lastline := lines[len(lines)-1]
-			for i, v := range progressPoints {
-				if strings.HasPrefix(lastline, "  "+v) {
-					// OCRing has a number of dots after it showing how many pages have been processed,
-					// which we can use to update progress bar more often
-					// TODO: calculate number of pages we expect, so this can be set accurately
-					if v == "OCRing" {
-						if progressBar.Value < 0.5 {
-							progressBar.SetValue(0.5)
-						}
-						numdots := strings.Count(lastline, ".")
-						newval := float64(0.5) + (float64(numdots) * float64(0.01))
-						if newval >= 0.9 {
-							newval = 0.89
-						}
-						progressBar.SetValue(newval)
-						break
-					}
-					progressBar.SetValue(i)
-				}
-			}
+			updateProgress(r, logarea, progressBar)
 		}
 	}()
 
@@ -270,8 +274,6 @@ func process(ctx context.Context, log *log.Logger, cmd string, tessdir string, g
 		fmt.Fprintf(os.Stderr, msg)
 		return
 	}
-
-	// update log area with stderr in a concurrent goroutine
 	go func() {
 		for r := range stderr {
 			logarea.SetText(logarea.Text + string(r))
