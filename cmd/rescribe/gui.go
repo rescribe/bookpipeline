@@ -198,9 +198,9 @@ func mkTrainingSelect(extras []string, parent fyne.Window) *widget.Select {
 	return s
 }
 
-// formatProgressBarText uses the progressPoints map to set the text for the progress bar
+// formatProgressBar uses the progressPoints map to set the text for the progress bar
 // appropriately
-func formatProgressBarText(bar *widget.ProgressBar) func() string {
+func formatProgressBar(bar *widget.ProgressBar) func() string {
 	return func() string {
 		for i, v := range progressPoints {
 			if bar.Value == i {
@@ -216,6 +216,208 @@ func formatProgressBarText(bar *widget.ProgressBar) func() string {
 		}
 		return "Processing"
 	}
+}
+
+// process starts the core preprocessing/ocr/postprocessing/analysis process
+func process(ctx context.Context, log *log.Logger, cmd string, tessdir string, gbookcmd string, dir string, training string, win fyne.Window, logarea *widget.Entry, progressBar *widget.ProgressBar, abortbtn *widget.Button, wipe *widget.Check, bigpdf *widget.Check, disableWidgets []fyne.Disableable) {
+	if dir == "" {
+		return
+	}
+
+	stdout, err := copyStdoutToChan()
+	if err != nil {
+		msg := fmt.Sprintf("Internal error\n\nError copying stdout to chan: %v\n", err)
+		dialog.ShowError(errors.New(msg), win)
+		fmt.Fprintf(os.Stderr, msg)
+		return
+	}
+
+	// update log area with stdout in a concurrent goroutine, and parse it to update the progress bar
+	go func() {
+		for r := range stdout {
+			logarea.SetText(logarea.Text + string(r))
+			logarea.CursorRow = strings.Count(logarea.Text, "\n")
+
+			lines := strings.Split(logarea.Text, "\n")
+			lastline := lines[len(lines)-1]
+			for i, v := range progressPoints {
+				if strings.HasPrefix(lastline, "  "+v) {
+					// OCRing has a number of dots after it showing how many pages have been processed,
+					// which we can use to update progress bar more often
+					// TODO: calculate number of pages we expect, so this can be set accurately
+					if v == "OCRing" {
+						if progressBar.Value < 0.5 {
+							progressBar.SetValue(0.5)
+						}
+						numdots := strings.Count(lastline, ".")
+						newval := float64(0.5) + (float64(numdots) * float64(0.01))
+						if newval >= 0.9 {
+							newval = 0.89
+						}
+						progressBar.SetValue(newval)
+						break
+					}
+					progressBar.SetValue(i)
+				}
+			}
+		}
+	}()
+
+	stderr, err := copyStderrToChan()
+	if err != nil {
+		msg := fmt.Sprintf("Internal error\n\nError copying stdout to chan: %v\n", err)
+		dialog.ShowError(errors.New(msg), win)
+		fmt.Fprintf(os.Stderr, msg)
+		return
+	}
+
+	// update log area with stderr in a concurrent goroutine
+	go func() {
+		for r := range stderr {
+			logarea.SetText(logarea.Text + string(r))
+			logarea.CursorRow = strings.Count(logarea.Text, "\n")
+		}
+	}()
+
+	bookdir := dir
+	savedir := dir
+	bookname := strings.ReplaceAll(filepath.Base(dir), " ", "_")
+
+	f, err := os.Stat(bookdir)
+	if err != nil && !strings.HasPrefix(bookdir, "Google Book: ") {
+		msg := fmt.Sprintf("Error opening %s: %v", bookdir, err)
+		dialog.ShowError(errors.New(msg), win)
+		fmt.Fprintf(os.Stderr, msg)
+
+		progressBar.SetValue(0.0)
+		for _, v := range disableWidgets {
+			v.Enable()
+		}
+		abortbtn.Disable()
+		return
+	}
+
+	// Do this in a goroutine so the GUI remains responsive
+	go func() {
+		for _, v := range disableWidgets {
+			v.Disable()
+		}
+
+		abortbtn.Enable()
+
+		progressBar.SetValue(0.1)
+
+		if strings.HasPrefix(dir, "Google Book: ") {
+			if gbookcmd == "" {
+				msg := fmt.Sprintf("No getgbook found, can't download Google Book. Either set -gbookcmd on the command line, or use the official build which includes an embedded copy of getgbook.\n")
+				dialog.ShowError(errors.New(msg), win)
+				fmt.Fprintf(os.Stderr, msg)
+				progressBar.SetValue(0.0)
+				for _, v := range disableWidgets {
+					v.Enable()
+				}
+				abortbtn.Disable()
+				return
+			}
+			progressBar.SetValue(0.11)
+			start := len("Google Book: ")
+			bookname = dir[start : start+12]
+
+			start = start + 12 + len(" Save to: ")
+			bookdir = dir[start:]
+			savedir = bookdir
+
+			fmt.Printf("Downloading Google Book\n")
+			d, err := getGoogleBook(ctx, gbookcmd, bookname, bookdir)
+			if err != nil {
+				if !strings.HasSuffix(err.Error(), "signal: killed") {
+					msg := fmt.Sprintf("Error downloading Google Book %s\n", bookname)
+					dialog.ShowError(errors.New(msg), win)
+					fmt.Fprintf(os.Stderr, msg)
+				}
+				progressBar.SetValue(0.0)
+				for _, v := range disableWidgets {
+					v.Enable()
+				}
+				abortbtn.Disable()
+				return
+			}
+			bookdir = d
+			savedir = d
+			bookname = filepath.Base(d)
+		}
+
+		if strings.HasSuffix(dir, ".pdf") && !f.IsDir() {
+			progressBar.SetValue(0.12)
+			bookdir, err = extractPdfImgs(ctx, bookdir)
+			if err != nil {
+				if !strings.HasSuffix(err.Error(), "context canceled") {
+					msg := fmt.Sprintf("Error opening PDF %s: %v\n", bookdir, err)
+					dialog.ShowError(errors.New(msg), win)
+					fmt.Fprintf(os.Stderr, msg)
+				}
+
+				progressBar.SetValue(0.0)
+				for _, v := range disableWidgets {
+					v.Enable()
+				}
+				abortbtn.Disable()
+				return
+			}
+
+			// happens if extractPdfImgs recovers from a PDF panic,
+			// which will occur if we encounter an image we can't decode
+			if bookdir == "" {
+				msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images to .jpg manually into a folder first.\n")
+				dialog.ShowError(errors.New(msg), win)
+				fmt.Fprintf(os.Stderr, msg)
+
+				progressBar.SetValue(0.0)
+				for _, v := range disableWidgets {
+					v.Enable()
+				}
+				abortbtn.Disable()
+				return
+			}
+
+			savedir = strings.TrimSuffix(savedir, ".pdf")
+			bookname = strings.TrimSuffix(bookname, ".pdf")
+		}
+
+		if strings.Contains(training, "[") {
+			start := strings.Index(training, "[") + 1
+			end := strings.Index(training, "]")
+			training = training[start:end]
+		}
+
+		err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir, !wipe.Checked, bigpdf.Checked)
+		if err != nil && strings.HasSuffix(err.Error(), "context canceled") {
+			progressBar.SetValue(0.0)
+			return
+		}
+		if err != nil {
+			msg := fmt.Sprintf("Error during processing: %v\n", err)
+			dialog.ShowError(errors.New(msg), win)
+			fmt.Fprintf(os.Stderr, msg)
+
+			progressBar.SetValue(0.0)
+			for _, v := range disableWidgets {
+				v.Enable()
+			}
+			abortbtn.Disable()
+			return
+		}
+
+		progressBar.SetValue(1.0)
+
+		for _, v := range disableWidgets {
+			v.Enable()
+		}
+		abortbtn.Disable()
+
+		msg := fmt.Sprintf("OCR process finished successfully.\n\nYour completed files have been saved in:\n%s", savedir)
+		dialog.ShowInformation("OCR Complete", msg, win)
+	}()
 }
 
 // startGui starts the gui process
@@ -322,7 +524,7 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 	trainingOpts := mkTrainingSelect([]string{training}, myWindow)
 
 	progressBar := widget.NewProgressBar()
-	progressBar.TextFormatter = formatProgressBarText(progressBar)
+	progressBar.TextFormatter = formatProgressBar(progressBar)
 
 	logarea := widget.NewMultiLineEntry()
 	logarea.Disable()
@@ -349,207 +551,8 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 	})
 	abortbtn.Disable()
 
-	gobtn.OnTapped = func() {
-		if dir.Text == "" {
-			return
-		}
+	gobtn.OnTapped = func(){process(ctx, log, cmd, tessdir, gbookcmd, dir.Text, trainingOpts.Selected, myWindow, logarea, progressBar, abortbtn, wipe, bigpdf, disableWidgets)}
 
-		stdout, err := copyStdoutToChan()
-		if err != nil {
-			msg := fmt.Sprintf("Internal error\n\nError copying stdout to chan: %v\n", err)
-			dialog.ShowError(errors.New(msg), myWindow)
-			fmt.Fprintf(os.Stderr, msg)
-			return
-		}
-
-		// update log area with stdout in a concurrent goroutine, and parse it to update the progress bar
-		go func() {
-			for r := range stdout {
-				logarea.SetText(logarea.Text + string(r))
-				logarea.CursorRow = strings.Count(logarea.Text, "\n")
-
-				lines := strings.Split(logarea.Text, "\n")
-				lastline := lines[len(lines)-1]
-				for i, v := range progressPoints {
-					if strings.HasPrefix(lastline, "  "+v) {
-						// OCRing has a number of dots after it showing how many pages have been processed,
-						// which we can use to update progress bar more often
-						// TODO: calculate number of pages we expect, so this can be set accurately
-						if v == "OCRing" {
-							if progressBar.Value < 0.5 {
-								progressBar.SetValue(0.5)
-							}
-							numdots := strings.Count(lastline, ".")
-							newval := float64(0.5) + (float64(numdots) * float64(0.01))
-							if newval >= 0.9 {
-								newval = 0.89
-							}
-							progressBar.SetValue(newval)
-							break
-						}
-						progressBar.SetValue(i)
-					}
-				}
-			}
-		}()
-
-		stderr, err := copyStderrToChan()
-		if err != nil {
-			msg := fmt.Sprintf("Internal error\n\nError copying stdout to chan: %v\n", err)
-			dialog.ShowError(errors.New(msg), myWindow)
-			fmt.Fprintf(os.Stderr, msg)
-			return
-		}
-
-		// update log area with stderr in a concurrent goroutine
-		go func() {
-			for r := range stderr {
-				logarea.SetText(logarea.Text + string(r))
-				logarea.CursorRow = strings.Count(logarea.Text, "\n")
-			}
-		}()
-
-		bookdir := dir.Text
-		savedir := dir.Text
-		bookname := strings.ReplaceAll(filepath.Base(dir.Text), " ", "_")
-
-		f, err := os.Stat(bookdir)
-		if err != nil && !strings.HasPrefix(bookdir, "Google Book: ") {
-			msg := fmt.Sprintf("Error opening %s: %v", bookdir, err)
-			dialog.ShowError(errors.New(msg), myWindow)
-			fmt.Fprintf(os.Stderr, msg)
-
-			progressBar.SetValue(0.0)
-			for _, v := range disableWidgets {
-				v.Enable()
-			}
-			abortbtn.Disable()
-			return
-		}
-
-		// Do this in a goroutine so the GUI remains responsive
-		go func() {
-			for _, v := range disableWidgets {
-				v.Disable()
-			}
-
-			abortbtn.Enable()
-
-			progressBar.SetValue(0.1)
-
-			if strings.HasPrefix(dir.Text, "Google Book: ") {
-				if gbookcmd == "" {
-					msg := fmt.Sprintf("No getgbook found, can't download Google Book. Either set -gbookcmd on the command line, or use the official build which includes an embedded copy of getgbook.\n")
-					dialog.ShowError(errors.New(msg), myWindow)
-					fmt.Fprintf(os.Stderr, msg)
-					progressBar.SetValue(0.0)
-					for _, v := range disableWidgets {
-						v.Enable()
-					}
-					abortbtn.Disable()
-					return
-				}
-				progressBar.SetValue(0.11)
-				start := len("Google Book: ")
-				bookname = dir.Text[start : start+12]
-
-				start = start + 12 + len(" Save to: ")
-				bookdir = dir.Text[start:]
-				savedir = bookdir
-
-				fmt.Printf("Downloading Google Book\n")
-				d, err := getGoogleBook(ctx, gbookcmd, bookname, bookdir)
-				if err != nil {
-					if !strings.HasSuffix(err.Error(), "signal: killed") {
-						msg := fmt.Sprintf("Error downloading Google Book %s\n", bookname)
-						dialog.ShowError(errors.New(msg), myWindow)
-						fmt.Fprintf(os.Stderr, msg)
-					}
-					progressBar.SetValue(0.0)
-					for _, v := range disableWidgets {
-						v.Enable()
-					}
-					abortbtn.Disable()
-					return
-				}
-				bookdir = d
-				savedir = d
-				bookname = filepath.Base(d)
-			}
-
-			if strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
-				progressBar.SetValue(0.12)
-				bookdir, err = extractPdfImgs(ctx, bookdir)
-				if err != nil {
-					if !strings.HasSuffix(err.Error(), "context canceled") {
-						msg := fmt.Sprintf("Error opening PDF %s: %v\n", bookdir, err)
-						dialog.ShowError(errors.New(msg), myWindow)
-						fmt.Fprintf(os.Stderr, msg)
-					}
-
-					progressBar.SetValue(0.0)
-					for _, v := range disableWidgets {
-						v.Enable()
-					}
-					abortbtn.Disable()
-					return
-				}
-
-				// happens if extractPdfImgs recovers from a PDF panic,
-				// which will occur if we encounter an image we can't decode
-				if bookdir == "" {
-					msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images to .jpg manually into a folder first.\n")
-					dialog.ShowError(errors.New(msg), myWindow)
-					fmt.Fprintf(os.Stderr, msg)
-
-					progressBar.SetValue(0.0)
-					for _, v := range disableWidgets {
-						v.Enable()
-					}
-					abortbtn.Disable()
-					return
-				}
-
-				savedir = strings.TrimSuffix(savedir, ".pdf")
-				bookname = strings.TrimSuffix(bookname, ".pdf")
-			}
-
-			training := trainingOpts.Selected
-			if strings.Contains(training, "[") {
-				start := strings.Index(training, "[") + 1
-				end := strings.Index(training, "]")
-				training = training[start:end]
-			}
-
-			err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir, !wipe.Checked, bigpdf.Checked)
-			if err != nil && strings.HasSuffix(err.Error(), "context canceled") {
-				progressBar.SetValue(0.0)
-				return
-			}
-			if err != nil {
-				msg := fmt.Sprintf("Error during processing: %v\n", err)
-				dialog.ShowError(errors.New(msg), myWindow)
-				fmt.Fprintf(os.Stderr, msg)
-
-				progressBar.SetValue(0.0)
-				for _, v := range disableWidgets {
-					v.Enable()
-				}
-				abortbtn.Disable()
-				return
-			}
-
-			progressBar.SetValue(1.0)
-
-			for _, v := range disableWidgets {
-				v.Enable()
-			}
-			abortbtn.Disable()
-
-			msg := fmt.Sprintf("OCR process finished successfully.\n\nYour completed files have been saved in:\n%s", savedir)
-			dialog.ShowInformation("OCR Complete", msg, myWindow)
-		}()
-	}
 	gobtn.Disable()
 
 	choices := container.New(layout.NewGridLayout(3), folderBtn, pdfBtn, gbookBtn)
