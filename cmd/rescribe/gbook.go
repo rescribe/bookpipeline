@@ -41,7 +41,9 @@ func formatAuthors(authors []string) string {
 	s = strings.ToUpper(s)
 
 	if len(s) > maxPartLength {
-		s = s[:maxPartLength]
+		// truncate to maxPartLength
+		m := fmt.Sprintf("%%.%ds", maxPartLength)
+		s = fmt.Sprintf(m, s)
 	}
 
 	s = strings.Map(stripNonLetters, s)
@@ -63,7 +65,9 @@ func stripNonLetters(r rune) rune {
 func formatTitle(title string) string {
 	s := strings.Map(stripNonLetters, title)
 	if len(s) > maxPartLength {
-		s = s[:maxPartLength]
+		// truncate to maxPartLength
+		m := fmt.Sprintf("%%.%ds", maxPartLength)
+		s = fmt.Sprintf(m, s)
 	}
 	return s
 }
@@ -232,7 +236,7 @@ func getBookIdFromUrl(url string) (string, error) {
 
 		if start >= 0 {
 			start += 4
-			if len(url[start:]) < 12 {
+			if len(url) - start < 12 {
 				return "", fmt.Errorf("Could not find book ID in URL")
 			}
 			return url[start : start+12], nil
@@ -245,7 +249,7 @@ func getBookIdFromUrl(url string) (string, error) {
 
 		if start >= 0 {
 			start += 10
-			if len(url[start:]) < 12 {
+			if len(url) - start < 12 {
 				return "", fmt.Errorf("Could not find book ID in URL")
 			}
 			return url[start : start+12], nil

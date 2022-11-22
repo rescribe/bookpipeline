@@ -1,0 +1,2 @@
+go test fuzz v1
+string("https://www0google\xf7/books/edition/_/")

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func Test_getBookIdFromUrl(t *testing.T) {
+func TestGetBookIdFromUrl(t *testing.T) {
 	cases := []struct {
 		url string
 		id  string
@@ -28,4 +28,19 @@ func Test_getBookIdFromUrl(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzGetBookIdFromUrl(f *testing.F) {
+	cases := []string {
+		"https://books.google.it/books?id=QjQepCuN8JYC",
+		"https://www.google.it/books/edition/_/VJbr-Oe2au0C",
+	}
+
+	for _, c := range cases {
+		f.Add(c)
+	}
+
+	f.Fuzz(func(t *testing.T, url string) {
+		getBookIdFromUrl(url)
+	})
 }
