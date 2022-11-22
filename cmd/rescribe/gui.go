@@ -78,7 +78,7 @@ func copyStdoutToChan() (chan rune, error) {
 // copyStderrToChan creates a pipe to copy anything written
 // to the file also to a rune channel.
 // TODO: would be nice to merge this with copyStdoutToChan,
-//       but a naive version using *os.File didn't work.
+// but a naive version using *os.File didn't work.
 func copyStderrToChan() (chan rune, error) {
 	c := make(chan rune)
 
@@ -558,7 +558,7 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 	})
 	abortbtn.Disable()
 
-	gobtn.OnTapped = func(){
+	gobtn.OnTapped = func() {
 		start(ctx, log, cmd, tessdir, gbookcmd, dir.Text, trainingOpts.Selected, myWindow, logarea, progressBar, abortbtn, !wipe.Checked, bigpdf.Checked, disableWidgets)
 	}
 
