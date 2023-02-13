@@ -22,9 +22,9 @@
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="1.1.0pr" date="2022-11-21" type="development">
+    <release version="1.1.0" date="2023-02-13" type="stable">
       <description>
-        <p>Improved PDF reading by adding support for embedded CCITT images. Improve PDF parsing to prevent a possible crash with bad PDF files.</p>
+        <p>Improved PDF reading by adding support for embedded CCITT images. Improved PDF parsing to prevent a possible crash with bad PDF files. Improved error messages for unreadable PDFs. Improved GUI theme thanks to an update to Fyne.</p>
       </description>
     </release>
     <release version="1.0.0" date="2022-03-22" type="stable">
