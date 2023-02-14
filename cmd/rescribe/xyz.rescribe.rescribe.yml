@@ -17,12 +17,14 @@ modules:
   - name: rescribe
     buildsystem: simple
     build-commands:
-      - cd cmd/rescribe && go build -tags wayland .
+      - cd cmd/rescribe && go build .
+      - cd cmd/rescribe && go build -tags wayland -o rescribe-wayland .
       - install -Dm00755 cmd/rescribe/rescribe $FLATPAK_DEST/bin/rescribe-bin
+      - install -Dm00755 cmd/rescribe/rescribe-wayland $FLATPAK_DEST/bin/rescribe-bin-wayland
       - install -Dm00644 cmd/rescribe/icon.256.png $FLATPAK_DEST/share/icons/hicolor/256x256/apps/xyz.rescribe.rescribe.png
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.desktop $FLATPAK_DEST/share/applications/xyz.rescribe.rescribe.desktop
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.appdata.xml $FLATPAK_DEST/share/appdata/xyz.rescribe.rescribe.appdata.xml
-      - printf '#!/bin/sh\nTMPDIR=$XDG_RUNTIME_DIR rescribe-bin -gbookcmd "/app/bin/getgbook" -tesscmd "/app/bin/tesseract" -t "/app/share/tessdata/rescribev9_fast.traineddata"\n' > $FLATPAK_DEST/bin/rescribe
+      - printf '#!/bin/sh\nexport TMPDIR=$XDG_RUNTIME_DIR\nbin=rescribe-bin\ntest -n "$WAYLAND_DISPLAY" && bin=rescribe-bin-wayland\n"$bin" -gbookcmd "/app/bin/getgbook" -tesscmd "/app/bin/tesseract" -t "/app/share/tessdata/rescribev9_fast.traineddata"\n' > $FLATPAK_DEST/bin/rescribe
       - chmod 755 $FLATPAK_DEST/bin/rescribe
       - mkdir -p $FLATPAK_DEST/share/tessdata
       - cp -r tessdata/* $FLATPAK_DEST/share/tessdata/
