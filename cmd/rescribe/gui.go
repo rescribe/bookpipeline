@@ -376,7 +376,7 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 		// happens if extractPdfImgs recovers from a PDF panic,
 		// which will occur if we encounter an image we can't decode
 		if bookdir == "" {
-			msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images to .jpg manually into a folder first.\n")
+			msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images to .jpg manually into a\nfolder first, using a tool like the PDF image extractor at https://pdfcandy.com/extract-images.html.\n")
 			dialog.ShowError(errors.New(msg), win)
 			fmt.Fprintf(os.Stderr, msg)
 
@@ -405,6 +405,9 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 	}
 	if err != nil {
 		msg := fmt.Sprintf("Error during processing: %v\n", err)
+		if strings.HasSuffix(err.Error(), "No images found") && strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
+			msg = fmt.Sprintf("Error opening PDF\nNo images found in the PDF. Most likely the format of this PDF is not supported,\nextract the images to .jpg manually into a folder first, using a tool like\nthe PDF image extractor at https://pdfcandy.com/extract-images.html.\n")
+		}
 		dialog.ShowError(errors.New(msg), win)
 		fmt.Fprintf(os.Stderr, msg)
 

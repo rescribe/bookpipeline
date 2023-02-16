@@ -6,9 +6,9 @@ sdk-extensions: org.freedesktop.Sdk.Extension.golang
 build-options:
   append-path: /usr/lib/sdk/golang/bin
 finish-args:
-  - --socket=x11
+  - --socket=fallback-x11
   - --share=ipc # needed for X11
-  #- --socket=wayland # wayland is not stable on fyne yet, when it is add this and the wayland tag to 'go build'
+  - --socket=wayland
   - --device=dri # OpenGL
   - --share=network # Used for google book downloading
   - --filesystem=home
@@ -18,22 +18,24 @@ modules:
     buildsystem: simple
     build-commands:
       - cd cmd/rescribe && go build .
+      - cd cmd/rescribe && go build -tags wayland -o rescribe-wayland .
       - install -Dm00755 cmd/rescribe/rescribe $FLATPAK_DEST/bin/rescribe-bin
+      - install -Dm00755 cmd/rescribe/rescribe-wayland $FLATPAK_DEST/bin/rescribe-bin-wayland
       - install -Dm00644 cmd/rescribe/icon.256.png $FLATPAK_DEST/share/icons/hicolor/256x256/apps/xyz.rescribe.rescribe.png
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.desktop $FLATPAK_DEST/share/applications/xyz.rescribe.rescribe.desktop
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.appdata.xml $FLATPAK_DEST/share/appdata/xyz.rescribe.rescribe.appdata.xml
-      - printf '#!/bin/sh\nTMPDIR=$XDG_RUNTIME_DIR rescribe-bin -gbookcmd "/app/bin/getgbook" -tesscmd "/app/bin/tesseract" -t "/app/share/tessdata/rescribev9_fast.traineddata"\n' > $FLATPAK_DEST/bin/rescribe
+      - printf '#!/bin/sh\nexport TMPDIR=$XDG_RUNTIME_DIR\nbin=rescribe-bin\ntest -n "$WAYLAND_DISPLAY" && bin=rescribe-bin-wayland\n"$bin" -gbookcmd "/app/bin/getgbook" -tesscmd "/app/bin/tesseract" -t "/app/share/tessdata/rescribev9_fast.traineddata"\n' > $FLATPAK_DEST/bin/rescribe
       - chmod 755 $FLATPAK_DEST/bin/rescribe
       - mkdir -p $FLATPAK_DEST/share/tessdata
       - cp -r tessdata/* $FLATPAK_DEST/share/tessdata/
     sources:
       - type: git
         url: https://github.com/rescribe/bookpipeline
-        tag: v1.0.2
-        commit: 3fb28b552eb1e945ff8ba48dd96271e641c295bc
+        tag: v1.1.0
+        commit: 3dd003691436ed954d3b7de54affbb10b509d5a6
       - type: archive
-        url: https://rescribe.xyz/rescribe/modules-20221030-3a6024.tar.xz
-        sha256: 98fdbe455f7cb916cda570d0a30fca0de331809d4549e655e25b95e9be119856
+        url: https://rescribe.xyz/rescribe/modules-20230213-3dd003.tar.xz
+        sha256: 36553c4b97ceefc2c4711d18f26c98d89a9a610cb99bd2a38b7a0bbf3236eb4a
         strip-components: 0
       - type: archive
         url: https://rescribe.xyz/rescribe/embeds/tessdata.20220322.zip

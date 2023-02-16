@@ -9,7 +9,8 @@
   <description><p>An easy-to-use desktop tool for OCR of images, PDFs and Google Books. It uses the Tesseract OCR engine, combined with modern and efficient preprocessing and analysis pipelines, to produce high quality output in plain text, hOCR and searchable PDF format. The tool has been built with a focus on OCR of historical printed works, but it includes modern language options and also works well on modern printed works.</p></description>
 
   <screenshots>
-    <screenshot type="default"><image>https://rescribe.xyz/rescribe/screenshot-02.png</image></screenshot>
+    <screenshot type="default"><image>https://rescribe.xyz/rescribe/screenshot-03.png</image></screenshot>
+    <screenshot><image>https://rescribe.xyz/rescribe/screenshot-04.png</image></screenshot>
   </screenshots>
 
   <url type="homepage">https://rescribe.xyz/rescribe</url>
@@ -22,9 +23,9 @@
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="1.1.0pr" date="2022-11-21" type="development">
+    <release version="1.1.0" date="2023-02-13" type="stable">
       <description>
-        <p>Improved PDF reading by adding support for embedded CCITT images. Improve PDF parsing to prevent a possible crash with bad PDF files.</p>
+        <p>Improved PDF reading by adding support for embedded CCITT images. Improved PDF parsing to prevent a possible crash with bad PDF files. Improved error messages for unreadable PDFs. Improved GUI theme thanks to an update to Fyne.</p>
       </description>
     </release>
     <release version="1.0.0" date="2022-03-22" type="stable">
