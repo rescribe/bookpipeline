@@ -405,7 +405,7 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 	}
 	if err != nil {
 		msg := fmt.Sprintf("Error during processing: %v\n", err)
-		if strings.HasSuffix(err.Error(), "No images found") && strings.HasSuffix(dir.Text, ".pdf") && !f.IsDir() {
+		if strings.HasSuffix(err.Error(), "No images found") && strings.HasSuffix(dir, ".pdf") && !f.IsDir() {
 			msg = fmt.Sprintf("Error opening PDF\nNo images found in the PDF. Most likely the format of this PDF is not supported,\nextract the images to .jpg manually into a folder first, using a tool like\nthe PDF image extractor at https://pdfcandy.com/extract-images.html.\n")
 		}
 		dialog.ShowError(errors.New(msg), win)
@@ -537,7 +537,6 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 	progressBar.TextFormatter = formatProgressBar(progressBar)
 
 	logarea := widget.NewMultiLineEntry()
-	logarea.Disable()
 
 	detail := widget.NewAccordion(widget.NewAccordionItem("Log", logarea))
 
