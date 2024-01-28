@@ -135,7 +135,8 @@ func UploadImages(ctx context.Context, dir string, bookname string, conn Uploade
 		origbase := strings.TrimSuffix(origname, origsuffix)
 		origpath := filepath.Join(dir, origname)
 
-		newname := fmt.Sprintf("%s_%04d%s", origbase, filenum, lsuffix)
+		safebase := strings.ReplaceAll(origbase, " ", "_")
+		newname := fmt.Sprintf("%s_%04d%s", safebase, filenum, lsuffix)
 		err = conn.Upload(conn.WIPStorageId(), filepath.Join(bookname, newname), origpath)
 		if err != nil {
 			return fmt.Errorf("Failed to upload %s: %v", origpath, err)
