@@ -438,7 +438,7 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 	myWindow.Resize(fyne.NewSize(800, 400))
 
 	var abortbtn, gobtn *widget.Button
-	var fullContent *fyne.Container
+	var chosen *fyne.Container
 
 	dir := widget.NewLabel("")
 
@@ -451,7 +451,7 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 			}
 			dir.SetText(uri.Path())
 			dirIcon.SetResource(theme.FolderIcon())
-			myWindow.SetContent(fullContent)
+			chosen.Show()
 			gobtn.Enable()
 		}, myWindow)
 		d.Resize(fyne.NewSize(740, 600))
@@ -466,7 +466,7 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 			uri.Close()
 			dir.SetText(uri.URI().Path())
 			dirIcon.SetResource(theme.DocumentIcon())
-			myWindow.SetContent(fullContent)
+			chosen.Show()
 			gobtn.Enable()
 		}, myWindow)
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".pdf"}))
@@ -517,7 +517,7 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 			}
 			dir.SetText(fmt.Sprintf("Google Book: %s Save to: %s", id, dirEntry.Text))
 			dirIcon.SetResource(theme.SearchIcon())
-			myWindow.SetContent(fullContent)
+			chosen.Show()
 			gobtn.Enable()
 		}, myWindow)
 		d.Resize(fyne.NewSize(600, 200))
@@ -568,14 +568,12 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 
 	choices := container.New(layout.NewGridLayout(3), folderBtn, pdfBtn, gbookBtn)
 
-	chosen := container.New(layout.NewBorderLayout(nil, nil, dirIcon, nil), dirIcon, dir)
+	chosen = container.New(layout.NewBorderLayout(nil, nil, dirIcon, nil), dirIcon, dir)
+	chosen.Hide()
 
 	trainingBits := container.New(layout.NewBorderLayout(nil, nil, trainingLabel, nil), trainingLabel, trainingOpts)
 
-	// TODO: add / remove widgets rather than swapping between fullContent and startContent
-	fullBox := container.NewVBox(choices, chosen, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar)
-	fullContent = container.NewBorder(fullBox, nil, nil, nil, detail)
-	startBox := container.NewVBox(choices, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar)
+	startBox := container.NewVBox(choices, chosen, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar)
 	startContent := container.NewBorder(startBox, nil, nil, nil, detail)
 
 	myWindow.SetContent(startContent)
