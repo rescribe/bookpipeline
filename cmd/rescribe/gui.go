@@ -572,8 +572,11 @@ func startGui(log *log.Logger, cmd string, gbookcmd string, training string, tes
 
 	trainingBits := container.New(layout.NewBorderLayout(nil, nil, trainingLabel, nil), trainingLabel, trainingOpts)
 
-	fullContent = container.NewVBox(choices, chosen, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar, detail)
-	startContent := container.NewVBox(choices, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar, detail)
+	// TODO: add / remove widgets rather than swapping between fullContent and startContent
+	fullBox := container.NewVBox(choices, chosen, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar)
+	fullContent = container.NewBorder(fullBox, nil, nil, nil, detail)
+	startBox := container.NewVBox(choices, trainingBits, wipe, bigpdf, gobtn, abortbtn, progressBar)
+	startContent := container.NewBorder(startBox, nil, nil, nil, detail)
 
 	myWindow.SetContent(startContent)
 
