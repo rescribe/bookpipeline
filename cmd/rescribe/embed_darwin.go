@@ -8,5 +8,5 @@ package main
 
 import _ "embed"
 
-//go:embed getgbook-darwin-cac42fb.zip
+//go:embed getgbook-darwin-b14f62f.zip
 var gbookzip []byte
