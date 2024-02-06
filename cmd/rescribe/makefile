@@ -44,7 +44,8 @@ build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 
 build/darwin/Rescribe.app: build/darwin/rescribe
 	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
-	fyne package --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png
+	fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png
+	codesign -s Rescribe Rescribe.app
 	mv Rescribe.app $@
 
 dist/darwin/rescribe.zip: build/darwin/Rescribe.app
