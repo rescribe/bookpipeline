@@ -30,16 +30,12 @@ modules:
       - cp -r tessdata/* $FLATPAK_DEST/share/tessdata/
     sources:
       - type: git
-        url: ../..
-        commit: HEAD
-        #url: https://github.com/rescribe/bookpipeline
-        #tag: v1.1.0
-        #commit: 3dd003691436ed954d3b7de54affbb10b509d5a6
+        url: https://github.com/rescribe/bookpipeline
+        tag: v1.2.0
+        commit: d2399a7ce0af49098a065c48409d1512f37c7c21
       - type: archive
-        url: https://rescribe.xyz/tmp/modules.tar.xz # TODO: move to /rescribe once stable
-        sha256: 98b769cf61cc4178303e7d9e0aa0e036f819a46041aa442982713cb847e4657a
-        #url: https://rescribe.xyz/rescribe/modules-20230213-3dd003.tar.xz
-        #sha256: 36553c4b97ceefc2c4711d18f26c98d89a9a610cb99bd2a38b7a0bbf3236eb4a
+        url: https://rescribe.xyz/rescribe/modules-20240206-d2399a.tar.xz
+        sha256: 682820d4cb6129c564cf8df494dc12d35ab059ed99dba34c0b3d6260f7fc30fb
         strip-components: 0
       - type: archive
         url: https://rescribe.xyz/rescribe/embeds/tessdata.20220322.zip
