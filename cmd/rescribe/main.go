@@ -575,6 +575,11 @@ func startProcess(ctx context.Context, logger *log.Logger, tessCommand string, b
 		return fmt.Errorf("Error looking for .hocr files: %v", err)
 	}
 
+	err = addFullTxt(hocrs, bookname)
+	if err != nil {
+		log.Fatalf("Error creating full txt version: %v", err)
+	}
+
 	for _, v := range hocrs {
 		err = addTxtVersion(v)
 		if err != nil {
@@ -653,6 +658,32 @@ func addTxtVersion(hocrfn string) error {
 	fn := filepath.Join(dir, "text", basefn+".txt")
 
 	err = ioutil.WriteFile(fn, []byte(t), 0644)
+	if err != nil {
+		return fmt.Errorf("Error creating text file %s: %v", fn, err)
+	}
+
+	return nil
+}
+
+func addFullTxt(hocrs []string, bookname string) error {
+	if len(hocrs) == 0 {
+		return nil
+	}
+	var full string
+	for i, v := range hocrs {
+		t, err := hocr.GetText(v)
+		if err != nil {
+			return fmt.Errorf("Error getting text from hocr file %s: %v", v, err)
+		}
+		if i > 0 {
+			full += "\n"
+		}
+		full += t
+	}
+
+	dir := filepath.Dir(hocrs[0])
+	fn := filepath.Join(dir, bookname+".txt")
+	err := ioutil.WriteFile(fn, []byte(full), 0644)
 	if err != nil {
 		return fmt.Errorf("Error creating text file %s: %v", fn, err)
 	}
