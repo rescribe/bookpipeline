@@ -241,11 +241,33 @@ These training files are included in rescribe, and are always available:
 		}
 	}
 
-	// if trainingPath doesn't exist, set it to the embedded training instead
-	_, err = os.Stat(trainingPath)
-	if err != nil && !os.IsExist(err) {
-		trainingPath = filepath.Base(trainingPath)
-		trainingPath = filepath.Join(tessdatadir, trainingPath)
+	// copy training path to the tessdir directory, so that we can keep that a
+	// writeable space, which is needed opening other trainings in sandboxes
+	// like flatpak
+	in, err := os.Open(trainingPath)
+	trainingPath = filepath.Join(tessdatadir, filepath.Base(trainingPath))
+	if err != nil {
+		in, err = os.Open(trainingPath)
+		if err != nil {
+			log.Fatalf("Error opening training file %s: %v", trainingPath, err)
+		}
+	}
+	defer in.Close()
+	newPath := trainingPath + ".new"
+	out, err := os.Create(newPath)
+	if err != nil {
+		log.Fatalf("Error creating training file %s: %v", newPath, err)
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	if err != nil {
+		log.Fatalf("Error copying training file to %s: %v", newPath, err)
+	}
+	in.Close()
+	out.Close()
+	err = os.Rename(newPath, trainingPath)
+	if err != nil {
+		log.Fatalf("Error moving new training file to %s: %v", trainingPath, err)
 	}
 
 	abstraining, err := filepath.Abs(trainingPath)

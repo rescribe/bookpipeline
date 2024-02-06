@@ -134,14 +134,18 @@ func trainingSelectOnChange(sel *widget.Select, parent fyne.Window) func(string)
 			newpath := filepath.Join(os.Getenv("TESSDATA_PREFIX"), name)
 			f, err := os.Create(newpath)
 			if err != nil {
-				// TODO: surface error somewhere, prob with a dialog box
+				msg := fmt.Sprintf("Error creating temporary file to store custom training: %v\n", err)
+				dialog.ShowError(errors.New(msg), parent)
+				fmt.Fprintf(os.Stderr, msg)
 				sel.SetSelectedIndex(0)
 				return
 			}
 			defer f.Close()
 			_, err = io.Copy(f, uri)
 			if err != nil {
-				// TODO: surface error somewhere, prob with a dialog box
+				msg := fmt.Sprintf("Error copying custom training to temporary file: %v\n", err)
+				dialog.ShowError(errors.New(msg), parent)
+				fmt.Fprintf(os.Stderr, msg)
 				sel.SetSelectedIndex(0)
 				return
 			}
