@@ -23,6 +23,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.2.0" date="2024-02-16" type="stable">
+      <description>
+        <p>Fixed bug with directories containing files with spaces causing the process to fail, added concatenated text output named bookname.txt, fixed selecting a custom training in flatpak build, fixed getgbook on arm64 MacOS, improved layout of log area to fill all available space in the window, improved readability of log area text.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2023-02-13" type="stable">
       <description>
         <p>Improved PDF reading by adding support for embedded CCITT images. Improved PDF parsing to prevent a possible crash with bad PDF files. Improved error messages for unreadable PDFs. Improved GUI theme thanks to an update to Fyne.</p>
