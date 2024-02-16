@@ -21,12 +21,17 @@ OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
 EMBEDS=embed_darwin.go embed_darwin_amd64.go embed_darwin_arm64.go embed_linux.go embed_windows.go embed_other.go
 GODEPS=gui.go main.go $(EMBEDS)
 
-all: dist/linux/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
+all: dist/linux/rescribe dist/linux/wayland/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
 
 dist/linux/rescribe: $(GODEPS)
 	go generate
 	mkdir -p dist/linux
 	GOOS=linux GOARCH=amd64 go build -tags embed -o $@ .
+
+dist/linux/wayland/rescribe: $(GODEPS)
+	go generate
+	mkdir -p dist/linux
+	GOOS=linux GOARCH=amd64 go build -tags embed,wayland -o $@ .
 
 build/darwin_amd64/rescribe: $(GODEPS)
 	go generate
