@@ -473,6 +473,7 @@ func rmIfNotImage(f string) error {
 		return fmt.Errorf("Failed to open image %s: %v\n", f, err)
 	}
 	_, err = jpeg.Decode(r)
+	r.Close()
 	if err == nil {
 		return nil
 	}
