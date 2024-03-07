@@ -5,7 +5,7 @@ go 1.21
 require (
 	fyne.io/fyne/v2 v2.4.3
 	github.com/aws/aws-sdk-go v1.40.6
-	github.com/nickjwhite/gofpdf v1.12.7-0.20210817123627-3cbaeb9797ef
+	github.com/nickjwhite/gofpdf v1.12.7-0.20240307131705-b017c7c7e41b
 	github.com/wcharczuk/go-chart/v2 v2.1.0
 	golang.org/x/image v0.11.0
 	rescribe.xyz/pdf v0.1.6
