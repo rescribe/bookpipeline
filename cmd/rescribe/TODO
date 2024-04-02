@@ -7,3 +7,8 @@ We had reported (with video) a bug with permissions requests repeatedly being di
 Maybe pay apple $100 for a certificate to avoid their security warnings (can be easily included in 'fyne package')
 
 Add more tests.
+
+Add rotate and crop support
+
+Improve progress bar by finding how many files will be ocred and counting the number done to provide an accurate count
+
