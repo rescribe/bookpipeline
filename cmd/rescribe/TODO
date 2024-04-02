@@ -2,13 +2,12 @@ Add option to choose multiple languages (easy on tesseract level, slightly trick
 
 Write to PDF as we go along, so memory requirements are reduced. Would require further modifying fpdf: https://github.com/jung-kurt/gofpdf/issues/110
 
-We had reported (with video) a bug with permissions requests repeatedly being displayed on a new Mac, may be related to this: https://github.com/fyne-io/fyne/issues/2799
-
 Maybe pay apple $100 for a certificate to avoid their security warnings (can be easily included in 'fyne package')
 
 Add more tests.
 
-Add rotate and crop support
-
 Improve progress bar by finding how many files will be ocred and counting the number done to provide an accurate count
 
+Maybe parse CropBox from PDF as we do rotate, to crop images appropriately
+
+Add to "microsoft store"
