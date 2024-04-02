@@ -20,6 +20,7 @@ OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
 
 EMBEDS=embed_darwin.go embed_darwin_amd64.go embed_darwin_arm64.go embed_linux.go embed_windows.go embed_other.go
 GODEPS=gui.go main.go $(EMBEDS)
+VERSION=1.3.0
 
 all: dist/linux/rescribe dist/linux/wayland/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
 
@@ -49,7 +50,7 @@ build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 
 build/darwin/Rescribe.app: build/darwin/rescribe
 	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
-	fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png
+	fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png --appVersion $VERSION
 	codesign -s Rescribe Rescribe.app
 	mv Rescribe.app $@
 
@@ -64,7 +65,7 @@ build/windows/rescribe-bin.exe: $(GODEPS)
 
 dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
 	mkdir -p dist/windows
-	CC="x86_64-w64-mingw32-gcc" fyne package --tags embed --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png
+	CC="x86_64-w64-mingw32-gcc" fyne package --tags embed --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png --appVersion $VERSION
 	mv rescribe.exe $@
 
 # used for flatpak building
