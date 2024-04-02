@@ -15,6 +15,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image"
+	"image/draw"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -397,6 +399,12 @@ func extractPdfImgs(ctx context.Context, path string) (string, error) {
 		if p.Page(pgnum).V.IsNull() {
 			continue
 		}
+		var rotate int64
+		for v := p.Page(pgnum).V; !v.IsNull(); v = v.Key("Parent") {
+			if r := v.Key("Rotate"); !r.IsNull() {
+				rotate = r.Int64()
+			}
+		}
 		res := p.Page(pgnum).Resources()
 		if res.Kind() != pdf.Dict {
 			continue
@@ -431,6 +439,13 @@ func extractPdfImgs(ctx context.Context, path string) (string, error) {
 			err = rmIfNotImage(path)
 			if err != nil {
 				return tempdir, fmt.Errorf("Error removing extracted image %s from PDF: %v\n", fn, err)
+			}
+
+			if rotate != 0 {
+				err = rotateImage(path, rotate)
+				if err != nil {
+					return tempdir, fmt.Errorf("Error rotating extracted image %s from PDF: %v\n", fn, err)
+				}
 			}
 		}
 	}
@@ -507,6 +522,91 @@ func rmIfNotImage(f string) error {
 	err = os.Remove(f)
 	if err != nil {
 		return fmt.Errorf("Failed to remove invalid image %s: %v", f, err)
+	}
+
+	return nil
+}
+
+// rotateImage rotates an image at the given path by the given angle
+func rotateImage(path string, angle int64) error {
+	switch angle {
+	case 90:
+		// proceed with the rest of the function
+	case 180, 270:
+		// rotate the image again first, as many times as necessary.
+		// this is inefficient but easy.
+		err := rotateImage(path, angle-90)
+		if err != nil {
+			return fmt.Errorf("error with a rotation run: %w", err)
+		}
+	default:
+		return fmt.Errorf("Rotation angle of %d is not supported", angle)
+	}
+
+	r, err := os.Open(path)
+	defer r.Close()
+	if err != nil {
+		return fmt.Errorf("Failed to open image: %w", err)
+	}
+	img, err := png.Decode(r)
+	if err != nil {
+		r.Close()
+		r, err = os.Open(path)
+		defer r.Close()
+		if err != nil {
+			return fmt.Errorf("Failed to open image: %w", err)
+		}
+		img, err = jpeg.Decode(r)
+	}
+	if err != nil {
+		r.Close()
+		r, err = os.Open(path)
+		defer r.Close()
+		if err != nil {
+			return fmt.Errorf("Failed to open image: %w", err)
+		}
+		img, err = tiff.Decode(r)
+	}
+	if err != nil {
+		return fmt.Errorf("Failed to decode image as png, jpeg or tiff: %w", err)
+	}
+
+	b := img.Bounds()
+
+	orig := image.NewRGBA(b)
+	draw.Draw(orig, b, img, b.Min, draw.Src)
+
+	newb := image.Rectangle{
+		Min: image.Point{X: 0, Y: 0},
+		Max: image.Point{X: b.Dy(), Y: b.Dx()},
+	}
+	new := image.NewRGBA(newb)
+
+	for x := b.Min.X; x < b.Max.X; x++ {
+		desty := newb.Min.Y + x
+		for y := b.Max.Y; y > b.Min.Y; y-- {
+			destx := b.Dy() - y + newb.Min.X
+			new.SetRGBA(destx, desty, orig.RGBAAt(x, y))
+		}
+	}
+
+	err = r.Close()
+	if err != nil {
+		return fmt.Errorf("Failed to close image: %w", err)
+	}
+	w, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("Failed to create rotated image: %w", err)
+	}
+	defer w.Close()
+
+	if !strings.HasSuffix(path, ".jpg") {
+		err = jpeg.Encode(w, new, nil)
+	} else {
+		err = png.Encode(w, new)
+	}
+	if err != nil {
+		return fmt.Errorf("Failed to encode rotated image: %w", err)
 	}
 
 	return nil
