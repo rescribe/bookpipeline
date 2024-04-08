@@ -4,13 +4,27 @@
   
   <name>Rescribe</name>
   <developer_name>Rescribe Ltd</developer_name>
-  <summary>High quality OCR for images, PDFs and Google Books.</summary>
+  <summary>OCR images, PDFs and Google Books</summary>
   
-  <description><p>An easy-to-use desktop tool for OCR of images, PDFs and Google Books. It uses the Tesseract OCR engine, combined with modern and efficient preprocessing and analysis pipelines, to produce high quality output in plain text, hOCR and searchable PDF format. The tool has been built with a focus on OCR of historical printed works, but it includes modern language options and also works well on modern printed works.</p></description>
+  <description><p>An easy-to-use desktop tool to recognise and extract text from images, PDFs and Google Books. It uses the Tesseract OCR engine, combined with modern and efficient preprocessing and analysis pipelines, to produce high quality output in plain text, hOCR and searchable PDF format. The tool has been built with a focus on OCR of historical printed works, but it includes modern language options and also works well on modern printed works.</p></description>
 
   <screenshots>
-    <screenshot type="default"><image>https://rescribe.xyz/rescribe/screenshot-03.png</image></screenshot>
-    <screenshot><image>https://rescribe.xyz/rescribe/screenshot-04.png</image></screenshot>
+    <screenshot type="default">
+      <caption>Main window</caption>
+      <image>https://rescribe.xyz/rescribe/screenshot-03.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Dark mode</caption>
+      <image>https://rescribe.xyz/rescribe/screenshot-04.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>OCR in progress</caption>
+      <image>https://rescribe.xyz/rescribe/screenshot-05.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>OCR completed</caption>
+      <image>https://rescribe.xyz/rescribe/screenshot-06.png</image>
+    </screenshot>
   </screenshots>
 
   <url type="homepage">https://rescribe.xyz/rescribe</url>
@@ -21,6 +35,11 @@
   <launchable type="desktop-id">xyz.rescribe.rescribe.desktop</launchable>
 
   <content_rating type="oars-1.1" />
+
+  <branding>
+    <color type="primary" scheme_preference="light">#cdab8f</color>
+    <color type="primary" scheme_preference="dark">#63452c</color>
+  </branding>
 
   <releases>
     <release version="1.2.0" date="2024-02-16" type="stable">
