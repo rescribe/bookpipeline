@@ -6,8 +6,7 @@
 
 package main
 
-// if not one of the above platforms, we won't embed anything, so
-// just create empty byte slices
+// if not one of the above platforms, we won't embed tesseract
+// or getgbook, so just create empty byte slices
 var tesszip []byte
 var gbookzip []byte
-var tessdatazip []byte

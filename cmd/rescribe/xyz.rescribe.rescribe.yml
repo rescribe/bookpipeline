@@ -18,17 +18,15 @@ modules:
     buildsystem: simple
     build-commands:
       - cd cmd/rescribe && go build .
-      - cd cmd/rescribe && go build -tags wayland -o rescribe-wayland .
+      - cd cmd/rescribe && go build -tags flatpak,wayland -o rescribe-wayland .
       - install -Dm00755 cmd/rescribe/rescribe $FLATPAK_DEST/bin/rescribe-bin
       - install -Dm00755 cmd/rescribe/rescribe-wayland $FLATPAK_DEST/bin/rescribe-bin-wayland
       - install -Dm00644 cmd/rescribe/icon.256.png $FLATPAK_DEST/share/icons/hicolor/256x256/apps/xyz.rescribe.rescribe.png
       - install -Dm00644 cmd/rescribe/icon.svg $FLATPAK_DEST/share/icons/hicolor/scalable/apps/xyz.rescribe.rescribe.svg
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.desktop $FLATPAK_DEST/share/applications/xyz.rescribe.rescribe.desktop
       - install -Dm00644 cmd/rescribe/xyz.rescribe.rescribe.appdata.xml $FLATPAK_DEST/share/appdata/xyz.rescribe.rescribe.appdata.xml
-      - printf '#!/bin/sh\nexport TMPDIR=$XDG_RUNTIME_DIR\nbin=rescribe-bin\ntest -n "$WAYLAND_DISPLAY" && bin=rescribe-bin-wayland\n"$bin" -gbookcmd "/app/bin/getgbook" -tesscmd "/app/bin/tesseract" -t "/app/share/tessdata/rescribev9_fast.traineddata"\n' > $FLATPAK_DEST/bin/rescribe
+      - printf '#!/bin/sh\nexport TMPDIR=$XDG_RUNTIME_DIR\nbin=rescribe-bin\ntest -n "$WAYLAND_DISPLAY" && bin=rescribe-bin-wayland\n"$bin" -gbookcmd "/app/bin/getgbook" -tesscmd "/app/bin/tesseract"\n' > $FLATPAK_DEST/bin/rescribe
       - chmod 755 $FLATPAK_DEST/bin/rescribe
-      - mkdir -p $FLATPAK_DEST/share/tessdata
-      - cp -r tessdata/* $FLATPAK_DEST/share/tessdata/
     sources:
       - type: git
         url: https://github.com/rescribe/bookpipeline
@@ -38,11 +36,9 @@ modules:
         url: https://rescribe.xyz/rescribe/modules-20240206-d2399a.tar.xz
         sha256: 682820d4cb6129c564cf8df494dc12d35ab059ed99dba34c0b3d6260f7fc30fb
         strip-components: 0
-      - type: archive
+      - type: file
         url: https://rescribe.xyz/rescribe/embeds/tessdata.20220322.zip
         sha256: 725fd570a3c3dc0eba9463248ce47a8646db8bafb198d428d6bb8f0be18540ee
-        strip-components: 0
-        dest: tessdata
   - name: leptonica
     sources:
       - type: git
