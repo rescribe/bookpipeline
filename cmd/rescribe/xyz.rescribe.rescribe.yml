@@ -17,7 +17,7 @@ modules:
   - name: rescribe
     buildsystem: simple
     build-commands:
-      - cd cmd/rescribe && go build .
+      - cd cmd/rescribe && go build -tags flatpak .
       - cd cmd/rescribe && go build -tags flatpak,wayland -o rescribe-wayland .
       - install -Dm00755 cmd/rescribe/rescribe $FLATPAK_DEST/bin/rescribe-bin
       - install -Dm00755 cmd/rescribe/rescribe-wayland $FLATPAK_DEST/bin/rescribe-bin-wayland
@@ -30,15 +30,16 @@ modules:
     sources:
       - type: git
         url: https://github.com/rescribe/bookpipeline
-        tag: v1.2.0
-        commit: bf6e4762191aee0c27242f1d9cbbc2b8972c12f9
+        tag: HEAD
+        commit: f463237e3cda7cba5af2f062eb44a2798daf7b49
       - type: archive
-        url: https://rescribe.xyz/rescribe/modules-20240206-d2399a.tar.xz
-        sha256: 682820d4cb6129c564cf8df494dc12d35ab059ed99dba34c0b3d6260f7fc30fb
+        url: https://rescribe.xyz/rescribe/modules-20240409-1a4506.tar.xz
+        sha256: 0452ec822b9c807d9710ec34ed65169ec342039620f614d483cf91443e7cfc5e
         strip-components: 0
       - type: file
         url: https://rescribe.xyz/rescribe/embeds/tessdata.20220322.zip
         sha256: 725fd570a3c3dc0eba9463248ce47a8646db8bafb198d428d6bb8f0be18540ee
+        dest: cmd/rescribe
   - name: leptonica
     sources:
       - type: git
