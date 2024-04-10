@@ -30,8 +30,8 @@ modules:
     sources:
       - type: git
         url: https://github.com/rescribe/bookpipeline
-        tag: HEAD
-        commit: f463237e3cda7cba5af2f062eb44a2798daf7b49
+        tag: v1.3.0
+        commit: 6230fc2cf55e2e330caa44f534209c9fba35daa0
       - type: archive
         url: https://rescribe.xyz/rescribe/modules-20240409-1a4506.tar.xz
         sha256: 0452ec822b9c807d9710ec34ed65169ec342039620f614d483cf91443e7cfc5e
