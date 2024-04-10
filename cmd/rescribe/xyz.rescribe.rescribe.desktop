@@ -2,7 +2,7 @@
 Version=1.0
 Type=Application
 Name=Rescribe
-Comment=An easy-to-use desktop tool for performing OCR on image files, PDFs and Google Books.
+Comment=An easy-to-use desktop tool for OCR of image files, PDFs and Google Books.
 Categories=Office;Literature;OCR;Scanning;TextTools
 Icon=xyz.rescribe.rescribe
 Exec=rescribe

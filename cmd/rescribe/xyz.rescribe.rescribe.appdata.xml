@@ -42,6 +42,11 @@
   </branding>
 
   <releases>
+    <release version="1.3.0" date="2024-04-10" type="stable">
+      <description>
+        <p>Added support for PDFs with embedded rotated images, created new icon, added version number to MacOS and Windows builds, fixed possible crash on Windows caused by temporary jpegs not being closed before removal, fixed issue where an invalid PDF could be created in some cases, fixed issue with flatpak where not all trainings were available.</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2024-02-16" type="stable">
       <description>
         <p>Fixed bug with directories containing files with spaces causing the process to fail, added concatenated text output named bookname.txt, fixed selecting a custom training in flatpak build, fixed getgbook on arm64 MacOS, improved layout of log area to fill all available space in the window, improved readability of log area text.</p>
