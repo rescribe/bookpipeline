@@ -31,7 +31,7 @@ dist/linux/rescribe: $(GODEPS)
 
 dist/linux/wayland/rescribe: $(GODEPS)
 	go generate
-	mkdir -p dist/linux
+	mkdir -p dist/linux/wayland
 	GOOS=linux GOARCH=amd64 go build -tags embed,wayland -o $@ .
 
 build/darwin_amd64/rescribe: $(GODEPS)
