@@ -52,29 +52,6 @@ func Test_CheckImages(t *testing.T) {
 	}
 }
 
-func Test_DetectQueueType(t *testing.T) {
-	conn := &bookpipeline.LocalConn{}
-
-	cases := []struct {
-		dir string
-		qid string
-	}{
-		{"testdata/mostlypng", conn.WipeQueueId()},
-		{"testdata/mostlyjpg", conn.PreQueueId()},
-		{"testdata/equalpngandjpg", conn.PreQueueId()},
-		{"testdata/nonexistent", conn.PreQueueId()},
-	}
-
-	for _, c := range cases {
-		t.Run(c.dir, func(t *testing.T) {
-			qid := DetectQueueType(c.dir, conn)
-			if qid != c.qid {
-				t.Fatalf("Error, expected qid %v, got qid %v", qid, c.qid)
-			}
-		})
-	}
-}
-
 func Test_UploadImages(t *testing.T) {
 	var slog StrLog
 	vlog := log.New(&slog, "", 0)

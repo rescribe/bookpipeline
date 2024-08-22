@@ -84,21 +84,13 @@ func CheckImages(ctx context.Context, dir string) error {
 	return nil
 }
 
-// DetectQueueType detects which queue to use based on the preponderance
-// of files of a particular extension in a directory
+// DetectQueueType returns which queue to use based on the whether
+// wipe is requested
 func DetectQueueType(dir string, conn Queuer, nowipe bool) string {
 	if nowipe {
 		return conn.PreNoWipeQueueId()
 	}
-	pngdirs, _ := filepath.Glob(dir + "/*.png")
-	jpgdirs, _ := filepath.Glob(dir + "/*.jpg")
-	pngcount := len(pngdirs)
-	jpgcount := len(jpgdirs)
-	if pngcount > jpgcount {
-		return conn.WipeQueueId()
-	} else {
-		return conn.PreQueueId()
-	}
+	return conn.PreQueueId()
 }
 
 // UploadImages uploads all files with a suffix of ".jpg" or ".png"
