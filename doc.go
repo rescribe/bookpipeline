@@ -10,7 +10,7 @@ accompanying README for more details.
 
 Introduction
 
-The book pipeline is a way to split the different processes that for book OCR
+The book pipeline is a way to split the different processes for book OCR
 into small jobs, which can be processed when a computer is ready for them. It
 is currently implemented with Amazon's AWS cloud systems, and can scale from
 zero to many computers, with jobs being processed faster when more servers are
@@ -57,7 +57,7 @@ be found with lspipeline, like so:
   ssh -i key.pem admin@<ip-address> sudo poweroff
 
 The bookpipeline program is run as a service managed by systemd on the
-servers. The system is fully resiliant in the face of unexpected failures.
+servers. The system is fully resilient in the face of unexpected failures.
 See the section "How the pipeline works" for details on this. bookpipeline
 can be managed like any other systemd service. A few examples:
   # show all logs for bookpipeline:
@@ -136,7 +136,7 @@ queuePreNoWipe
 This queue works the same as queuePreProc, except that it doesn'T
 wipe the pages, only runs the binarisation. It is designed for books
 which don't have tricky gutters or similar noise around the edges, but
-do have marginal content which might be inadventently removed by the
+do have marginal content which might be inadvertently removed by the
 wiper.
 
   example message: APolishGentleman_MemoirByAdamKruczkiewicz

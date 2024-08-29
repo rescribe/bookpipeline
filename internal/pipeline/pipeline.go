@@ -356,7 +356,7 @@ func Analyse(conn Downloader, mkfullpdf bool) func(context.Context, chan string,
 			if err != nil {
 				for range toanalyse {
 				} // consume the rest of the receiving channel so it isn't blocked
-				errc <- fmt.Errorf("Error retreiving confidence for %s: %s", path, err)
+				errc <- fmt.Errorf("Error retrieving confidence for %s: %s", path, err)
 				return
 			}
 			base := filepath.Base(path)
