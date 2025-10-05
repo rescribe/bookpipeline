@@ -20,7 +20,7 @@ OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
 
 EMBEDS=embed_darwin.go embed_darwin_amd64.go embed_darwin_arm64.go embed_linux.go embed_windows.go embed_other.go
 GODEPS=gui.go main.go $(EMBEDS)
-VERSION=1.3.0
+VERSION=1.4.0
 
 all: dist/linux/rescribe dist/linux/wayland/rescribe dist/darwin/rescribe.zip dist/windows/rescribe.exe
 

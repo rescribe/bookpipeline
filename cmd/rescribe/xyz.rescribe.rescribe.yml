@@ -11,7 +11,6 @@ finish-args:
   - --socket=wayland
   - --device=dri # OpenGL
   - --share=network # Used for google book downloading
-  - --filesystem=home
 command: rescribe
 modules:
   - name: rescribe

@@ -42,6 +42,11 @@
   </branding>
 
   <releases>
+    <release version="1.4.0" date="2025-10-05" type="stable">
+      <description>
+        <p>Ensure directories of PNGs are always binarised (thanks Alex Turton), updated GUI library, updated flatpak version to use xdg desktop portals for sandboxed file access.</p>
+      </description>
+    </release>
     <release version="1.3.0" date="2024-04-10" type="stable">
       <description>
         <p>Added support for PDFs with embedded rotated images, created new icon, added version number to MacOS and Windows builds, fixed possible crash on Windows caused by temporary jpegs not being closed before removal, fixed issue where an invalid PDF could be created in some cases, fixed issue with flatpak where not all trainings were available.</p>
