@@ -29,11 +29,11 @@ modules:
     sources:
       - type: git
         url: https://github.com/rescribe/bookpipeline
-        tag: v1.3.0
-        commit: 6230fc2cf55e2e330caa44f534209c9fba35daa0
+        tag: v1.4.0
+        commit: f559f9e7c709afa6dabfcd54c0660fdc72585fcc
       - type: archive
-        url: https://rescribe.xyz/rescribe/modules-20240409-1a4506.tar.xz
-        sha256: 0452ec822b9c807d9710ec34ed65169ec342039620f614d483cf91443e7cfc5e
+        url: https://rescribe.xyz/rescribe/modules-20251211-f559f9.tar.xz
+        sha256: ae736d34f11498829c7f0ee1874b2874db98de5bf99bf717620e8f91f36083ca
         strip-components: 0
       - type: file
         url: https://rescribe.xyz/rescribe/embeds/tessdata.20220322.zip
