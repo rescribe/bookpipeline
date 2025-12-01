@@ -265,9 +265,11 @@ func start(ctx context.Context, log *log.Logger, cmd string, tessdir string, gbo
 	}
 	go func() {
 		for r := range stdout {
-			logarea.SetText(logarea.Text + string(r))
-			logarea.CursorRow = strings.Count(logarea.Text, "\n")
-			updateProgress(logarea.Text, progressBar)
+			fyne.Do(func() {
+				logarea.SetText(logarea.Text + string(r))
+				logarea.CursorRow = strings.Count(logarea.Text, "\n")
+				updateProgress(logarea.Text, progressBar)
+			})
 		}
 	}()
 
@@ -280,8 +282,10 @@ func start(ctx context.Context, log *log.Logger, cmd string, tessdir string, gbo
 	}
 	go func() {
 		for r := range stderr {
-			logarea.SetText(logarea.Text + string(r))
-			logarea.CursorRow = strings.Count(logarea.Text, "\n")
+			fyne.Do(func() {
+				logarea.SetText(logarea.Text + string(r))
+				logarea.CursorRow = strings.Count(logarea.Text, "\n")
+			})
 		}
 	}()
 
@@ -292,6 +296,7 @@ func start(ctx context.Context, log *log.Logger, cmd string, tessdir string, gbo
 }
 
 // letsGo starts the core process
+// this is started from a goroutine, so all fyne calls need wrapping in fyne.Do()
 func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gbookcmd string, dir string, training string, win fyne.Window, logarea *widget.Entry, progressBar *widget.ProgressBar, abortbtn *widget.Button, wipe bool, bigpdf bool, disableWidgets []fyne.Disableable) {
 	bookdir := dir
 	savedir := dir
@@ -300,38 +305,38 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 	f, err := os.Stat(bookdir)
 	if err != nil && !strings.HasPrefix(bookdir, "Google Book: ") {
 		msg := fmt.Sprintf("Error opening %s: %v", bookdir, err)
-		dialog.ShowError(errors.New(msg), win)
+		fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 		fmt.Fprintf(os.Stderr, msg)
 
-		progressBar.SetValue(0.0)
+		fyne.Do(func() { progressBar.SetValue(0.0) })
 		for _, v := range disableWidgets {
-			v.Enable()
+			fyne.Do(func() { v.Enable() })
 		}
-		abortbtn.Disable()
+		fyne.Do(func() { abortbtn.Disable() })
 		return
 	}
 
 	for _, v := range disableWidgets {
-		v.Disable()
+		fyne.Do(func() { v.Disable() })
 	}
 
-	abortbtn.Enable()
+	fyne.Do(func() { abortbtn.Enable() })
 
-	progressBar.SetValue(0.1)
+	fyne.Do(func() { progressBar.SetValue(0.1) })
 
 	if strings.HasPrefix(dir, "Google Book: ") {
 		if gbookcmd == "" {
 			msg := fmt.Sprintf("No getgbook found, can't download Google Book. Either set -gbookcmd on the command line, or use the official build which includes an embedded copy of getgbook.\n")
-			dialog.ShowError(errors.New(msg), win)
+			fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 			fmt.Fprintf(os.Stderr, msg)
-			progressBar.SetValue(0.0)
+			fyne.Do(func() { progressBar.SetValue(0.0) })
 			for _, v := range disableWidgets {
-				v.Enable()
+				fyne.Do(func() { v.Enable() })
 			}
-			abortbtn.Disable()
+			fyne.Do(func() { abortbtn.Disable() })
 			return
 		}
-		progressBar.SetValue(0.11)
+		fyne.Do(func() { progressBar.SetValue(0.11) })
 		start := len("Google Book: ")
 		bookname = dir[start : start+12]
 
@@ -344,14 +349,14 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 		if err != nil {
 			if !strings.HasSuffix(err.Error(), "signal: killed") {
 				msg := fmt.Sprintf("Error downloading Google Book %s\n", bookname)
-				dialog.ShowError(errors.New(msg), win)
+				fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 				fmt.Fprintf(os.Stderr, msg)
 			}
 			progressBar.SetValue(0.0)
 			for _, v := range disableWidgets {
-				v.Enable()
+				fyne.Do(func() { v.Enable() })
 			}
-			abortbtn.Disable()
+			fyne.Do(func() { abortbtn.Disable() })
 			return
 		}
 		bookdir = d
@@ -360,20 +365,20 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 	}
 
 	if strings.HasSuffix(dir, ".pdf") && !f.IsDir() {
-		progressBar.SetValue(0.12)
+		fyne.Do(func() { progressBar.SetValue(0.12) })
 		bookdir, err = extractPdfImgs(ctx, bookdir)
 		if err != nil {
 			if !strings.HasSuffix(err.Error(), "context canceled") {
 				msg := fmt.Sprintf("Error opening PDF %s: %v\n", bookdir, err)
-				dialog.ShowError(errors.New(msg), win)
+				fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 				fmt.Fprintf(os.Stderr, msg)
 			}
 
-			progressBar.SetValue(0.0)
+			fyne.Do(func() { progressBar.SetValue(0.0) })
 			for _, v := range disableWidgets {
-				v.Enable()
+				fyne.Do(func() { v.Enable() })
 			}
-			abortbtn.Disable()
+			fyne.Do(func() { abortbtn.Disable() })
 			return
 		}
 
@@ -381,14 +386,14 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 		// which will occur if we encounter an image we can't decode
 		if bookdir == "" {
 			msg := fmt.Sprintf("Error opening PDF\nThe format of this PDF is not supported, extract the images to .jpg manually into a\nfolder first, using a tool like the PDF image extractor at https://pdfcandy.com/extract-images.html.\n")
-			dialog.ShowError(errors.New(msg), win)
+			fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 			fmt.Fprintf(os.Stderr, msg)
 
-			progressBar.SetValue(0.0)
+			fyne.Do(func() { progressBar.SetValue(0.0) })
 			for _, v := range disableWidgets {
-				v.Enable()
+				fyne.Do(func() { v.Enable() })
 			}
-			abortbtn.Disable()
+			fyne.Do(func() { abortbtn.Disable() })
 			return
 		}
 
@@ -404,7 +409,7 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 
 	err = startProcess(ctx, log, cmd, bookdir, bookname, training, savedir, tessdir, wipe, bigpdf)
 	if err != nil && strings.HasSuffix(err.Error(), "context canceled") {
-		progressBar.SetValue(0.0)
+		fyne.Do(func() { progressBar.SetValue(0.0) })
 		return
 	}
 	if err != nil {
@@ -412,26 +417,26 @@ func letsGo(ctx context.Context, log *log.Logger, cmd string, tessdir string, gb
 		if strings.HasSuffix(err.Error(), "No images found") && strings.HasSuffix(dir, ".pdf") && !f.IsDir() {
 			msg = fmt.Sprintf("Error opening PDF\nNo images found in the PDF. Most likely the format of this PDF is not supported,\nextract the images to .jpg manually into a folder first, using a tool like\nthe PDF image extractor at https://pdfcandy.com/extract-images.html.\n")
 		}
-		dialog.ShowError(errors.New(msg), win)
+		fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 		fmt.Fprintf(os.Stderr, msg)
 
-		progressBar.SetValue(0.0)
+		fyne.Do(func() { progressBar.SetValue(0.0) })
 		for _, v := range disableWidgets {
-			v.Enable()
+			fyne.Do(func() { v.Enable() })
 		}
-		abortbtn.Disable()
+		fyne.Do(func() { abortbtn.Disable() })
 		return
 	}
 
-	progressBar.SetValue(1.0)
+	fyne.Do(func() { progressBar.SetValue(1.0) })
 
 	for _, v := range disableWidgets {
-		v.Enable()
+		fyne.Do(func() { v.Enable() })
 	}
-	abortbtn.Disable()
+	fyne.Do(func() { abortbtn.Disable() })
 
 	msg := fmt.Sprintf("OCR process finished successfully.\n\nYour completed files have been saved in:\n%s", savedir)
-	dialog.ShowInformation("OCR Complete", msg, win)
+	fyne.Do(func() { dialog.ShowInformation("OCR Complete", msg, win) })
 }
 
 // startGui starts the gui process
