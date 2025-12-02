@@ -285,9 +285,9 @@ These training files are included in rescribe, and are always available:
 
 	if flag.NArg() < 1 || *usegui {
 		err := startGui(verboselog, tessCommand, gbookCommand, trainingName, tessdir)
-		err = os.RemoveAll(tessdir)
-		if err != nil {
-			log.Printf("Error removing tesseract directory %s: %v", tessdir, err)
+		err2 := os.RemoveAll(tessdir)
+		if err2 != nil {
+			log.Printf("Error removing tesseract directory %s: %v", tessdir, err2)
 		}
 
 		if err != nil {
