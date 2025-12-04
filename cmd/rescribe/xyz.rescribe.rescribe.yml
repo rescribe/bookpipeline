@@ -2,7 +2,8 @@ app-id: xyz.rescribe.rescribe
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
-sdk-extensions: org.freedesktop.Sdk.Extension.golang
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.golang
 build-options:
   append-path: /usr/lib/sdk/golang/bin
 finish-args:
@@ -11,8 +12,30 @@ finish-args:
   - --socket=wayland
   - --device=dri # OpenGL
   - --share=network # Used for google book downloading
+  - --filesystem=home
 command: rescribe
 modules:
+  - name: leptonica
+    sources:
+      - type: git
+        url: https://github.com/DanBloomberg/leptonica
+        tag: 1.86.0
+        commit: dbb48b0fd0e10e943ecd9bab7439701842894733
+  - name: tesseract-ocr
+    sources:
+      - type: git
+        url: https://github.com/tesseract-ocr/tesseract
+        tag: 5.5.1
+        commit: 3b7c70e34dea179549ed3e995872e2e019eb8477
+  - name: getxbook
+    buildsystem: simple
+    build-commands:
+      - make PREFIX=$FLATPAK_DEST install
+    sources:
+      - type: git
+        url: https://git.njw.name/getxbook.git
+        commit: b14f62f36939e0c14f12d4a823c9b1d701420cd4
+        disable-shallow-clone: true
   - name: rescribe
     buildsystem: simple
     build-commands:
@@ -30,33 +53,12 @@ modules:
       - type: git
         url: https://github.com/rescribe/bookpipeline
         tag: v1.4.0
-        commit: f559f9e7c709afa6dabfcd54c0660fdc72585fcc
+        commit: d6c559a87e7cca9e119117f2894fc33df5bc5611
       - type: archive
-        url: https://rescribe.xyz/rescribe/modules-20251211-f559f9.tar.xz
-        sha256: ae736d34f11498829c7f0ee1874b2874db98de5bf99bf717620e8f91f36083ca
+        url: https://rescribe.xyz/rescribe/modules-20251201-d6c559a8.tar.xz
+        sha256: 49f8c776cb9f659ee31534cff9b1318d5e4dc71ed72a1080bab861614515c896
         strip-components: 0
       - type: file
         url: https://rescribe.xyz/rescribe/embeds/tessdata.20220322.zip
         sha256: 725fd570a3c3dc0eba9463248ce47a8646db8bafb198d428d6bb8f0be18540ee
         dest: cmd/rescribe
-  - name: leptonica
-    sources:
-      - type: git
-        url: https://github.com/DanBloomberg/leptonica
-        tag: 1.82.0
-        commit: f4138265b390f1921b9891d6669674d3157887d8
-  - name: tesseract-ocr
-    sources:
-      - type: git
-        url: https://github.com/tesseract-ocr/tesseract
-        tag: 5.2.0
-        commit: 5ad5325a0aa8effc47ca033625b6a51682f82767
-  - name: getxbook
-    buildsystem: simple
-    build-commands:
-      - make PREFIX=$FLATPAK_DEST install
-    sources:
-      - type: git
-        url: https://git.njw.name/getxbook.git
-        commit: c770a86cca74f3b6235000c77c2ab74487e2ac2a
-        disable-shallow-clone: true
