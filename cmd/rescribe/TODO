@@ -1,5 +1,7 @@
 Add option to choose multiple languages (easy on tesseract level, slightly tricky on GUI level)
 
+Remove filesystem permission from flatpak - unneeded for loading now thanks to portals, but would need to rework for saving before it's possible
+
 Write to PDF as we go along, so memory requirements are reduced. Would require further modifying fpdf: https://github.com/jung-kurt/gofpdf/issues/110
 
 Maybe pay apple $100 for a certificate to avoid their security warnings (can be easily included in 'fyne package')

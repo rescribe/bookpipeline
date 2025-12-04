@@ -18,6 +18,8 @@
 # perfectly for us.
 OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
 
+GOPATH=$(HOME)/go
+
 EMBEDS=embed_darwin.go embed_darwin_amd64.go embed_darwin_arm64.go embed_linux.go embed_windows.go embed_other.go
 GODEPS=gui.go main.go $(EMBEDS)
 VERSION=1.4.0
@@ -49,8 +51,8 @@ build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create build/darwin_amd64/rescribe build/darwin_arm64/rescribe -output $@
 
 build/darwin/Rescribe.app: build/darwin/rescribe
-	go install fyne.io/fyne/v2/cmd/fyne@v2.1.2
-	fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png --appVersion $(VERSION)
+	go install fyne.io/tools/cmd/fyne@v1.7.0
+	$(GOPATH)/bin/fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png --app-version $(VERSION)
 	codesign -s Rescribe Rescribe.app
 	mv Rescribe.app $@
 
@@ -58,15 +60,11 @@ dist/darwin/rescribe.zip: build/darwin/Rescribe.app
 	mkdir -p dist/darwin
 	cd build/darwin; zip -r ../../dist/darwin/rescribe.zip Rescribe.app
 
-build/windows/rescribe-bin.exe: $(GODEPS)
-	go generate
-	mkdir -p build/windows
-	CC="x86_64-w64-mingw32-gcc" CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -tags embed -o $@ .
-
-dist/windows/rescribe.exe: build/windows/rescribe-bin.exe
+dist/windows/rescribe.exe: $(GODEPS)
 	mkdir -p dist/windows
-	CC="x86_64-w64-mingw32-gcc" fyne package --tags embed --name Rescribe --exe build/windows/rescribe-bin.exe --os windows --icon icon.png --appVersion $(VERSION)
-	mv rescribe.exe $@
+	go generate
+	go install fyne.io/tools/cmd/fyne@v1.7.0
+	CC="x86_64-w64-mingw32-gcc" $(GOPATH)/bin/fyne package --tags embed --name Rescribe --exe $@ --os windows --icon icon.png --app-version $(VERSION)
 
 # used for flatpak building
 modules.tar.xz: ../../go.mod
