@@ -1,0 +1,41 @@
+# This will create a container with all the tools needed to build and package
+# Rescribe for all supported targets. It is written with development with
+# toolbx in mind, but will also work well for CI infrastructure. 
+# To create a toolbox from this, use the following commands:
+#   $ podman build --squash -t localhost/rescribe-toolbox:44
+#   $ toolbox create --image localhost/rescribe-toolbox:44 
+
+ARG FEDORA_VERSION=44
+FROM registry.fedoraproject.org/fedora-toolbox:${FEDORA_VERSION}
+ARG OSXCROSS_VERSION=e6ab3fa7423f9235ce9ed6381d6d3af191b46b59
+ARG XCODE_VERSION=12.5.1
+ARG MACOSSDK_VERSION=11.3
+
+RUN dnf -y install \
+	golang golang-misc \
+	make gcc \
+	mesa-libGL-devel wayland-devel \
+	libXcursor-devel libXrandr-devel libXi-devel libXinerama-devel libXxf86vm-devel libxkbcommon-devel
+
+# for flatpak
+RUN dnf -y install flatpak-builder
+
+# for windows cross-compilation
+RUN dnf -y install mingw64-gcc
+
+# for osx cross-compilation
+RUN dnf -y install clang make openssl-devel xz-devel libxml2-devel git cmake patch xz bzip2 cpio bzip2-devel bash
+RUN git clone --revision=${OSXCROSS_VERSION} https://github.com/tpoechtrager/osxcross
+WORKDIR osxcross
+ADD https://archive.org/download/xcode-${XCODE_VERSION}/Xcode_${XCODE_VERSION}.xip Xcode.xip
+#COPY Xcode_${XCODE_VERSION}.xip Xcode.xip # alternative if you have already downloaded it
+RUN ./tools/gen_sdk_package_pbzx.sh Xcode.xip
+RUN mv MacOSX${MACOSSDK_VERSION}.sdk.tar.xz tarballs/
+# paths aren't set correctly in the script, so just add them manually 
+RUN sed -ie '13i set_path_vars' ./build.sh
+RUN UNATTENDED=1 ./build.sh 
+RUN mv target /opt/osxcross
+WORKDIR ..
+RUN rm -rf osxcross
+
+RUN dnf clean all
