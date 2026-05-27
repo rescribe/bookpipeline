@@ -16,7 +16,12 @@
 # that are too old or too new to build Rescribe correctly.
 # SDK 11.3, as extracted from XCode 12.5.1, seems to work
 # perfectly for us.
-OSXCROSSBIN=$(HOME)/src/osxcross/target/bin
+OSXCROSSDIR=/opt/osxcross
+# go < 1.25 needed for the MacOS SDK version we use due to
+# https://go-review.googlesource.com/c/go/+/654376
+# could probably use a newer SDK, but finding and building
+# a working version is a pain
+OSXGOVERSION=go1.24.13
 
 GOPATH=$(HOME)/go
 
@@ -39,21 +44,23 @@ dist/linux/wayland/rescribe: $(GODEPS)
 build/darwin_amd64/rescribe: $(GODEPS)
 	go generate
 	mkdir -p build/darwin_amd64
-	PATH="$(PATH):$(OSXCROSSBIN)" CC="o64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -tags embed -o $@ .
+	LD_LIBRARY_PATH="$(OSXCROSSDIR)/lib" PATH="$(PATH):$(OSXCROSSDIR)/bin" CC="o64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 GOTOOLCHAIN=$(OSXGOVERSION) go build -tags embed -o $@ .
 
 build/darwin_arm64/rescribe: $(GODEPS)
 	go generate
 	mkdir -p build/darwin_arm64
-	PATH="$(PATH):$(OSXCROSSBIN)" CC="oa64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -tags embed -o $@ .
+	LD_LIBRARY_PATH="$(OSXCROSSDIR)/lib" PATH="$(PATH):$(OSXCROSSDIR)/bin" CC="oa64-clang" CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 GOTOOLCHAIN=$(OSXGOVERSION) go build -tags embed -o $@ .
 
 build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 	mkdir -p build/darwin
-	PATH="$(PATH):$(OSXCROSSBIN)" lipo -create build/darwin_amd64/rescribe build/darwin_arm64/rescribe -output $@
+	LD_LIBRARY_PATH="$(OSXCROSSDIR)/lib" PATH="$(PATH):$(OSXCROSSDIR)/bin" lipo -create build/darwin_amd64/rescribe build/darwin_arm64/rescribe -output $@
 
 build/darwin/Rescribe.app: build/darwin/rescribe
 	go install fyne.io/tools/cmd/fyne@v1.7.0
-	$(GOPATH)/bin/fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png --app-version $(VERSION)
-	codesign -s Rescribe Rescribe.app
+	PATH="$(PATH):$(OSXCROSSDIR)/bin" $(GOPATH)/bin/fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png --app-version $(VERSION)
+	# TODO: switch to using rcodesign instead so don't need a MacOS box:
+	# https://gregoryszorc.com/docs/apple-codesign/stable/
+	#codesign -s Rescribe Rescribe.app
 	mv Rescribe.app $@
 
 dist/darwin/rescribe.zip: build/darwin/Rescribe.app
