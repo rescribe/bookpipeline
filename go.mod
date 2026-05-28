@@ -1,13 +1,13 @@
 module rescribe.xyz/bookpipeline
 
-go 1.25.0
+go 1.24.13
 
 require (
 	fyne.io/fyne/v2 v2.7.1
 	github.com/aws/aws-sdk-go v1.40.6
 	github.com/nickjwhite/gofpdf v1.12.7-0.20240307131705-b017c7c7e41b
 	github.com/wcharczuk/go-chart/v2 v2.1.0
-	golang.org/x/image v0.38.0
+	golang.org/x/image v0.36.0
 	rescribe.xyz/pdf v0.1.6
 	rescribe.xyz/preproc v0.4.3
 	rescribe.xyz/utils v0.1.3
@@ -45,7 +45,7 @@ require (
 	github.com/yuin/goldmark v1.7.8 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rescribe.xyz/integral v0.6.1 // indirect
 )
