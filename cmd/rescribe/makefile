@@ -55,12 +55,13 @@ build/darwin/rescribe: build/darwin_amd64/rescribe build/darwin_arm64/rescribe
 	mkdir -p build/darwin
 	LD_LIBRARY_PATH="$(OSXCROSSDIR)/lib" PATH="$(PATH):$(OSXCROSSDIR)/bin" lipo -create build/darwin_amd64/rescribe build/darwin_arm64/rescribe -output $@
 
-build/darwin/Rescribe.app: build/darwin/rescribe
+rescribe.pem:
+	rcodesign generate-self-signed-certificate --person-name Rescribe > $@
+
+build/darwin/Rescribe.app: build/darwin/rescribe rescribe.pem
 	go install fyne.io/tools/cmd/fyne@v1.7.0
 	PATH="$(PATH):$(OSXCROSSDIR)/bin" $(GOPATH)/bin/fyne package --release --certificate Rescribe --id xyz.rescribe.rescribe --tags embed --name Rescribe --exe build/darwin/rescribe --os darwin --icon icon.png --app-version $(VERSION)
-	# TODO: switch to using rcodesign instead so don't need a MacOS box:
-	# https://gregoryszorc.com/docs/apple-codesign/stable/
-	#codesign -s Rescribe Rescribe.app
+	rcodesign sign --pem-file rescribe.pem Rescribe.app
 	mv Rescribe.app $@
 
 dist/darwin/rescribe.zip: build/darwin/Rescribe.app

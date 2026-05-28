@@ -31,11 +31,15 @@ ADD https://archive.org/download/xcode-${XCODE_VERSION}/Xcode_${XCODE_VERSION}.x
 #COPY Xcode_${XCODE_VERSION}.xip Xcode.xip # alternative if you have already downloaded it
 RUN ./tools/gen_sdk_package_pbzx.sh Xcode.xip
 RUN mv MacOSX${MACOSSDK_VERSION}.sdk.tar.xz tarballs/
-# paths aren't set correctly in the script, so just add them manually 
+# paths aren't set correctly in the script, so just add them manually
 RUN sed -ie '13i set_path_vars' ./build.sh
-RUN UNATTENDED=1 ./build.sh 
+RUN UNATTENDED=1 ./build.sh
 RUN mv target /opt/osxcross
 WORKDIR ..
 RUN rm -rf osxcross
+RUN dnf install -y cargo
+RUN cargo install apple-codesign@0.29.0
+RUN mv /root/.cargo/bin/rcodesign /usr/bin
+RUN rm -rf /root/.cargo
 
 RUN dnf clean all
